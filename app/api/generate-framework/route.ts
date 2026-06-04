@@ -19,5 +19,6 @@ export async function POST(request: Request) {
   }
 
   const prompt = buildGenerateFrameworkPrompt(input);
-  return runPromptWithCollection(prompt.system, prompt.user, "generate-framework", { idea: input.idea, problem: input.problem, stageSubject: input.stageSubject }, request);
+  const allowCollection = typeof body.allowCollection === "boolean" ? body.allowCollection : true;
+  return runPromptWithCollection(prompt.system, prompt.user, "generate-framework", { idea: input.idea, problem: input.problem, stageSubject: input.stageSubject }, request, allowCollection);
 }

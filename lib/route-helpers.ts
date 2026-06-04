@@ -59,12 +59,12 @@ export async function runPromptWithCollection(
   user: string,
   action: string,
   inputSummary: Record<string, unknown>,
-  request: Request
+  request: Request,
+  allowCollection?: boolean
 ) {
   try {
     const hashedIp = request.headers.get("x-hashed-ip") || "unknown";
-    const body = await request.clone().json().catch(() => ({})) as Record<string, unknown>;
-    const consent = typeof body.allowCollection === "boolean" ? body.allowCollection : true;
+    const consent = typeof allowCollection === "boolean" ? allowCollection : true;
 
     const text = await createChatCompletion([
       { role: "system", content: system },

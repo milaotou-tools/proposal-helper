@@ -1,6 +1,5 @@
 import { buildReviewDraftPrompt } from "@/lib/prompts/review-draft";
-import { jsonError, validateDraft, stringField } from "@/lib/route-helpers";
-import { createChatCompletion } from "@/lib/ai-client";
+import { jsonError, runPromptWithCollection, validateDraft, stringField } from "@/lib/route-helpers";
 
 export const runtime = "nodejs";
 
@@ -16,20 +15,6 @@ export async function POST(request: Request) {
   }
 
   const prompt = buildReviewDraftPrompt(input);
-
-  try {
-    const text = await createChatCompletion([
-      { role: "system", content: prompt.system },
-      { role: "user", content: prompt.user }
-    ]);
-    return Response.json({ text });
-  } catch (caught) {
-    const msg = caught instanceof Error ? caught.message : String(caught);
-    const stack = (caught instanceof Error ? caught.stack : "") || "";
-    return Response.json({
-      error: msg,
-      stack: stack.slice(0, 500),
-      name: caught instanceof Error ? caught.name : typeof caught
-    }, { status: 500 });
-  }
+  const allowCollection = typeof body.allowCollection === "boolean" ? body.allowCollection : true;
+  return runPromptWithCollection(prompt.system, prompt.user, "review-draft", { scope: input.scope }, request, allowCollection);
 }
