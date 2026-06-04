@@ -31,7 +31,7 @@ else
   git remote set-url origin "$REPO_URL"
   git fetch origin "$BRANCH"
   git reset --hard "origin/$BRANCH"
-  git clean -fd
+  git clean -fd -e .user.ini
 fi
 
 echo "[deploy] installing dependencies"
