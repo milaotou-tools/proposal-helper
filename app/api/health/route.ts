@@ -23,7 +23,6 @@ export async function GET() {
     model,
     baseUrl,
     keyConfigured,
-    keyPreview,
-    commit: "3ead3dd-v2"
+    keyPreview
   });
 }
