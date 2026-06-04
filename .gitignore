@@ -1,0 +1,10 @@
+node_modules
+.next
+out
+tmp
+data
+*.log
+.env
+.env*.local
+*.pid
+.vercel
