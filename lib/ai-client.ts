@@ -70,6 +70,7 @@ export async function createChatCompletion(messages: ChatMessage[]) {
     const body = bodyText ? (JSON.parse(bodyText) as ChatCompletionResponse) : {};
 
     if (!response.ok) {
+      console.error("[ai-client] DeepSeek error", { status: response.status, body: bodyText.slice(0, 500) });
       throw new Error(body.error?.message || `模型接口请求失败，状态码 ${response.status}。`);
     }
 
