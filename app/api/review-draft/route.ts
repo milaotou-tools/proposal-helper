@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     return Response.json({ text });
   } catch (caught) {
     const msg = caught instanceof Error ? caught.message : String(caught);
-    const stack = caught instanceof Error ? caught.stack : "";
+    const stack = (caught instanceof Error ? caught.stack : "") || "";
     return Response.json({
       error: msg,
       stack: stack.slice(0, 500),
