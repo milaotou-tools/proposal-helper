@@ -14,11 +14,15 @@ export async function GET() {
   const baseUrl = normalizeBaseUrl(process.env.DEEPSEEK_BASE_URL || process.env.OPENAI_BASE_URL || DEFAULT_BASE_URL);
   const model = process.env.DEEPSEEK_MODEL || process.env.OPENAI_MODEL || DEFAULT_MODEL;
 
+  const rawKey = (process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY || "");
+  const keyPreview = rawKey ? rawKey.slice(0, 8) + "***" + rawKey.slice(-4) : "empty";
+
   return NextResponse.json({
     ok: keyConfigured,
     provider: baseUrl.includes("deepseek") ? "DeepSeek" : "OpenAI-compatible",
     model,
     baseUrl,
-    keyConfigured
+    keyConfigured,
+    keyPreview
   });
 }
