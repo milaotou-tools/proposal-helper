@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { StepNavigation } from "@/components/StepNavigation";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
-import { PolishEditor } from "@/components/PolishEditor";
 
 const DRAFT_STEPS = [
   { label: "输入草稿", description: "粘贴你的申报书" },
@@ -182,7 +181,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
 
   return (
     <main className="min-h-screen bg-[#FAF9F6] px-4 py-6 text-[#141413] sm:px-6 lg:px-8">
-      <section className="mx-auto flex max-w-3xl flex-col gap-6">
+      <section className={`mx-auto flex flex-col gap-6 ${currentStep === 2 ? "max-w-6xl" : "max-w-3xl"}`}>
         {/* 返回按钮 */}
         <button
           type="button"
@@ -349,83 +348,146 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
           </div>
         )}
 
-        {/* Step 2: 逐栏打磨 */}
+        {/* Step 2: 逐栏打磨 — 左右分栏 */}
         {currentStep === 2 && (
-          <div className="rounded-md border border-[#E8E6E1] bg-white p-6">
-            <div className="mb-4 flex items-start justify-between">
-              <div>
+          <div className="flex flex-col gap-5 lg:flex-row">
+            {/* 左侧：步骤内容 */}
+            <div className="flex-1 rounded-md border border-[#E8E6E1] bg-white p-6">
+              <div className="mb-4">
                 <p className="text-sm font-bold text-[#6B7280]">操作提示</p>
                 <p className="text-sm leading-6 text-[#9CA3AF]">选择栏目，AI 深度打磨。左侧查看建议，右侧直接编辑原文。</p>
               </div>
-            </div>
 
-            <div className="mb-5">
-              <label className="mb-2 block text-sm font-bold text-[#141413]">选择要打磨的栏目</label>
-              <div className="flex flex-wrap gap-2">
-                {polishSections.map((section) => (
-                  <button
-                    key={section}
-                    type="button"
-                    onClick={() => {
-                      setPolishSection(section);
-                      setResultText("");
-                      setError("");
-                    }}
-                    className={`focus-ring rounded-md px-3 py-2 text-sm font-bold transition ${
-                      polishSection === section
-                        ? "bg-[#141413] text-white"
-                        : "border border-[#E8E6E1] bg-white text-[#141413] hover:bg-[#F3F2EF]"
-                    }`}
-                  >
-                    {section}
-                  </button>
-                ))}
+              <div className="mb-5">
+                <label className="mb-2 block text-sm font-bold text-[#141413]">选择要打磨的栏目</label>
+                <div className="flex flex-wrap gap-2">
+                  {polishSections.map((section) => (
+                    <button
+                      key={section}
+                      type="button"
+                      onClick={() => {
+                        setPolishSection(section);
+                        setResultText("");
+                        setError("");
+                      }}
+                      className={`focus-ring rounded-md px-3 py-2 text-sm font-bold transition ${
+                        polishSection === section
+                          ? "bg-[#141413] text-white"
+                          : "border border-[#E8E6E1] bg-white text-[#141413] hover:bg-[#F3F2EF]"
+                      }`}
+                    >
+                      {section}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <PolishEditor
-              section={polishSection}
-              originalText={extractSection(polishedDraft || draft, polishSection)}
-              onUpdate={(text) => updateSectionInDraft(polishSection, text)}
-              resultText={resultTitle.startsWith("逐栏打磨") ? resultText : ""}
-              isLoading={isLoading}
-              onStartPolish={handlePolish}
-            />
+              {/* AI 打磨建议区 */}
+              {!resultText && !isLoading && (
+                <div className="rounded-md bg-[#FAF9F6] px-4 py-12 text-center text-sm text-[#9CA3AF]">
+                  选择栏目后点击"开始打磨"查看 AI 建议
+                </div>
+              )}
 
-            <div className="mt-6 flex justify-between">
-              <button
-                type="button"
-                onClick={() => {
-                  setCurrentStep(1);
-                  setError("");
-                }}
-                className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
-              >
-                上一步
-              </button>
-              <button
-                type="button"
-                onClick={handlePolish}
-                className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
-              >
-                开始打磨
-              </button>
-            </div>
+              {isLoading && (
+                <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-8 text-center text-sm text-[#6B7280]">
+                  {loadingSteps[loadingStepIndex]}，请稍候...
+                </div>
+              )}
 
-            {completedPolish && (
-              <div className="mt-6 flex justify-end">
+              {resultText && resultTitle.startsWith("逐栏打磨") && !isLoading && (
+                <div className="space-y-2">
+                  {stripMarkdown(resultText).split("\n\n").filter(Boolean).map((block, i) => (
+                    <div
+                      key={i}
+                      onClick={() => {
+                        // Find matching text in right editor
+                        const phrase = (() => {
+                          const qm = block.match(/[“”]([^“”]{4,30})[“”]/);
+                          if (qm) return qm[1];
+                          const dq = block.match(/"([^"]{4,30})"/);
+                          if (dq) return dq[1];
+                          const sentences = block.split(/[。；，\n]/);
+                          let longest = "";
+                          for (const s of sentences) {
+                            const cleaned = s.replace(/[-\*\d\.\s、：:]/g, "").trim();
+                            if (cleaned.length > longest.length) longest = cleaned;
+                          }
+                          return longest.slice(0, 30);
+                        })();
+                        if (phrase && phrase.length >= 2) {
+                          const ta = document.getElementById("polish-editor-textarea") as HTMLTextAreaElement | null;
+                          if (ta) {
+                            const idx = ta.value.indexOf(phrase);
+                            if (idx !== -1) {
+                              ta.focus();
+                              ta.setSelectionRange(idx, idx + phrase.length);
+                              const lineHeight = parseInt(getComputedStyle(ta).lineHeight) || 28;
+                              const linesBefore = ta.value.slice(0, idx).split("\n").length;
+                              ta.scrollTop = Math.max(0, (linesBefore - 2) * lineHeight);
+                            }
+                          }
+                        }
+                      }}
+                      className="cursor-pointer rounded-md border border-[#E8E6E1] bg-[#FAF9F6] p-3 text-sm leading-7 text-[#141413] transition hover:border-[#D1D5DB] hover:bg-[#F3F2EF]"
+                    >
+                      {block}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-6 flex justify-between">
                 <button
                   type="button"
                   onClick={() => {
-                    setCurrentStep(3);
+                    setCurrentStep(1);
                     setError("");
                   }}
+                  className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
+                >
+                  上一步
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePolish}
                   className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
                 >
-                  下一步：模拟预审
+                  开始打磨
                 </button>
               </div>
-            )}
+
+              {completedPolish && (
+                <div className="mt-6 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentStep(3);
+                      setError("");
+                    }}
+                    className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
+                  >
+                    下一步：模拟预审
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* 右侧：原文编辑面板 */}
+            <div className="flex-1 rounded-md border border-[#E8E6E1] bg-white p-6">
+              <div className="mb-4">
+                <p className="text-sm font-bold text-[#6B7280]">原文编辑</p>
+                <p className="text-sm leading-6 text-[#9CA3AF]">直接编辑草稿，切换栏目保留修改</p>
+              </div>
+              <textarea
+                id="polish-editor-textarea"
+                value={extractSection(polishedDraft || draft, polishSection)}
+                onChange={(e) => updateSectionInDraft(polishSection, e.target.value)}
+                className="w-full resize-y rounded-md border border-[#E8E6E1] bg-white px-3 py-3 text-sm leading-8 text-[#141413] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#141413]/10"
+                rows={22}
+                placeholder="该栏目暂无原文内容"
+              />
+            </div>
           </div>
         )}
 
