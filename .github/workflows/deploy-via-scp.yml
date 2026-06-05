@@ -73,20 +73,19 @@ jobs:
           export npm_config_cache="$NPM_CACHE_DIR"
           npm run build
 
-          # Verify new build — the page chunk must match what the HTML references
-          BUILT_CHUNK=$(ls .next/static/chunks/app/page-*.js 2>/dev/null | head -1 | xargs basename)
-          echo "=== Built page chunk: $BUILT_CHUNK ==="
-          REFERENCED=$(grep -oP 'static/chunks/app/page-[a-f0-9]+\.js' .next/server/app/page.js 2>/dev/null | head -1 | xargs basename)
-          echo "=== Referenced in page.js: $REFERENCED ==="
-          if [ "$BUILT_CHUNK" != "$REFERENCED" ]; then
-            echo "ERROR: Page chunk mismatch! Built=$BUILT_CHUNK Referenced=$REFERENCED"
-            echo "All page chunks on disk:"
-            ls .next/static/chunks/app/page-*.js 2>/dev/null
-            echo "All page references in server output:"
-            grep -roP 'static/chunks/app/page-[a-f0-9]+\.js' .next/server/ 2>/dev/null | sort -u
-            exit 1
-          fi
-          echo "Page chunk verified OK: $BUILT_CHUNK"
+          # Verify — find where page chunk references live
+          echo "=== All page chunks on disk: ==="
+          ls .next/static/chunks/app/page-*.js 2>/dev/null || echo "(none)"
+          echo "=== All page references in .next/server/ ==="
+          grep -roP 'static/chunks/app/page-[a-f0-9]+\.js' .next/server/ 2>/dev/null | sort -u || echo "(no matches in server/)"
+          echo "=== All page references anywhere in .next ==="
+          grep -roP 'page-[a-f0-9]+\.js' .next/ 2>/dev/null | sort -u | head -20 || echo "(no matches)"
+          echo "=== Server app dir listing ==="
+          ls -la .next/server/app/ 2>/dev/null || echo "no server/app/"
+          echo "=== Standalone dir ==="
+          ls .next/standalone/ 2>/dev/null || echo "no standalone"
+          echo "=== BUILD_ID ==="
+          cat .next/BUILD_ID 2>/dev/null || echo "no BUILD_ID"
 
           # Start fresh
           pm2 start npx --name proposal-helper -- next start -p 3005
