@@ -627,7 +627,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
             )}
 
             {completedExpert && (
-              <div className="mt-6 flex justify-between">
+              <div className="mt-6 flex justify-end">
                 <button
                   type="button"
                   onClick={() => {
@@ -637,16 +637,6 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                   className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
                 >
                   返回打磨
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCurrentStep("free");
-                    setError("");
-                  }}
-                  className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
-                >
-                  完成流程，进入自由模式
                 </button>
               </div>
             )}
