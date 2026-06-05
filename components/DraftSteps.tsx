@@ -467,6 +467,10 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
               {resultText && resultTitle.startsWith("逐栏打磨") && !isLoading && (
                 <div
                   onClick={() => {
+                    // Don't hijack if user is selecting text to copy
+                    const sel = window.getSelection();
+                    if (sel && sel.toString().length > 0) return;
+
                     const ta = document.getElementById("polish-editor-textarea") as HTMLTextAreaElement | null;
                     if (!ta) return;
                     const escaped = polishSection.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
