@@ -554,6 +554,8 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                   type="button"
                   onClick={() => {
                     setCurrentStep(3);
+                    setResultText("");
+                    setResultTitle("");
                     setError("");
                   }}
                   className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
@@ -714,6 +716,8 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                 type="button"
                 onClick={() => {
                   setCurrentStep(3);
+                  setResultText("");
+                  setResultTitle("");
                   setError("");
                 }}
                 className="focus-ring rounded-lg border border-[#E8E6E1] bg-white p-4 text-left transition hover:border-[#141413] hover:shadow-sm"
