@@ -10,7 +10,7 @@ export function LandingPage({ onSelectPath }: Props) {
   const [showFlow, setShowFlow] = useState(true);
   if (showFlow) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-4xl flex-col items-center justify-center px-5 py-8">
+      <main className="mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-3 py-8">
         <div className="text-center">
           <h1 className="text-[32px] font-extrabold tracking-[-0.02em] text-[#141413]">
             课题申报小助手
@@ -29,7 +29,7 @@ export function LandingPage({ onSelectPath }: Props) {
           <div className="hidden gap-0 md:flex">
             {/* Step 1 */}
             <div className="flex flex-1 items-start gap-0">
-              <div className="flex-1 rounded-lg border border-[#E8E6E1] bg-white px-4 py-5 text-center">
+              <div className="flex-1 rounded-lg border border-[#E8E6E1] bg-white px-3 py-5 text-center">
                 <div className="mb-2 flex items-center justify-center gap-2">
                   <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#E8E6E1] text-xs font-extrabold text-[#6B7280]">1</span>
                 </div>
@@ -51,7 +51,7 @@ export function LandingPage({ onSelectPath }: Props) {
               <div className="flex w-full items-start gap-0">
                 {/* Step 2 */}
                 <div className="flex flex-1 items-start gap-0">
-                  <div className="flex-1 rounded-lg border border-[#E8E6E1] bg-white px-4 py-5 text-center">
+                  <div className="flex-1 rounded-lg border border-[#E8E6E1] bg-white px-3 py-5 text-center">
                     <div className="mb-2 flex items-center justify-center gap-2">
                       <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#16A34A] text-xs font-extrabold text-white">2</span>
                     </div>
@@ -66,7 +66,7 @@ export function LandingPage({ onSelectPath }: Props) {
                 </div>
                 {/* Step 3 */}
                 <div className="flex flex-1 items-start gap-0">
-                  <div className="flex-1 rounded-lg border border-[#E8E6E1] bg-white px-4 py-5 text-center">
+                  <div className="flex-1 rounded-lg border border-[#E8E6E1] bg-white px-3 py-5 text-center">
                     <div className="mb-2 flex items-center justify-center gap-2">
                       <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#16A34A] text-xs font-extrabold text-white">3</span>
                     </div>
@@ -85,7 +85,7 @@ export function LandingPage({ onSelectPath }: Props) {
 
             {/* Step 4 */}
             <div className="flex flex-1 items-start gap-0">
-              <div className="flex-1 rounded-lg border border-[#E8E6E1] bg-white px-4 py-5 text-center">
+              <div className="flex-1 rounded-lg border border-[#E8E6E1] bg-white px-3 py-5 text-center">
                 <div className="mb-2 flex items-center justify-center gap-2">
                   <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#E8E6E1] text-xs font-extrabold text-[#6B7280]">4</span>
                 </div>
@@ -101,7 +101,7 @@ export function LandingPage({ onSelectPath }: Props) {
 
             {/* Step 5 */}
             <div className="flex flex-1 items-start gap-0">
-              <div className="flex-1 rounded-lg border border-[#E8E6E1] bg-white px-4 py-5 text-center">
+              <div className="flex-1 rounded-lg border border-[#E8E6E1] bg-white px-3 py-5 text-center">
                 <div className="mb-2 flex items-center justify-center gap-2">
                   <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#E8E6E1] text-xs font-extrabold text-[#6B7280]">5</span>
                 </div>
@@ -200,7 +200,7 @@ export function LandingPage({ onSelectPath }: Props) {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-4xl flex-col items-center justify-center px-5 py-8">
+    <main className="mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-3 py-8">
       <div className="text-center">
         <h1 className="text-[32px] font-extrabold tracking-[-0.02em] text-[#141413]">
           课题申报小助手
