@@ -25,30 +25,30 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -p "$SSH_PORT" -H "${{ secrets.ALIYUN_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: SCP source files to server
+      - name: Tar and SCP source
         env:
           ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
         run: |
           SSH_PORT="${ALIYUN_PORT:-22}"
-          SCP="scp -o StrictHostKeyChecking=yes -P $SSH_PORT -r"
           USER_HOST="${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}"
-          DEST="/www/wwwroot/proposal-helper"
 
-          # Upload source directories
-          $SCP app "$USER_HOST:$DEST/"
-          $SCP components "$USER_HOST:$DEST/"
-          $SCP lib "$USER_HOST:$DEST/"
+          # Create a tar of source files (exclude .git, node_modules, .next)
+          tar --exclude='.git' --exclude='node_modules' --exclude='.next' --exclude='.env' \
+            -czf /tmp/deploy.tar.gz .
 
-          # Upload config files
-          $SCP package.json next.config.ts tsconfig.json postcss.config.mjs tailwind.config.ts "$USER_HOST:$DEST/"
+          # Upload
+          scp -P "$SSH_PORT" /tmp/deploy.tar.gz "$USER_HOST:/tmp/deploy.tar.gz"
 
-      - name: Build and restart
+      - name: Extract, build and restart
         env:
           ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
         run: |
           SSH_PORT="${ALIYUN_PORT:-22}"
           ssh -p "$SSH_PORT" "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" '
           cd /www/wwwroot/proposal-helper
+          tar -xzf /tmp/deploy.tar.gz
+          rm /tmp/deploy.tar.gz
+
           export NPM_CACHE_DIR="$HOME/.npm-cache"
           mkdir -p "$NPM_CACHE_DIR"
           export npm_config_cache="$NPM_CACHE_DIR"
