@@ -15,5 +15,5 @@ export async function POST(request: Request) {
 
   const prompt = buildExpertReviewPrompt(input);
   const allowCollection = typeof body.allowCollection === "boolean" ? body.allowCollection : true;
-  return runPromptWithCollection(prompt.system, prompt.user, "expert-review", {}, request, allowCollection);
+  return runPromptWithCollection(prompt.system, prompt.user, "expert-review", { draft: input.draft }, request, allowCollection);
 }

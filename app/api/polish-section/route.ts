@@ -16,5 +16,5 @@ export async function POST(request: Request) {
 
   const prompt = buildPolishSectionPrompt(input);
   const allowCollection = typeof body.allowCollection === "boolean" ? body.allowCollection : true;
-  return runPromptWithCollection(prompt.system, prompt.user, "polish-section", { section: input.section }, request, allowCollection);
+  return runPromptWithCollection(prompt.system, prompt.user, "polish-section", { section: input.section, draft: input.draft }, request, allowCollection);
 }
