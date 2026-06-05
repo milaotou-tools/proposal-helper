@@ -96,6 +96,48 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
   // Cache AI polish results per section
   const polishCache = useRef<Record<string, string>>({});
 
+  // Undo history for polishedDraft editor
+  const historyStack = useRef<string[]>([]);
+  const historyIndex = useRef<number>(-1);
+  const MAX_HISTORY = 50;
+
+  function pushHistory(value: string) {
+    const stack = historyStack.current;
+    const idx = historyIndex.current;
+    // Trim forward history if we're in the middle
+    if (idx < stack.length - 1) {
+      stack.length = idx + 1;
+    }
+    stack.push(value);
+    if (stack.length > MAX_HISTORY) stack.shift();
+    historyIndex.current = stack.length - 1;
+  }
+
+  function undo() {
+    const stack = historyStack.current;
+    if (historyIndex.current <= 0) return;
+    historyIndex.current--;
+    setPolishedDraft(stack[historyIndex.current]);
+  }
+
+  function updatePolishedDraft(value: string) {
+    pushHistory(polishedDraft || draft);
+    setPolishedDraft(value);
+  }
+
+  function handleExport() {
+    const content = polishedDraft || draft;
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `申报书定稿_${dateStr}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   // Track which steps have been completed
   const [completedDiagnosis, setCompletedDiagnosis] = useState(false);
   const [completedPolish, setCompletedPolish] = useState(false);
@@ -119,6 +161,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
   // Sync polished draft when draft is first loaded
   function setDraftAndSync(value: string) {
     setDraft(value);
+    pushHistory(polishedDraft || draft);
     setPolishedDraft(value);
   }
 
@@ -455,11 +498,31 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
             {/* 右侧：全文编辑面板 */}
             <div className="flex flex-1 flex-col rounded-md border border-[#E8E6E1] bg-white p-6">
               <div className="mb-4">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-bold text-[#6B7280]">原文编辑</p>
-                  {polishedDraft !== draft && (
-                    <span className="rounded-sm bg-[#FEF3E2] px-1.5 py-0.5 text-[11px] font-bold text-[#D97706]">已编辑</span>
-                  )}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-[#6B7280]">原文编辑</p>
+                    {polishedDraft !== draft && (
+                      <span className="rounded-sm bg-[#FEF3E2] px-1.5 py-0.5 text-[11px] font-bold text-[#D97706]">已编辑</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={undo}
+                      disabled={historyIndex.current <= 0}
+                      className="rounded-md border border-[#E8E6E1] bg-white px-2 py-0.5 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280] disabled:opacity-40"
+                      title="撤销 (Ctrl+Z)"
+                    >
+                      撤销
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleExport}
+                      className="rounded-md border border-[#E8E6E1] bg-white px-2 py-0.5 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280]"
+                    >
+                      导出
+                    </button>
+                  </div>
                 </div>
                 <p className="text-sm leading-6 text-[#9CA3AF]">
                   下方为完整草稿，可直接编辑。
@@ -469,7 +532,13 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
               <textarea
                 id="polish-editor-textarea"
                 value={polishedDraft || draft}
-                onChange={(e) => setPolishedDraft(e.target.value)}
+                onChange={(e) => updatePolishedDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+                    e.preventDefault();
+                    undo();
+                  }
+                }}
                 className="flex-1 w-full resize-none rounded-md border border-[#E8E6E1] bg-white px-3 py-3 text-sm leading-8 text-[#141413] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#141413]/10"
                 placeholder="暂无草稿内容"
               />
@@ -582,6 +651,28 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
               </p>
             </div>
 
+            {/* 版本状态 */}
+            <div className="mb-5 rounded-md bg-[#FAF9F6] p-4">
+              <p className="text-xs font-bold text-[#9CA3AF] mb-2">版本状态</p>
+              <div className="flex items-center gap-2 text-xs text-[#6B7280]">
+                <span className="rounded-sm bg-[#E8E6E1] px-2 py-0.5 font-bold text-[#6B7280]">原始稿</span>
+                <span className="text-[#D1D5DB]">→</span>
+                {polishedDraft && polishedDraft !== draft ? (
+                  <>
+                    <span className="rounded-sm bg-[#FEF3E2] px-2 py-0.5 font-bold text-[#D97706]">中稿</span>
+                    <span className="text-[#D1D5DB]">→</span>
+                  </>
+                ) : null}
+                <span className="rounded-sm bg-[#EBF5FF] px-2 py-0.5 font-bold text-[#0070F3]">预审稿</span>
+              </div>
+              <div className="mt-2 text-xs text-[#9CA3AF]">
+                {polishedDraft && polishedDraft !== draft
+                  ? `原始稿 ${draft.length} 字 → 中稿 ${polishedDraft.length} 字`
+                  : `当前共 ${draft.length} 字，未做打磨修改`
+                }
+              </div>
+            </div>
+
             <p className="mb-4 text-sm font-bold text-[#6B7280]">自由选择功能</p>
             <div className="grid gap-3 sm:grid-cols-3">
               <button
@@ -655,6 +746,13 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                 className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
               >
                 重新开始
+              </button>
+              <button
+                type="button"
+                onClick={handleExport}
+                className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
+              >
+                导出定稿
               </button>
             </div>
           </div>
