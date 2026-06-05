@@ -420,43 +420,27 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
               )}
 
               {resultText && resultTitle.startsWith("逐栏打磨") && !isLoading && (
-                <div className="space-y-2">
-                  {stripMarkdown(resultText).split("\n\n").filter(Boolean).map((block, i) => (
-                    <div
-                      key={i}
-                      onClick={() => {
-                        const phrase = (() => {
-                          const qm = block.match(/[“]([^”]{4,30})[”]/);
-                          if (qm) return qm[1];
-                          const dq = block.match(/"([^"]{4,30})"/);
-                          if (dq) return dq[1];
-                          const sentences = block.split(/[。；，\n]/);
-                          let longest = "";
-                          for (const s of sentences) {
-                            const cleaned = s.replace(/[-\*\d\.\s、：:]/g, "").trim();
-                            if (cleaned.length > longest.length) longest = cleaned;
-                          }
-                          return longest.slice(0, 30);
-                        })();
-                        if (phrase && phrase.length >= 2) {
-                          const ta = document.getElementById("polish-editor-textarea") as HTMLTextAreaElement | null;
-                          if (ta) {
-                            const idx = ta.value.indexOf(phrase);
-                            if (idx !== -1) {
-                              ta.focus();
-                              ta.setSelectionRange(idx, idx + phrase.length);
-                              const lineHeight = parseInt(getComputedStyle(ta).lineHeight) || 28;
-                              const linesBefore = ta.value.slice(0, idx).split("\n").length;
-                              ta.scrollTop = Math.max(0, (linesBefore - 2) * lineHeight);
-                            }
-                          }
-                        }
-                      }}
-                      className="cursor-pointer rounded-md border border-[#E8E6E1] bg-[#FAF9F6] p-3 text-sm leading-7 text-[#141413] transition hover:border-[#D1D5DB] hover:bg-[#F3F2EF]"
-                    >
-                      {block}
-                    </div>
-                  ))}
+                <div
+                  onClick={() => {
+                    // Jump to the current section in the right editor
+                    const ta = document.getElementById("polish-editor-textarea") as HTMLTextAreaElement | null;
+                    if (!ta) return;
+                    const content = ta.value;
+                    // Search for section header like "创新点：" or "创新点："
+                    const escaped = polishSection.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                    const pattern = new RegExp(`${escaped}[：:]`, "i");
+                    const idx = content.search(pattern);
+                    if (idx !== -1) {
+                      ta.focus();
+                      ta.setSelectionRange(idx, idx + polishSection.length + 1);
+                      const lineHeight = parseInt(getComputedStyle(ta).lineHeight) || 28;
+                      const linesBefore = content.slice(0, idx).split("\n").length;
+                      ta.scrollTop = Math.max(0, (linesBefore - 3) * lineHeight);
+                    }
+                  }}
+                  className="cursor-pointer rounded-md bg-[#FAF9F6] p-4 text-sm leading-8 whitespace-pre-wrap text-[#141413] transition hover:bg-[#F3F2EF]"
+                >
+                  {resultText}
                 </div>
               )}
 
