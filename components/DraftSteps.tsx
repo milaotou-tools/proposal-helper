@@ -421,7 +421,9 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                       type="button"
                       onClick={() => {
                         setPolishSection(section);
-                        setResultText(polishCache.current[section] || "");
+                        const cached = polishCache.current[section];
+                        setResultText(cached || "");
+                        if (cached) setResultTitle(`逐栏打磨：${section}`);
                         setError("");
                       }}
                       className={`focus-ring rounded-md px-3 py-2 text-sm font-bold transition ${
@@ -471,6 +473,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                     const pattern = new RegExp(`${escaped}[：:]`, "i");
                     const idx = ta.value.search(pattern);
                     if (idx !== -1) {
+                      ta.focus({ preventScroll: true });
                       ta.setSelectionRange(idx, idx + polishSection.length + 1);
                     }
                   }}
