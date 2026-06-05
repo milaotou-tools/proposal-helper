@@ -1,0 +1,41 @@
+name: Check Server Files
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ALIYUN_SSH_KEY }}
+
+      - name: Trust host key
+        env:
+          ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
+        run: |
+          SSH_PORT="${ALIYUN_PORT:-22}"
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "$SSH_PORT" -H "${{ secrets.ALIYUN_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Check files
+        env:
+          ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
+        run: |
+          SSH_PORT="${ALIYUN_PORT:-22}"
+          ssh -p "$SSH_PORT" "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" '
+          echo "=== FeedbackWidget placeholder ==="
+          grep "placeholder" /www/wwwroot/proposal-helper/components/FeedbackWidget.tsx || echo "NOT FOUND"
+
+          echo ""
+          echo "=== git log ==="
+          cd /www/wwwroot/proposal-helper && git log --oneline -3 2>/dev/null || echo "not a git repo or error"
+
+          echo ""
+          echo "=== File modification time ==="
+          stat /www/wwwroot/proposal-helper/components/FeedbackWidget.tsx 2>/dev/null || ls -la /www/wwwroot/proposal-helper/components/FeedbackWidget.tsx
+          '
