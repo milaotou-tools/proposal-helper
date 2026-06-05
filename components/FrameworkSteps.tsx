@@ -22,41 +22,7 @@ const emptyForm: FrameworkForm = {
   expectedOutputs: ""
 };
 
-const examples: Array<{ label: string; value: FrameworkForm }> = [
-  {
-    label: "示例：数学概念图",
-    value: {
-      stageSubject: "小学数学",
-      idea: "AI 辅助学生画数学概念图",
-      problem: "学生复习时知识点零散，难以形成结构化理解",
-      researchObjects: "六年级学生",
-      practiceBase: "尝试过概念图作业和单元复习题型整理",
-      expectedOutputs: "课题报告、概念图作业样例、课堂案例、学生作品集"
-    }
-  },
-  {
-    label: "示例：班级习惯",
-    value: {
-      stageSubject: "班级管理",
-      idea: "低段学生班级习惯培养",
-      problem: "低段班级常规培养差异较大，新教师缺少清晰操作指引",
-      researchObjects: "一、二年级学生和新手班主任",
-      practiceBase: "已有部分优秀班主任经验和常规管理做法",
-      expectedOutputs: "班级习惯培养操作卡、案例集、家校沟通话术"
-    }
-  },
-  {
-    label: "示例：应用题错题",
-    value: {
-      stageSubject: "小学数学",
-      idea: "应用题错题分类与复习改进",
-      problem: "学生应用题错误多，教师复习时容易按题目顺序讲，缺少题型归类",
-      researchObjects: "六年级学生",
-      practiceBase: "已经整理过应用题题型和类似题训练",
-      expectedOutputs: "题型分类表、复习课例、错题分析报告、练习资源包"
-    }
-  }
-];
+const subjectTags = ["小学数学", "小学语文", "班级管理", "德育", "家校共育", "小学英语", "小学科学"];
 
 const loadingSteps = ["正在分析你的课题想法", "正在梳理研究目标与内容", "正在整理研究方法", "正在规划预期成果"];
 
@@ -124,12 +90,6 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
       });
   }
 
-  function handleExample(formValue: FrameworkForm) {
-    setForm(formValue);
-    setResultText("");
-    setError("");
-  }
-
   return (
     <main className="min-h-screen bg-[#FAF9F6] px-4 py-6 text-[#141413] sm:px-6 lg:px-8">
       <section className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -179,14 +139,14 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
             </p>
 
             <div className="mb-5 flex flex-wrap gap-2">
-              {examples.map((ex) => (
+              {subjectTags.map((tag) => (
                 <button
-                  key={ex.label}
+                  key={tag}
                   type="button"
-                  onClick={() => handleExample(ex.value)}
+                  onClick={() => updateField("stageSubject", tag)}
                   className="focus-ring rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-3 py-2 text-sm font-bold text-[#141413] hover:bg-[#F3F2EF]"
                 >
-                  {ex.label}
+                  {tag}
                 </button>
               ))}
               <button
@@ -198,7 +158,7 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
                 }}
                 className="focus-ring rounded-md border border-[#D1D5DB] bg-white px-3 py-2 text-sm font-bold text-[#6B7280] hover:bg-[#F3F2EF]"
               >
-                重新填写
+                清空重填
               </button>
             </div>
 
