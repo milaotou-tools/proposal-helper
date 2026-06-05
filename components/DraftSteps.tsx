@@ -455,8 +455,16 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
             {/* 右侧：全文编辑面板 */}
             <div className="flex flex-1 flex-col rounded-md border border-[#E8E6E1] bg-white p-6">
               <div className="mb-4">
-                <p className="text-sm font-bold text-[#6B7280]">原文编辑</p>
-                <p className="text-sm leading-6 text-[#9CA3AF]">下方为完整草稿，可直接编辑。粘贴 AI 修改后文本替换对应段落。</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold text-[#6B7280]">原文编辑</p>
+                  {polishedDraft !== draft && (
+                    <span className="rounded-sm bg-[#FEF3E2] px-1.5 py-0.5 text-[11px] font-bold text-[#D97706]">已编辑</span>
+                  )}
+                </div>
+                <p className="text-sm leading-6 text-[#9CA3AF]">
+                  下方为完整草稿，可直接编辑。
+                  {polishedDraft !== draft && "编辑后的版本将用于模拟预审。"}
+                </p>
               </div>
               <textarea
                 id="polish-editor-textarea"
@@ -490,9 +498,14 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
             </p>
 
             <div className="mb-5 rounded-md bg-[#FAF9F6] p-4">
-              <p className="text-xs font-bold text-[#9CA3AF]">当前草稿（{draft.length} 字）</p>
+              <p className="text-xs font-bold text-[#9CA3AF]">
+                预审草稿（{(polishedDraft || draft).length} 字）
+                {polishedDraft && polishedDraft !== draft && (
+                  <span className="ml-2 text-[#D97706]">已使用打磨后的版本</span>
+                )}
+              </p>
               <p className="mt-1 text-sm leading-6 text-[#6B7280] line-clamp-3">
-                {draft.slice(0, 200)}{draft.length > 200 ? "..." : ""}
+                {(polishedDraft || draft).slice(0, 200)}{(polishedDraft || draft).length > 200 ? "..." : ""}
               </p>
             </div>
 
@@ -533,7 +546,17 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
             )}
 
             {completedExpert && (
-              <div className="mt-6 flex justify-end">
+              <div className="mt-6 flex justify-between">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrentStep(2);
+                    setError("");
+                  }}
+                  className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
+                >
+                  返回打磨
+                </button>
                 <button
                   type="button"
                   onClick={() => {
