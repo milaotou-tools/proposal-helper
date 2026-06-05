@@ -94,6 +94,17 @@ jobs:
           echo "=== PM2 status ==="
           pm2 list
 
+          # Fix Nginx proxy for port 8083 -> 3005
+          echo "=== fixing nginx proxy for 8083 ==="
+          for DIR in /www/server/panel/vhost/nginx /www/server/nginx; do
+            grep -rl "8083" "$DIR" 2>/dev/null | while read f; do
+              if grep -q "proxy_pass" "$f" 2>/dev/null; then
+                echo "fixing $f"
+                sed -i "s|proxy_pass http://127.0.0.1:[0-9][0-9]*;|proxy_pass http://127.0.0.1:3005;|g" "$f"
+              fi
+            done
+          done
+
           # Clear Nginx proxy cache and reload
           if [ -d /www/server/nginx/proxy_cache_dir ]; then
             find /www/server/nginx/proxy_cache_dir -type f -delete 2>/dev/null && echo "Nginx cache cleared"
