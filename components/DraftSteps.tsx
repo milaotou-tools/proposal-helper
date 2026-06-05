@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { StepNavigation } from "@/components/StepNavigation";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 
@@ -93,6 +93,9 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
   const [error, setError] = useState("");
   const [allowCollection, setAllowCollection] = useState(true);
 
+  // Cache AI polish results per section
+  const polishCache = useRef<Record<string, string>>({});
+
   // Track which steps have been completed
   const [completedDiagnosis, setCompletedDiagnosis] = useState(false);
   const [completedPolish, setCompletedPolish] = useState(false);
@@ -130,7 +133,12 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
 
     action()
       .then((text) => {
-        setResultText(stripMarkdown(text));
+        const cleaned = stripMarkdown(text);
+        setResultText(cleaned);
+        // Cache polish results per section
+        if (title.startsWith("逐栏打磨")) {
+          polishCache.current[polishSection] = cleaned;
+        }
       })
       .catch((caught) => {
         setError(caught instanceof Error ? caught.message : "处理失败，请稍后重试。");
@@ -370,7 +378,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                       type="button"
                       onClick={() => {
                         setPolishSection(section);
-                        setResultText("");
+                        setResultText(polishCache.current[section] || "");
                         setError("");
                       }}
                       className={`focus-ring rounded-md px-3 py-2 text-sm font-bold transition ${
