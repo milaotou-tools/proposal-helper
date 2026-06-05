@@ -1,0 +1,43 @@
+name: View Stats
+
+on:
+  workflow_dispatch:
+
+jobs:
+  view:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ALIYUN_SSH_KEY }}
+
+      - name: Trust host key
+        env:
+          ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
+        run: |
+          SSH_PORT="${ALIYUN_PORT:-22}"
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "$SSH_PORT" -H "${{ secrets.ALIYUN_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Show data
+        env:
+          ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
+        run: |
+          SSH_PORT="${ALIYUN_PORT:-22}"
+          ssh -p "$SSH_PORT" "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" '
+          D="/www/wwwdata/proposal-helper"
+          echo "=== 数据采集 ==="
+          for f in $(ls -1t "$D/collection/"*.json 2>/dev/null); do
+            c=$(wc -l < "$f")
+            echo "--- $(basename "$f") ($c 条) ---"
+            head -5 "$f"
+            echo ""
+          done
+          find "$D/collection" -name "*.json" -exec cat {} \; 2>/dev/null | wc -l | xargs echo "总计:"
+          echo ""
+          echo "=== 反馈 ==="
+          cat "$D/feedback/"*.json 2>/dev/null || echo "无"
+          '
