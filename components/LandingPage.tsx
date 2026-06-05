@@ -21,9 +21,6 @@ export function LandingPage({ onSelectPath }: Props) {
         </div>
 
         <div className="mt-12 w-full">
-          <h2 className="mb-5 text-center text-sm font-bold tracking-[0.12em] text-[#6B7280]">
-            一份课题申请书是怎么写出来的
-          </h2>
 
           {/* 桌面端：水平 5 步 */}
           <div className="hidden gap-0 md:flex">
