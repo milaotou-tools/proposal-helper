@@ -4,6 +4,8 @@ import { saveCollectionEntry } from "@/lib/data-collection";
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as {
+      sessionId?: string;
+      originalDraft?: string;
       polishedDraft?: string;
       expertReview?: string;
       allowCollection?: boolean;
@@ -15,12 +17,31 @@ export async function POST(request: NextRequest) {
 
     const consent = typeof body.allowCollection === "boolean" ? body.allowCollection : true;
     const hashedIp = request.headers.get("x-hashed-ip") || "unknown";
+    const sessionId = body.sessionId || "unknown";
+    const timestamp = new Date().toISOString();
 
+    // Save original draft
+    if (body.originalDraft) {
+      await saveCollectionEntry({
+        timestamp,
+        hashedIp,
+        action: "original-draft",
+        input: { sessionId, draftLength: body.originalDraft.length },
+        outputText: body.originalDraft,
+        consent
+      }).catch(() => {});
+    }
+
+    // Save final output (polished draft + expert review, linked by sessionId)
     await saveCollectionEntry({
-      timestamp: new Date().toISOString(),
+      timestamp,
       hashedIp,
       action: "final-output",
-      input: { draftLength: body.polishedDraft.length },
+      input: {
+        sessionId,
+        originalDraftLength: body.originalDraft?.length || 0,
+        polishedDraftLength: body.polishedDraft.length
+      },
       outputText: JSON.stringify({
         polishedDraft: body.polishedDraft,
         expertReview: body.expertReview

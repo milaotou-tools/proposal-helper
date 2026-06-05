@@ -96,6 +96,13 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
   // Cache AI polish results per section
   const polishCache = useRef<Record<string, string>>({});
 
+  // Session ID to link original draft and final output
+  const sessionId = useRef(
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  );
+
   // Undo history for polishedDraft editor
   const historyStack = useRef<string[]>([]);
   const historyIndex = useRef<number>(-1);
@@ -145,6 +152,8 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          sessionId: sessionId.current,
+          originalDraft: draft,
           polishedDraft: polishedDraft || draft,
           expertReview: resultText,
           allowCollection
@@ -205,6 +214,8 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
+              sessionId: sessionId.current,
+              originalDraft: draft,
               polishedDraft: polishedDraft || draft,
               expertReview: cleaned,
               allowCollection
