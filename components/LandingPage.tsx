@@ -28,7 +28,7 @@ export function LandingPage({ onSelectPath }: Props) {
           {/* 桌面端：水平 5 步 */}
           <div className="hidden gap-0 md:flex">
             {/* Step 1 */}
-            <div className="flex flex-1 items-start gap-0">
+            <div className="flex flex-1 items-center gap-0">
               <div className="flex-1 rounded-lg border border-[#E8E6E1] bg-white px-3 py-5 text-center">
                 <div className="mb-2 flex items-center justify-center gap-2">
                   <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#E8E6E1] text-xs font-extrabold text-[#6B7280]">1</span>
@@ -36,7 +36,7 @@ export function LandingPage({ onSelectPath }: Props) {
                 <p className="text-[15px] font-extrabold leading-6 text-[#141413]">发现问题</p>
                 <p className="mt-1.5 text-[12px] leading-[18px] text-[#6B7280]">课前或课后观察到的真实教学问题</p>
               </div>
-              <div className="flex shrink-0 items-center px-1.5 pt-5">
+              <div className="flex shrink-0 items-center px-1.5">
                 <svg width="20" height="20" viewBox="0 0 20 20" className="text-[#D1D5DB]">
                   <path d="M7 4L14 10L7 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
@@ -50,7 +50,7 @@ export function LandingPage({ onSelectPath }: Props) {
               </span>
               <div className="flex w-full items-start gap-0">
                 {/* Step 2 */}
-                <div className="flex flex-1 items-start gap-0">
+                <div className="flex flex-1 items-center gap-0">
                   <div className="flex-1 rounded-lg border border-[#E8E6E1] bg-white px-3 py-5 text-center">
                     <div className="mb-2 flex items-center justify-center gap-2">
                       <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#16A34A] text-xs font-extrabold text-white">2</span>
@@ -58,14 +58,14 @@ export function LandingPage({ onSelectPath }: Props) {
                     <p className="text-[15px] font-extrabold leading-6 text-[#141413]">思考点子</p>
                     <p className="mt-1.5 text-[12px] leading-[18px] text-[#6B7280]">从痛点出发，构思你要研究什么、怎么研究</p>
                   </div>
-                  <div className="flex shrink-0 items-center px-1.5 pt-5">
+                  <div className="flex shrink-0 items-center px-1.5">
                     <svg width="20" height="20" viewBox="0 0 20 20" className="text-[#16A34A]/40">
                       <path d="M7 4L14 10L7 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </div>
                 </div>
                 {/* Step 3 */}
-                <div className="flex flex-1 items-start gap-0">
+                <div className="flex flex-1 items-center gap-0">
                   <div className="flex-1 rounded-lg border border-[#E8E6E1] bg-white px-3 py-5 text-center">
                     <div className="mb-2 flex items-center justify-center gap-2">
                       <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#16A34A] text-xs font-extrabold text-white">3</span>
@@ -77,14 +77,14 @@ export function LandingPage({ onSelectPath }: Props) {
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center px-1.5 pt-5">
+            <div className="flex shrink-0 items-center px-1.5">
               <svg width="20" height="20" viewBox="0 0 20 20" className="text-[#D1D5DB]">
                 <path d="M7 4L14 10L7 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
 
             {/* Step 4 */}
-            <div className="flex flex-1 items-start gap-0">
+            <div className="flex flex-1 items-center gap-0">
               <div className="flex-1 rounded-lg border border-[#E8E6E1] bg-white px-3 py-5 text-center">
                 <div className="mb-2 flex items-center justify-center gap-2">
                   <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#E8E6E1] text-xs font-extrabold text-[#6B7280]">4</span>
@@ -92,7 +92,7 @@ export function LandingPage({ onSelectPath }: Props) {
                 <p className="text-[15px] font-extrabold leading-6 text-[#141413]">添加图表</p>
                 <p className="mt-1.5 text-[12px] leading-[18px] text-[#6B7280]">补充流程图、框架图等可视化内容</p>
               </div>
-              <div className="flex shrink-0 items-center px-1.5 pt-5">
+              <div className="flex shrink-0 items-center px-1.5">
                 <svg width="20" height="20" viewBox="0 0 20 20" className="text-[#D1D5DB]">
                   <path d="M7 4L14 10L7 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
@@ -100,7 +100,7 @@ export function LandingPage({ onSelectPath }: Props) {
             </div>
 
             {/* Step 5 */}
-            <div className="flex flex-1 items-start gap-0">
+            <div className="flex flex-1 items-center gap-0">
               <div className="flex-1 rounded-lg border border-[#E8E6E1] bg-white px-3 py-5 text-center">
                 <div className="mb-2 flex items-center justify-center gap-2">
                   <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#E8E6E1] text-xs font-extrabold text-[#6B7280]">5</span>
