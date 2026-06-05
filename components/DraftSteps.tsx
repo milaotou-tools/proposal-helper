@@ -46,6 +46,13 @@ const polishSections = [
 
 const loadingSteps = ["正在分析中", "正在整理思路", "正在生成结果"];
 
+function stripMarkdown(text: string) {
+  return text
+    .replace(/^#{1,4}\s+/gm, "")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1");
+}
+
 async function postAi(url: string, payload: unknown, allowCollection?: boolean) {
   const res = await fetch(url, {
     method: "POST",
@@ -63,6 +70,16 @@ async function postAi(url: string, payload: unknown, allowCollection?: boolean) 
 }
 
 type Step = 0 | 1 | 2 | 3 | "free";
+
+function extractSection(draft: string, section: string): string {
+  const escaped = section.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(
+    `(?:^|\\n)(?:\\d+[、.]\\s*)?${escaped}[：:]\\s*([\\s\\S]*?)(?=\\n(?:\\d+[、.]\\s*)?(?:${polishSections.map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})[：:]|$)`,
+    "i"
+  );
+  const match = draft.match(pattern);
+  return match?.[1]?.trim() || "";
+}
 
 export function DraftSteps({ onBack }: { onBack: () => void }) {
   const [currentStep, setCurrentStep] = useState<Step>(0);
@@ -91,7 +108,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
 
     action()
       .then((text) => {
-        setResultText(text);
+        setResultText(stripMarkdown(text));
       })
       .catch((caught) => {
         setError(caught instanceof Error ? caught.message : "处理失败，请稍后重试。");
@@ -325,7 +342,11 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                   <button
                     key={section}
                     type="button"
-                    onClick={() => setPolishSection(section)}
+                    onClick={() => {
+                      setPolishSection(section);
+                      setResultText("");
+                      setError("");
+                    }}
                     className={`focus-ring rounded-md px-3 py-2 text-sm font-bold transition ${
                       polishSection === section
                         ? "bg-[#141413] text-white"
@@ -337,6 +358,15 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                 ))}
               </div>
             </div>
+
+            {extractSection(draft, polishSection) && (
+              <div className="mb-5 rounded-md bg-[#FAF9F6] p-4">
+                <p className="text-xs font-bold text-[#9CA3AF]">原文：{polishSection}</p>
+                <p className="mt-1 text-sm leading-6 whitespace-pre-wrap text-[#6B7280]">
+                  {extractSection(draft, polishSection)}
+                </p>
+              </div>
+            )}
 
             {isLoading ? (
               <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-8 text-center text-sm text-[#6B7280]">
@@ -562,7 +592,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
         )}
       </section>
 
-      {(completedDiagnosis || completedPolish || completedExpert) && (
+      {completedExpert && (
         <section className="mx-auto mt-8 max-w-3xl">
           <FeedbackWidget />
         </section>
