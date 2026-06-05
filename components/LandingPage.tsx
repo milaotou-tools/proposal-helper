@@ -218,7 +218,7 @@ export function LandingPage({ onSelectPath }: Props) {
           <button
             type="button"
             onClick={() => onSelectPath("framework")}
-            className="group rounded-xl border border-[#E8E6E1] bg-white p-6 text-center transition hover:border-[#0070F3] hover:shadow-md"
+            className="group rounded-xl border border-[#E8E6E1] border-t-[3px] border-t-[#0070F3] bg-white p-6 text-center transition hover:shadow-md"
           >
             <h3 className="text-lg font-extrabold text-[#141413] group-hover:text-[#0070F3]">
               我没有申报书，从想法开始
@@ -231,7 +231,7 @@ export function LandingPage({ onSelectPath }: Props) {
           <button
             type="button"
             onClick={() => onSelectPath("draft")}
-            className="group rounded-xl border border-[#E8E6E1] bg-white p-6 text-center transition hover:border-[#D97706] hover:shadow-md"
+            className="group rounded-xl border border-[#E8E6E1] border-t-[3px] border-t-[#D97706] bg-white p-6 text-center transition hover:shadow-md"
           >
             <h3 className="text-lg font-extrabold text-[#141413] group-hover:text-[#D97706]">
               我已经有草稿，需要打磨
