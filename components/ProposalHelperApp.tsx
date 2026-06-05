@@ -148,19 +148,38 @@ const draftScopes = [
 const loadingSteps = ["正在分析输入", "正在整理栏目", "正在生成修改建议"];
 
 async function postAi(path: string, payload: Record<string, string>, allowCollection: boolean) {
-  const response = await fetch(path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...payload, allowCollection })
-  });
+  async function attempt() {
+    const response = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...payload, allowCollection })
+    });
 
-  const data = (await response.json()) as { text?: string; error?: string };
+    const text = await response.text();
+    let data: { text?: string; error?: string };
+    try {
+      data = JSON.parse(text) as { text?: string; error?: string };
+    } catch {
+      throw new Error("服务响应异常，正在自动重试...");
+    }
 
-  if (!response.ok || !data.text) {
-    throw new Error(data.error || "生成失败，请稍后重试。");
+    if (!response.ok || !data.text) {
+      throw new Error(data.error || "生成失败，请稍后重试。");
+    }
+
+    return data.text;
   }
 
-  return data.text;
+  try {
+    return await attempt();
+  } catch (firstError) {
+    const msg = firstError instanceof Error ? firstError.message : "";
+    if (msg.includes("响应异常") || msg.includes("timeout") || msg.includes("超时")) {
+      await new Promise((r) => setTimeout(r, 2000));
+      return attempt();
+    }
+    throw firstError;
+  }
 }
 
 async function getHealth() {
