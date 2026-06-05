@@ -43,7 +43,7 @@ const emptyFrameworkForm: FrameworkForm = {
 
 const examples: Array<{ label: string; value: FrameworkForm }> = [
   {
-    label: "数学概念图",
+    label: "示例1：数学概念图",
     value: {
       stageSubject: "小学数学",
       idea: "AI 辅助学生画数学概念图",
@@ -54,7 +54,7 @@ const examples: Array<{ label: string; value: FrameworkForm }> = [
     }
   },
   {
-    label: "班级习惯",
+    label: "示例2：班级习惯",
     value: {
       stageSubject: "班级管理",
       idea: "低段学生班级习惯培养",
@@ -65,7 +65,7 @@ const examples: Array<{ label: string; value: FrameworkForm }> = [
     }
   },
   {
-    label: "应用题错题",
+    label: "示例3：应用题错题",
     value: {
       stageSubject: "小学数学",
       idea: "应用题错题分类与复习改进",
@@ -79,7 +79,7 @@ const examples: Array<{ label: string; value: FrameworkForm }> = [
 
 const draftExamples: Array<{ label: string; value: string; scope: string }> = [
   {
-    label: "完整草稿",
+    label: "示例1：完整草稿",
     scope: "整体诊断",
     value: [
       "课题名称：人工智能支持小学数学概念图学习的实践研究",
@@ -102,7 +102,7 @@ const draftExamples: Array<{ label: string; value: string; scope: string }> = [
     ].join("\n")
   },
   {
-    label: "研究内容片段",
+    label: "示例2：研究内容片段",
     scope: "研究内容",
     value: [
       "课题名称：低段学生班级习惯培养的实践研究",
@@ -115,7 +115,7 @@ const draftExamples: Array<{ label: string; value: string; scope: string }> = [
     ].join("\n")
   },
   {
-    label: "预审草稿",
+    label: "示例3：预审草稿",
     scope: "整体诊断",
     value: [
       "课题名称：小学数学应用题错题分类与复习改进研究",
