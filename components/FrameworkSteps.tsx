@@ -131,12 +131,19 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
         {/* Step 0: 学段学科 */}
         {currentStep === 0 && (
           <div className="rounded-md border border-[#E8E6E1] bg-white p-6">
-            <p className="mb-1 text-sm font-bold text-[#6B7280]">
-              操作提示
-            </p>
-            <p className="mb-5 text-sm leading-6 text-[#9CA3AF]">
-              请先选择你任教的学段和学科。如果不确定，填一个大概的范围就行，后续可以修改。
-            </p>
+            <div className="mb-4 flex items-start justify-between">
+              <div>
+                <p className="text-sm font-bold text-[#6B7280]">操作提示</p>
+                <p className="text-sm leading-6 text-[#9CA3AF]">请先选择你任教的学段和学科。如果不确定，填一个大概的范围就行，后续可以修改。</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => updateField("stageSubject", "小学数学")}
+                className="ml-3 shrink-0 rounded-md border border-[#E8E6E1] bg-white px-2.5 py-1 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280]"
+              >
+                填入示例
+              </button>
+            </div>
 
             <div className="mb-5 flex flex-wrap gap-2">
               {subjectTags.map((tag) => (
@@ -188,10 +195,22 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
         {/* Step 1: 课题想法 + 痛点问题 */}
         {currentStep === 1 && (
           <div className="rounded-md border border-[#E8E6E1] bg-white p-6">
-            <p className="mb-1 text-sm font-bold text-[#6B7280]">操作提示</p>
-            <p className="mb-5 text-sm leading-6 text-[#9CA3AF]">
-              请描述你发现的真实教学问题和初步研究想法。越具体，生成的框架越贴合你的实际情况。
-            </p>
+            <div className="mb-4 flex items-start justify-between">
+              <div>
+                <p className="text-sm font-bold text-[#6B7280]">操作提示</p>
+                <p className="text-sm leading-6 text-[#9CA3AF]">请描述你发现的真实教学问题和初步研究想法。越具体，生成的框架越贴合你的实际情况。</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  updateField("idea", "AI 辅助学生画数学概念图的研究");
+                  updateField("problem", "学生复习时知识点零散，难以形成结构化理解，传统复习方式效率较低");
+                }}
+                className="ml-3 shrink-0 rounded-md border border-[#E8E6E1] bg-white px-2.5 py-1 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280]"
+              >
+                填入示例
+              </button>
+            </div>
 
             <div className="flex flex-col gap-4">
               <label className="flex flex-col gap-2">
@@ -245,10 +264,23 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
         {/* Step 2: 研究背景 */}
         {currentStep === 2 && (
           <div className="rounded-md border border-[#E8E6E1] bg-white p-6">
-            <p className="mb-1 text-sm font-bold text-[#6B7280]">操作提示</p>
-            <p className="mb-5 text-sm leading-6 text-[#9CA3AF]">
-              补充研究对象、已有实践基础和预期成果。这些信息能让申报书更完整。选填项也可以留空。
-            </p>
+            <div className="mb-4 flex items-start justify-between">
+              <div>
+                <p className="text-sm font-bold text-[#6B7280]">操作提示</p>
+                <p className="text-sm leading-6 text-[#9CA3AF]">补充研究对象、已有实践基础和预期成果。这些信息能让申报书更完整。选填项也可以留空。</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  updateField("researchObjects", "六年级学生");
+                  updateField("practiceBase", "已尝试过概念图作业和单元复习题型整理，积累了部分学生作品");
+                  updateField("expectedOutputs", "课题报告、概念图作业样例、课堂案例、学生作品集");
+                }}
+                className="ml-3 shrink-0 rounded-md border border-[#E8E6E1] bg-white px-2.5 py-1 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280]"
+              >
+                填入示例
+              </button>
+            </div>
 
             <div className="flex flex-col gap-4">
               <label className="flex flex-col gap-2">
