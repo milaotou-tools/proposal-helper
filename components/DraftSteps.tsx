@@ -198,26 +198,25 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
         {/* Step 0: 输入草稿 */}
         {currentStep === 0 && (
           <div className="rounded-md border border-[#E8E6E1] bg-white p-6">
-            <p className="mb-1 text-sm font-bold text-[#6B7280]">操作提示</p>
-            <p className="mb-5 text-sm leading-6 text-[#9CA3AF]">
-              请将你的申报书草稿粘贴到下方。草稿越完整，诊断和打磨越有针对性。没有草稿？返回首页选择"从想法开始"。
-            </p>
+            <div className="mb-4 flex items-start justify-between">
+              <div>
+                <p className="text-sm font-bold text-[#6B7280]">操作提示</p>
+                <p className="text-sm leading-6 text-[#9CA3AF]">请将你的申报书草稿粘贴到下方。草稿越完整，诊断和打磨越有针对性。</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setDraft(draftExamples[0].value);
+                  setResultText("");
+                  setError("");
+                }}
+                className="ml-3 shrink-0 rounded-md border border-[#E8E6E1] bg-white px-2.5 py-1 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280]"
+              >
+                填入示例
+              </button>
+            </div>
 
-            <div className="mb-4 flex flex-wrap gap-2">
-              {draftExamples.map((ex) => (
-                <button
-                  key={ex.label}
-                  type="button"
-                  onClick={() => {
-                    setDraft(ex.value);
-                    setResultText("");
-                    setError("");
-                  }}
-                  className="focus-ring rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-3 py-2 text-sm font-bold text-[#141413] hover:bg-[#F3F2EF]"
-                >
-                  {ex.label}
-                </button>
-              ))}
+            <div className="mb-4 flex justify-end">
               <button
                 type="button"
                 onClick={() => {
@@ -230,7 +229,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                     setCompletedExpert(false);
                   }
                 }}
-                className="focus-ring rounded-md border border-[#D1D5DB] bg-white px-3 py-2 text-sm font-bold text-[#6B7280] hover:bg-[#F3F2EF]"
+                className="rounded-md border border-[#D1D5DB] bg-white px-2.5 py-1 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280]"
               >
                 清空草稿
               </button>
