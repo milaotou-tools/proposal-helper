@@ -10,7 +10,7 @@ export function LandingPage({ onSelectPath }: Props) {
   const [showFlow, setShowFlow] = useState(true);
   if (showFlow) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-4xl flex-col items-center px-5 py-16">
+      <main className="mx-auto flex min-h-screen max-w-4xl flex-col items-center justify-center px-5 py-8">
         <div className="text-center">
           <h1 className="text-[32px] font-extrabold tracking-[-0.02em] text-[#141413]">
             课题申报小助手
@@ -44,7 +44,7 @@ export function LandingPage({ onSelectPath }: Props) {
             </div>
 
             {/* 绿色框包裹 Step 2-3 */}
-            <div className="relative flex flex-1 rounded-lg border-2 border-[#16A34A] bg-[#F0FDF4] p-3 pt-4">
+            <div className="relative flex flex-[2] rounded-lg border-2 border-[#16A34A] bg-[#F0FDF4] p-3 pt-4">
               <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#16A34A] px-3 py-0.5 text-[11px] font-extrabold text-white whitespace-nowrap">
                 本工具能帮到你的地方
               </span>
@@ -200,7 +200,7 @@ export function LandingPage({ onSelectPath }: Props) {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-4xl flex-col items-center px-5 py-16">
+    <main className="mx-auto flex min-h-screen max-w-4xl flex-col items-center justify-center px-5 py-8">
       <div className="text-center">
         <h1 className="text-[32px] font-extrabold tracking-[-0.02em] text-[#141413]">
           课题申报小助手
