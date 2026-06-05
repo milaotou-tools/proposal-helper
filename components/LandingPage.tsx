@@ -11,7 +11,6 @@ export function LandingPage({ onSelectPath }: Props) {
   if (showFlow) {
     return (
       <main className="mx-auto flex min-h-screen max-w-4xl flex-col items-center px-5 py-16">
-        {/* 标题区 */}
         <div className="text-center">
           <h1 className="text-[32px] font-extrabold tracking-[-0.02em] text-[#141413]">
             课题申报小助手
@@ -21,7 +20,6 @@ export function LandingPage({ onSelectPath }: Props) {
           </p>
         </div>
 
-        {/* 可视化流程图 */}
         <div className="mt-12 w-full">
           <h2 className="mb-5 text-center text-sm font-bold tracking-[0.12em] text-[#6B7280]">
             一份课题申请书是怎么写出来的
@@ -33,9 +31,7 @@ export function LandingPage({ onSelectPath }: Props) {
             <div className="flex flex-1 items-start gap-0">
               <div className="flex-1 rounded-lg border border-[#E8E6E1] bg-white px-4 py-5 text-center">
                 <div className="mb-2 flex items-center justify-center gap-2">
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#E8E6E1] text-xs font-extrabold text-[#6B7280]">
-                    1
-                  </span>
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#E8E6E1] text-xs font-extrabold text-[#6B7280]">1</span>
                 </div>
                 <p className="text-[15px] font-extrabold leading-6 text-[#141413]">发现问题</p>
                 <p className="mt-1.5 text-[12px] leading-[18px] text-[#6B7280]">课前或课后观察到的真实教学问题</p>
@@ -48,35 +44,35 @@ export function LandingPage({ onSelectPath }: Props) {
             </div>
 
             {/* 绿色框包裹 Step 2-3 */}
-            <div className="relative flex flex-1 rounded-lg border-2 border-[#16A34A] bg-[#F0FDF4] p-3">
+            <div className="relative flex flex-1 rounded-lg border-2 border-[#16A34A] bg-[#F0FDF4] p-3 pt-4">
               <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#16A34A] px-3 py-0.5 text-[11px] font-extrabold text-white whitespace-nowrap">
                 本工具能帮到你的地方
               </span>
-              <div className="flex w-full items-start gap-0 pt-1">
+              <div className="flex w-full items-start gap-0">
                 {/* Step 2 */}
-                <div className="flex-1 text-center">
-                  <div className="mb-2 flex items-center justify-center gap-2">
-                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#16A34A] text-xs font-extrabold text-white">
-                      2
-                    </span>
+                <div className="flex flex-1 items-start gap-0">
+                  <div className="flex-1 rounded-lg border border-[#E8E6E1] bg-white px-4 py-5 text-center">
+                    <div className="mb-2 flex items-center justify-center gap-2">
+                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#16A34A] text-xs font-extrabold text-white">2</span>
+                    </div>
+                    <p className="text-[15px] font-extrabold leading-6 text-[#141413]">思考点子</p>
+                    <p className="mt-1.5 text-[12px] leading-[18px] text-[#6B7280]">从痛点出发，构思你要研究什么、怎么研究</p>
                   </div>
-                  <p className="text-[15px] font-extrabold leading-6 text-[#141413]">思考点子</p>
-                  <p className="mt-1.5 text-[12px] leading-[18px] text-[#6B7280]">从痛点出发，构思你要研究什么、怎么研究</p>
-                </div>
-                <div className="flex shrink-0 items-center px-1.5 pt-2">
-                  <svg width="20" height="20" viewBox="0 0 20 20" className="text-[#16A34A]/40">
-                    <path d="M7 4L14 10L7 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <div className="flex shrink-0 items-center px-1.5 pt-5">
+                    <svg width="20" height="20" viewBox="0 0 20 20" className="text-[#16A34A]/40">
+                      <path d="M7 4L14 10L7 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
                 </div>
                 {/* Step 3 */}
-                <div className="flex-1 text-center">
-                  <div className="mb-2 flex items-center justify-center gap-2">
-                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#16A34A] text-xs font-extrabold text-white">
-                      3
-                    </span>
+                <div className="flex flex-1 items-start gap-0">
+                  <div className="flex-1 rounded-lg border border-[#E8E6E1] bg-white px-4 py-5 text-center">
+                    <div className="mb-2 flex items-center justify-center gap-2">
+                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#16A34A] text-xs font-extrabold text-white">3</span>
+                    </div>
+                    <p className="text-[15px] font-extrabold leading-6 text-[#141413]">生成结构化文本</p>
+                    <p className="mt-1.5 text-[12px] leading-[18px] text-[#6B7280]">完成选题依据、研究目标、内容、方法、预期成果</p>
                   </div>
-                  <p className="text-[15px] font-extrabold leading-6 text-[#141413]">生成结构化文本</p>
-                  <p className="mt-1.5 text-[12px] leading-[18px] text-[#6B7280]">完成选题依据、研究目标、内容、方法、预期成果</p>
                 </div>
               </div>
             </div>
@@ -91,9 +87,7 @@ export function LandingPage({ onSelectPath }: Props) {
             <div className="flex flex-1 items-start gap-0">
               <div className="flex-1 rounded-lg border border-[#E8E6E1] bg-white px-4 py-5 text-center">
                 <div className="mb-2 flex items-center justify-center gap-2">
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#E8E6E1] text-xs font-extrabold text-[#6B7280]">
-                    4
-                  </span>
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#E8E6E1] text-xs font-extrabold text-[#6B7280]">4</span>
                 </div>
                 <p className="text-[15px] font-extrabold leading-6 text-[#141413]">添加图表</p>
                 <p className="mt-1.5 text-[12px] leading-[18px] text-[#6B7280]">补充流程图、框架图等可视化内容</p>
@@ -109,9 +103,7 @@ export function LandingPage({ onSelectPath }: Props) {
             <div className="flex flex-1 items-start gap-0">
               <div className="flex-1 rounded-lg border border-[#E8E6E1] bg-white px-4 py-5 text-center">
                 <div className="mb-2 flex items-center justify-center gap-2">
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#E8E6E1] text-xs font-extrabold text-[#6B7280]">
-                    5
-                  </span>
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#E8E6E1] text-xs font-extrabold text-[#6B7280]">5</span>
                 </div>
                 <p className="text-[15px] font-extrabold leading-6 text-[#141413]">根据规范微调</p>
                 <p className="mt-1.5 text-[12px] leading-[18px] text-[#6B7280]">按照本区域要求调整格式、字数、语言风格</p>
@@ -145,7 +137,7 @@ export function LandingPage({ onSelectPath }: Props) {
                   <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#16A34A] text-xs font-extrabold text-white">2</span>
                   <div className="my-1 h-6 w-px bg-[#16A34A]/30" />
                 </div>
-                <div className="ml-3 mb-3 flex-1">
+                <div className="ml-3 mb-3 flex-1 rounded-lg border border-[#E8E6E1] bg-white px-4 py-4">
                   <p className="text-[15px] font-extrabold text-[#141413]">思考点子</p>
                   <p className="mt-1 text-[13px] leading-5 text-[#6B7280]">从痛点出发，构思你要研究什么、怎么研究</p>
                 </div>
@@ -156,7 +148,7 @@ export function LandingPage({ onSelectPath }: Props) {
                 <div className="flex flex-col items-center">
                   <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#16A34A] text-xs font-extrabold text-white">3</span>
                 </div>
-                <div className="ml-3 flex-1">
+                <div className="ml-3 flex-1 rounded-lg border border-[#E8E6E1] bg-white px-4 py-4">
                   <p className="text-[15px] font-extrabold text-[#141413]">生成结构化文本</p>
                   <p className="mt-1 text-[13px] leading-5 text-[#6B7280]">完成选题依据、研究目标、内容、方法、预期成果</p>
                 </div>
@@ -218,7 +210,6 @@ export function LandingPage({ onSelectPath }: Props) {
         </p>
       </div>
 
-      {/* 路径选择 */}
       <div className="mt-14 w-full">
         <h2 className="mb-5 text-center text-sm font-bold tracking-[0.12em] text-[#6B7280]">
           选择你的起点
