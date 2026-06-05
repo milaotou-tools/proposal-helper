@@ -45,15 +45,13 @@ jobs:
           ssh -p "$SSH_PORT" "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" '
           set -e
 
-          # Kill all proposal-helper PM2 processes
+          # Kill all proposal-helper PM2 processes and clean saved state
           pm2 delete proposal-helper 2>/dev/null || true
+          pm2 save --force
+          sleep 2
+          # Force kill any process on port 3005
+          fuser -k 3005/tcp 2>/dev/null || true
           sleep 1
-          # Also kill any orphan process on port 3005
-          PORT_PID=$(lsof -ti:3005 2>/dev/null || true)
-          if [ -n "$PORT_PID" ]; then
-            kill -9 $PORT_PID 2>/dev/null || true
-            sleep 1
-          fi
 
           cd /www/wwwroot/proposal-helper
 
