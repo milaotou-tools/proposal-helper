@@ -293,12 +293,12 @@ export function ProposalHelperApp() {
             <div className="flex w-full flex-col gap-2 lg:w-[340px] lg:items-end">
               <div className="flex w-full items-center justify-between gap-2 rounded-md border border-[#E8E6E1] bg-white px-3 py-2 text-xs leading-5 text-[#6B7280]">
                 <span className="min-w-0 truncate">
-                  <span className="font-bold text-[#141413]">演示状态：</span>
-                  {health ? (health.keyConfigured ? "模型已就绪" : "模型未配置") : "未检查"}
-                  {health ? (
-                    <span className={health.keyConfigured ? "ml-2 font-bold text-[#141413]" : "ml-2 font-bold text-red-600"}>
-                      {health.keyConfigured ? health.model : "请检查环境变量"}
-                    </span>
+                  <span className="font-bold text-[#141413]">AI 引擎：</span>
+                  {health ? (health.keyConfigured ? (
+                    <span className="font-bold text-[#141413]">{health.model} · 已连接</span>
+                  ) : "引擎未配置") : "待连接"}
+                  {health && !health.keyConfigured ? (
+                    <span className="ml-2 font-bold text-red-600">请检查环境变量</span>
                   ) : null}
                   {healthError ? <span className="ml-2 font-bold text-red-600">{healthError}</span> : null}
                 </span>
@@ -308,7 +308,7 @@ export function ProposalHelperApp() {
                   disabled={isCheckingHealth}
                   className="focus-ring h-8 shrink-0 rounded-md border border-[#D1D5DB] bg-white px-3 text-xs font-bold text-[#141413] transition hover:bg-[#F3F2EF] disabled:cursor-not-allowed disabled:border-[#E8E6E1] disabled:text-[#9CA3AF]"
                 >
-                  {isCheckingHealth ? "检查中..." : "演示前检查"}
+                  {isCheckingHealth ? "检测中..." : "连接测试"}
                 </button>
               </div>
             </div>
