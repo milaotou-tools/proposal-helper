@@ -283,8 +283,12 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
             {resultText && resultTitle === "整体诊断结果" && (
               <div className="mt-6">
                 <h3 className="mb-3 text-sm font-bold text-[#141413]">诊断结果</h3>
-                <div className="prose prose-sm max-w-none whitespace-pre-wrap rounded-md bg-[#FAF9F6] p-5 text-sm leading-7 text-[#141413]">
-                  {resultText}
+                <div className="space-y-3 rounded-md bg-[#FAF9F6] p-5 text-sm leading-7 text-[#141413]">
+                  {resultText.split("\n\n").map((block, i) => (
+                    <p key={i} className="whitespace-pre-wrap">
+                      {block}
+                    </p>
+                  ))}
                 </div>
               </div>
             )}
@@ -360,8 +364,12 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
             {resultText && resultTitle.startsWith("逐栏打磨") && (
               <div className="mt-6">
                 <h3 className="mb-3 text-sm font-bold text-[#141413]">打磨结果</h3>
-                <div className="prose prose-sm max-w-none whitespace-pre-wrap rounded-md bg-[#FAF9F6] p-5 text-sm leading-7 text-[#141413]">
-                  {resultText}
+                <div className="space-y-3 rounded-md bg-[#FAF9F6] p-5 text-sm leading-7 text-[#141413]">
+                  {resultText.split("\n\n").map((block, i) => (
+                    <p key={i} className="whitespace-pre-wrap">
+                      {block}
+                    </p>
+                  ))}
                 </div>
               </div>
             )}
@@ -424,8 +432,12 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
             {resultText && resultTitle === "模拟专家预审意见" && (
               <div className="mt-6">
                 <h3 className="mb-3 text-sm font-bold text-[#141413]">预审意见</h3>
-                <div className="prose prose-sm max-w-none whitespace-pre-wrap rounded-md bg-[#FAF9F6] p-5 text-sm leading-7 text-[#141413]">
-                  {resultText}
+                <div className="space-y-3 rounded-md bg-[#FAF9F6] p-5 text-sm leading-7 text-[#141413]">
+                  {resultText.split("\n\n").map((block, i) => (
+                    <p key={i} className="whitespace-pre-wrap">
+                      {block}
+                    </p>
+                  ))}
                 </div>
               </div>
             )}
@@ -506,8 +518,14 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
               <p className="text-xs font-bold text-[#9CA3AF]">最后生成的结果</p>
               <p className="mt-1 text-sm text-[#6B7280]">{resultTitle}</p>
               {resultText && (
-                <div className="mt-3 max-h-64 overflow-y-auto rounded bg-white p-4 text-sm leading-7 text-[#141413] whitespace-pre-wrap">
-                  {resultText}
+                <div className="mt-3 max-h-64 overflow-y-auto rounded bg-white p-4 text-sm leading-7 text-[#141413]">
+                  <div className="space-y-3">
+                    {resultText.split("\n\n").map((block, i) => (
+                      <p key={i} className="whitespace-pre-wrap">
+                        {block}
+                      </p>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
