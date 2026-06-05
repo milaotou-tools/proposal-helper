@@ -421,9 +421,11 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
         )}
       </section>
 
-      <section className="mx-auto mt-8 max-w-3xl">
-        <FeedbackWidget />
-      </section>
+      {currentStep === 4 && (
+        <section className="mx-auto mt-8 max-w-3xl">
+          <FeedbackWidget />
+        </section>
+      )}
     </main>
   );
 }

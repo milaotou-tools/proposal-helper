@@ -544,9 +544,11 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
         )}
       </section>
 
-      <section className="mx-auto mt-8 max-w-3xl">
-        <FeedbackWidget />
-      </section>
+      {(completedDiagnosis || completedPolish || completedExpert) && (
+        <section className="mx-auto mt-8 max-w-3xl">
+          <FeedbackWidget />
+        </section>
+      )}
     </main>
   );
 }
