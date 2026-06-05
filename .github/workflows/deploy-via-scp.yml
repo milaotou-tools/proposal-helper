@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install rsync on server
+      - name: Set up SSH agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.ALIYUN_SSH_KEY }}
@@ -25,19 +25,22 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -p "$SSH_PORT" -H "${{ secrets.ALIYUN_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Rsync source to server
+      - name: SCP source files to server
         env:
           ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
         run: |
           SSH_PORT="${ALIYUN_PORT:-22}"
-          rsync -avz --delete \
-            --exclude='.git' \
-            --exclude='node_modules' \
-            --exclude='.next' \
-            --exclude='.env' \
-            --exclude='.user.ini' \
-            -e "ssh -p $SSH_PORT" \
-            ./ "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}:/www/wwwroot/proposal-helper/"
+          SCP="scp -o StrictHostKeyChecking=yes -P $SSH_PORT -r"
+          USER_HOST="${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}"
+          DEST="/www/wwwroot/proposal-helper"
+
+          # Upload source directories
+          $SCP app "$USER_HOST:$DEST/"
+          $SCP components "$USER_HOST:$DEST/"
+          $SCP lib "$USER_HOST:$DEST/"
+
+          # Upload config files
+          $SCP package.json next.config.ts tsconfig.json postcss.config.mjs tailwind.config.ts "$USER_HOST:$DEST/"
 
       - name: Build and restart
         env:
