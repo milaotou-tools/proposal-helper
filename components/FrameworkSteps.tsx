@@ -408,22 +408,11 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
         {/* Step 4: 查看结果 */}
         {currentStep === 4 && (
           <div className="rounded-md border border-[#E8E6E1] bg-white p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-extrabold text-[#141413]">申报书框架</h2>
-                <p className="mt-1 text-sm text-[#6B7280]">
-                  结果仅用于辅助结构化和修改，需结合真实教学材料继续完善。
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(resultText).catch(() => undefined);
-                }}
-                className="focus-ring h-10 rounded-md border border-[#D1D5DB] bg-white px-4 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
-              >
-                复制结果
-              </button>
+            <div className="mb-4">
+              <h2 className="text-lg font-extrabold text-[#141413]">申报书框架</h2>
+              <p className="mt-1 text-sm text-[#6B7280]">
+                结果仅用于辅助结构化和修改，需结合真实教学材料继续完善。
+              </p>
             </div>
 
             {resultText ? (
@@ -451,13 +440,11 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
               <button
                 type="button"
                 onClick={() => {
-                  setCurrentStep(0);
-                  setResultText("");
-                  setError("");
+                  navigator.clipboard.writeText(resultText).catch(() => undefined);
                 }}
-                className="focus-ring h-11 rounded-md bg-[#141413] px-5 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
+                className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
               >
-                重新开始
+                复制结果
               </button>
             </div>
           </div>
