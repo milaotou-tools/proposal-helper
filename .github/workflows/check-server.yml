@@ -22,20 +22,28 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -p "$SSH_PORT" -H "${{ secrets.ALIYUN_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Check files
+      - name: Check built JS
         env:
           ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
         run: |
           SSH_PORT="${ALIYUN_PORT:-22}"
           ssh -p "$SSH_PORT" "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" '
-          echo "=== FeedbackWidget placeholder ==="
-          grep "placeholder" /www/wwwroot/proposal-helper/components/FeedbackWidget.tsx || echo "NOT FOUND"
+          echo "=== Source file placeholder ==="
+          grep "请填写您所在学校" /www/wwwroot/proposal-helper/components/FeedbackWidget.tsx || echo "NOT FOUND"
 
           echo ""
-          echo "=== git log ==="
-          cd /www/wwwroot/proposal-helper && git log --oneline -3 2>/dev/null || echo "not a git repo or error"
+          echo "=== Built JS contains new text ==="
+          grep -rl "请填写您所在学校" /www/wwwroot/proposal-helper/.next/ 2>/dev/null || echo "NOT FOUND in .next"
 
           echo ""
-          echo "=== File modification time ==="
-          stat /www/wwwroot/proposal-helper/components/FeedbackWidget.tsx 2>/dev/null || ls -la /www/wwwroot/proposal-helper/components/FeedbackWidget.tsx
+          echo "=== Built JS contains old text ==="
+          grep -rl "学校名称（选填）" /www/wwwroot/proposal-helper/.next/ 2>/dev/null || echo "NOT FOUND in .next"
+
+          echo ""
+          echo "=== .next build time ==="
+          ls -la /www/wwwroot/proposal-helper/.next/BUILD_ID 2>/dev/null && cat /www/wwwroot/proposal-helper/.next/BUILD_ID
+
+          echo ""
+          echo "=== Page JS chunk ==="
+          ls -la /www/wwwroot/proposal-helper/.next/static/chunks/app/page-*.js 2>/dev/null
           '
