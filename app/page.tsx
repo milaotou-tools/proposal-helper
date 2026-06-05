@@ -1,7 +1,7 @@
-import { ProposalHelperApp } from "@/components/ProposalHelperApp";
+import { AppShell } from "@/components/AppShell";
 
 export const dynamic = "force-dynamic";
 
 export default function ProposalHelperPage() {
-  return <ProposalHelperApp />;
+  return <AppShell />;
 }

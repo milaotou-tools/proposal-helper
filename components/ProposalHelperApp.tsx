@@ -193,8 +193,12 @@ async function getHealth() {
   return data;
 }
 
-export function ProposalHelperApp() {
-  const [mode, setMode] = useState<Mode>("framework");
+type Props = {
+  initialMode?: "framework" | "draft";
+};
+
+export function ProposalHelperApp({ initialMode = "framework" }: Props) {
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [frameworkForm, setFrameworkForm] = useState<FrameworkForm>(emptyFrameworkForm);
   const [draft, setDraft] = useState("");
   const [scope, setScope] = useState("整体诊断");
