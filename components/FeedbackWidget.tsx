@@ -42,7 +42,7 @@ export function FeedbackWidget() {
 
   return (
     <div className="rounded-md border border-[#E8E6E1] bg-white p-5">
-      <h3 className="mb-3 text-sm font-extrabold text-[#141413]">谢谢你使用我做的小工具，希望可以让你轻松一些，开题顺利~</h3>
+      <h3 className="mb-3 text-sm font-extrabold text-[#141413]">谢谢你使用我做的工具，这个工具对你有帮助吗？</h3>
       <div className="mb-4 flex gap-3">
         <button
           type="button"
@@ -53,7 +53,7 @@ export function FeedbackWidget() {
               : "border border-[#D1D5DB] bg-white text-[#141413] hover:bg-[#F3F2EF]"
           }`}
         >
-          好用，好评！
+          挺好用
         </button>
         <button
           type="button"
@@ -64,7 +64,7 @@ export function FeedbackWidget() {
               : "border border-[#D1D5DB] bg-white text-[#141413] hover:bg-[#F3F2EF]"
           }`}
         >
-          有建议
+          提建议
         </button>
       </div>
 
