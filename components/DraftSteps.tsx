@@ -138,6 +138,22 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
     URL.revokeObjectURL(url);
   }
 
+  async function handleSaveAndExport() {
+    // Save to backend
+    if (resultText && resultTitle === "模拟专家预审意见") {
+      fetch("/api/save-final", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          polishedDraft: polishedDraft || draft,
+          expertReview: resultText,
+          allowCollection
+        })
+      }).catch(() => {});
+    }
+    handleExport();
+  }
+
   // Track which steps have been completed
   const [completedDiagnosis, setCompletedDiagnosis] = useState(false);
   const [completedPolish, setCompletedPolish] = useState(false);
@@ -182,6 +198,18 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
         // Cache polish results per section
         if (title.startsWith("逐栏打磨")) {
           polishCache.current[polishSection] = cleaned;
+        }
+        // Auto-save final output when expert review completes
+        if (title === "模拟专家预审意见") {
+          fetch("/api/save-final", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              polishedDraft: polishedDraft || draft,
+              expertReview: cleaned,
+              allowCollection
+            })
+          }).catch(() => {});
         }
       })
       .catch((caught) => {
@@ -627,7 +655,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
             )}
 
             {completedExpert && (
-              <div className="mt-6 flex justify-end">
+              <div className="mt-6 flex justify-between">
                 <button
                   type="button"
                   onClick={() => {
@@ -637,6 +665,13 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                   className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
                 >
                   返回打磨
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveAndExport}
+                  className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
+                >
+                  导出终稿
                 </button>
               </div>
             )}
