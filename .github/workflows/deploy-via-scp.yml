@@ -93,7 +93,14 @@ jobs:
 
           echo "=== PM2 status ==="
           pm2 list
-          pm2 logs proposal-helper --lines 5 --nostream
+
+          # Verify served content directly from localhost
+          sleep 2
+          echo "=== Verification from localhost ==="
+          SERVED=$(curl -s --max-time 10 http://localhost:3005/)
+          echo "$SERVED" | grep -o '请填写您所在学校\|学校名称（选填）\|page-[a-f0-9]*\.js' | sort -u
+          echo "=== index.html chunk ref ==="
+          grep -o 'page-[a-f0-9]*\.js' .next/server/app/index.html | sort -u
 
           echo "Deploy done"
           '
