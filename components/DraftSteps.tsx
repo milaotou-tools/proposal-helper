@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { StepNavigation } from "@/components/StepNavigation";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
+import { usePersistedState } from "@/lib/use-persisted-state";
 
 const DRAFT_STEPS = [
   { label: "输入草稿", description: "粘贴你的申报书" },
@@ -83,8 +84,8 @@ function extractSection(draft: string, section: string): string {
 
 export function DraftSteps({ onBack }: { onBack: () => void }) {
   const [currentStep, setCurrentStep] = useState<Step>(0);
-  const [draft, setDraft] = useState("");
-  const [polishedDraft, setPolishedDraft] = useState("");
+  const [draft, setDraft] = usePersistedState("ph-draft", "");
+  const [polishedDraft, setPolishedDraft] = usePersistedState("ph-polished", "");
   const [polishSection, setPolishSection] = useState("选题依据");
   const [resultTitle, setResultTitle] = useState("");
   const [resultText, setResultText] = useState("");

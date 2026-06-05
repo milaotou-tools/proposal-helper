@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { StepNavigation } from "@/components/StepNavigation";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
+import { usePersistedState } from "@/lib/use-persisted-state";
 
 type FrameworkForm = {
   stageSubject: string;
@@ -59,8 +60,8 @@ function stripMarkdown(text: string) {
 
 export function FrameworkSteps({ onBack }: { onBack: () => void }) {
   const [currentStep, setCurrentStep] = useState(0);
-  const [form, setForm] = useState<FrameworkForm>(emptyForm);
-  const [resultText, setResultText] = useState("");
+  const [form, setForm] = usePersistedState<FrameworkForm>("ph-framework-form", emptyForm);
+  const [resultText, setResultText] = usePersistedState("ph-framework-result", "");
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStepIndex, setLoadingStepIndex] = useState(0);
   const [error, setError] = useState("");
