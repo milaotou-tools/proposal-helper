@@ -45,18 +45,23 @@ jobs:
           ssh -p "$SSH_PORT" "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" '
           set -e
 
-          # Kill all proposal-helper PM2 processes and clean saved state
+          # Kill PM2 first so .next files are not locked
           pm2 delete proposal-helper 2>/dev/null || true
           pm2 save --force
           sleep 2
-          # Force kill any process on port 3005
           fuser -k 3005/tcp 2>/dev/null || true
-          sleep 1
+          sleep 2
 
           cd /www/wwwroot/proposal-helper
 
-          # Clean old build
+          # Clean old build completely
           rm -rf .next
+          if [ -d ".next" ]; then
+            echo "ERROR: .next still exists after rm -rf"
+            ls -la .next/
+            exit 1
+          fi
+          echo ".next cleaned OK"
 
           # Extract new source
           tar -xzf /tmp/deploy.tar.gz
@@ -68,13 +73,17 @@ jobs:
           export npm_config_cache="$NPM_CACHE_DIR"
           npm run build
 
+          # Verify new build
+          echo "=== Built chunks ==="
+          ls .next/static/chunks/app/page-*.js
+
           # Start fresh
           pm2 start npx --name proposal-helper -- next start -p 3005
           pm2 save
 
-          # Verify single instance
           echo "=== PM2 status ==="
           pm2 list
+          pm2 logs proposal-helper --lines 5 --nostream
 
           echo "Deploy done"
           '
