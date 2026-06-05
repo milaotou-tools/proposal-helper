@@ -42,7 +42,7 @@ export function FeedbackWidget() {
 
   return (
     <div className="rounded-md border border-[#E8E6E1] bg-white p-5">
-      <h3 className="mb-3 text-sm font-extrabold text-[#141413]">这个工具有用吗？</h3>
+      <h3 className="mb-3 text-sm font-extrabold text-[#141413]">谢谢你使用我做的小工具，希望可以让你轻松一些，开题顺利~</h3>
       <div className="mb-4 flex gap-3">
         <button
           type="button"
