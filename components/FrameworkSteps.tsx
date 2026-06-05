@@ -100,7 +100,7 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
 
   return (
     <main className="min-h-screen bg-[#FAF9F6] px-4 py-6 text-[#141413] sm:px-6 lg:px-8">
-      <section className="mx-auto flex max-w-3xl flex-col gap-6">
+      <section className="mx-auto flex max-w-4xl flex-col gap-6">
         {/* 返回按钮 */}
         <button
           type="button"
