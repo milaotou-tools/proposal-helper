@@ -16,7 +16,7 @@ export function LandingPage({ onSelectPath }: Props) {
             课题申报小助手
           </h1>
           <p className="mt-3 text-base leading-7 text-[#6B7280]">
-            帮助小学教师把课题想法变成申报书框架
+            从零起步 + 打磨已有草稿
           </p>
         </div>
 
@@ -203,7 +203,7 @@ export function LandingPage({ onSelectPath }: Props) {
           课题申报小助手
         </h1>
         <p className="mt-3 text-base leading-7 text-[#6B7280]">
-          帮助小学教师把课题想法变成申报书框架
+          从零起步 + 打磨已有草稿
         </p>
       </div>
 
