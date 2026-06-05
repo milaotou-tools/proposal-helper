@@ -96,13 +96,19 @@ jobs:
 
           # Fix Nginx proxy for port 8083 -> 3005
           echo "=== fixing nginx proxy for 8083 ==="
-          for DIR in /www/server/panel/vhost/nginx /www/server/nginx; do
-            grep -rl "8083" "$DIR" 2>/dev/null | while read f; do
-              if grep -q "proxy_pass" "$f" 2>/dev/null; then
-                echo "fixing $f"
-                sed -i "s|proxy_pass http://127.0.0.1:[0-9][0-9]*;|proxy_pass http://127.0.0.1:3005;|g" "$f"
-              fi
-            done
+          # Check files in paths containing 8083 (proxy dir uses pattern: proxy/<ip>_8083/)
+          find /www/server/panel/vhost/nginx/proxy -path "*8083*" -type f 2>/dev/null | while read f; do
+            if grep -q "proxy_pass" "$f" 2>/dev/null; then
+              echo "fixing $f"
+              sed -i "s|proxy_pass http://127.0.0.1:[0-9][0-9]*;|proxy_pass http://127.0.0.1:3005;|g" "$f"
+            fi
+          done
+          # Also check /www/server/nginx for any 8083 proxy configs
+          find /www/server/nginx -path "*8083*" -type f 2>/dev/null | while read f; do
+            if grep -q "proxy_pass" "$f" 2>/dev/null; then
+              echo "fixing $f"
+              sed -i "s|proxy_pass http://127.0.0.1:[0-9][0-9]*;|proxy_pass http://127.0.0.1:3005;|g" "$f"
+            fi
           done
 
           # Clear Nginx proxy cache and reload
