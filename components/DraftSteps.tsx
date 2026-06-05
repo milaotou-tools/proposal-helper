@@ -422,20 +422,13 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
               {resultText && resultTitle.startsWith("逐栏打磨") && !isLoading && (
                 <div
                   onClick={() => {
-                    // Jump to the current section in the right editor
                     const ta = document.getElementById("polish-editor-textarea") as HTMLTextAreaElement | null;
                     if (!ta) return;
-                    const content = ta.value;
-                    // Search for section header like "创新点：" or "创新点："
                     const escaped = polishSection.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
                     const pattern = new RegExp(`${escaped}[：:]`, "i");
-                    const idx = content.search(pattern);
+                    const idx = ta.value.search(pattern);
                     if (idx !== -1) {
-                      ta.focus();
                       ta.setSelectionRange(idx, idx + polishSection.length + 1);
-                      const lineHeight = parseInt(getComputedStyle(ta).lineHeight) || 28;
-                      const linesBefore = content.slice(0, idx).split("\n").length;
-                      ta.scrollTop = Math.max(0, (linesBefore - 3) * lineHeight);
                     }
                   }}
                   className="cursor-pointer rounded-md bg-[#FAF9F6] p-4 text-sm leading-8 whitespace-pre-wrap text-[#141413] transition hover:bg-[#F3F2EF]"
@@ -444,8 +437,8 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                 </div>
               )}
 
-              {/* 底部按钮：始终可见 */}
-              <div className="mt-auto flex justify-between pt-6">
+              {/* 底部按钮 */}
+              <div className="mt-auto pt-6">
                 <button
                   type="button"
                   onClick={() => {
@@ -455,16 +448,6 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                   className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
                 >
                   上一步
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCurrentStep(3);
-                    setError("");
-                  }}
-                  className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
-                >
-                  下一步：模拟预审
                 </button>
               </div>
             </div>
@@ -482,6 +465,18 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                 className="flex-1 w-full resize-none rounded-md border border-[#E8E6E1] bg-white px-3 py-3 text-sm leading-8 text-[#141413] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#141413]/10"
                 placeholder="暂无草稿内容"
               />
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrentStep(3);
+                    setError("");
+                  }}
+                  className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
+                >
+                  下一步：模拟预审
+                </button>
+              </div>
             </div>
           </div>
         )}
