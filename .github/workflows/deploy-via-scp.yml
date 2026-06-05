@@ -45,12 +45,19 @@ jobs:
           ssh -p "$SSH_PORT" "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" '
           set -e
 
-          # Stop and remove PM2 process
+          # Kill all proposal-helper PM2 processes
           pm2 delete proposal-helper 2>/dev/null || true
+          sleep 1
+          # Also kill any orphan process on port 3005
+          PORT_PID=$(lsof -ti:3005 2>/dev/null || true)
+          if [ -n "$PORT_PID" ]; then
+            kill -9 $PORT_PID 2>/dev/null || true
+            sleep 1
+          fi
 
           cd /www/wwwroot/proposal-helper
 
-          # Remove old build artifacts (keep node_modules to avoid re-download)
+          # Clean old build
           rm -rf .next
 
           # Extract new source
@@ -66,6 +73,10 @@ jobs:
           # Start fresh
           pm2 start npx --name proposal-helper -- next start -p 3005
           pm2 save
+
+          # Verify single instance
+          echo "=== PM2 status ==="
+          pm2 list
 
           echo "Deploy done"
           '
