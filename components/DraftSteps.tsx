@@ -142,6 +142,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
   const [completedDiagnosis, setCompletedDiagnosis] = useState(false);
   const [completedPolish, setCompletedPolish] = useState(false);
   const [completedExpert, setCompletedExpert] = useState(false);
+  const [expertReviewFresh, setExpertReviewFresh] = useState(false);
 
   function updateSectionInDraft(section: string, newText: string) {
     const escaped = section.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -226,6 +227,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
       postAi("/api/expert-review", { draft: content }, allowCollection)
     );
     setCompletedExpert(true);
+    setExpertReviewFresh(true);
   }
 
   function getStepNumber(step: Step): number {
@@ -554,8 +556,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                   type="button"
                   onClick={() => {
                     setCurrentStep(3);
-                    setResultText("");
-                    setResultTitle("");
+                    setExpertReviewFresh(false);
                     setError("");
                   }}
                   className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
@@ -612,7 +613,9 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
 
             {resultText && resultTitle === "模拟专家预审意见" && (
               <div className="mt-6">
-                <h3 className="mb-3 text-sm font-bold text-[#141413]">预审意见</h3>
+                <h3 className="mb-3 text-sm font-bold text-[#141413]">
+                  {expertReviewFresh ? "预审意见" : "上次预审意见"}
+                </h3>
                 <div className="space-y-3 rounded-md bg-[#FAF9F6] p-5 text-sm leading-8 text-[#141413]">
                   {resultText.split("\n\n").map((block, i) => (
                     <p key={i} className="whitespace-pre-wrap">
@@ -716,8 +719,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                 type="button"
                 onClick={() => {
                   setCurrentStep(3);
-                  setResultText("");
-                  setResultTitle("");
+                  setExpertReviewFresh(false);
                   setError("");
                 }}
                 className="focus-ring rounded-lg border border-[#E8E6E1] bg-white p-4 text-left transition hover:border-[#141413] hover:shadow-sm"
