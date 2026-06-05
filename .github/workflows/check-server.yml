@@ -22,18 +22,27 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -p "$SSH_PORT" -H "${{ secrets.ALIYUN_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Check HTML
+      - name: Check HTML and meta
         env:
           ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
         run: |
           SSH_PORT="${ALIYUN_PORT:-22}"
           ssh -p "$SSH_PORT" "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" '
-          echo "=== Server HTML references ==="
-          grep -o "page-[a-f0-9]*\.js" /www/wwwroot/proposal-helper/.next/server/app/page.js 2>/dev/null | head -5
+          echo "=== Static HTML file ==="
+          ls -la /www/wwwroot/proposal-helper/.next/server/app/page.html 2>/dev/null || echo "no page.html"
           echo ""
-          echo "=== Built chunks ==="
-          ls /www/wwwroot/proposal-helper/.next/static/chunks/app/page-*.js 2>/dev/null
+          echo "=== Static HTML content (first 500 chars) ==="
+          head -c 500 /www/wwwroot/proposal-helper/.next/server/app/page.html 2>/dev/null || echo "no page.html"
           echo ""
-          echo "=== pm2 status ==="
-          pm2 show proposal-helper 2>/dev/null | grep -E "status|pid|restarts|uptime"
+          echo "=== page.js references ==="
+          grep -o "page-[a-f0-9]*\.js" /www/wwwroot/proposal-helper/.next/server/app/page.js 2>/dev/null || echo "no refs in page.js"
+          echo ""
+          echo "=== All chunks in .next/static ==="
+          find /www/wwwroot/proposal-helper/.next/static/chunks/app -name "page-*.js" 2>/dev/null
+          echo ""
+          echo "=== RSC payload check ==="
+          grep -c "请填写您所在学校" /www/wwwroot/proposal-helper/.next/server/app/page.js 2>/dev/null || echo "not in page.js"
+          echo ""
+          echo "=== Next.js route type ==="
+          cat /www/wwwroot/proposal-helper/.next/prerender-manifest.json 2>/dev/null | head -c 300
           '
