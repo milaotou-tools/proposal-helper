@@ -37,25 +37,35 @@ jobs:
 
           scp -P "$SSH_PORT" /tmp/deploy.tar.gz "$USER_HOST:/tmp/deploy.tar.gz"
 
-      - name: Extract, clean build and restart
+      - name: Clean rebuild and restart
         env:
           ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
         run: |
           SSH_PORT="${ALIYUN_PORT:-22}"
           ssh -p "$SSH_PORT" "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" '
+          set -e
+
+          # Stop and remove PM2 process
+          pm2 delete proposal-helper 2>/dev/null || true
+
           cd /www/wwwroot/proposal-helper
 
-          # Clean old build cache
+          # Remove old build artifacts (keep node_modules to avoid re-download)
           rm -rf .next
 
           # Extract new source
           tar -xzf /tmp/deploy.tar.gz
           rm /tmp/deploy.tar.gz
 
+          # Build
           export NPM_CACHE_DIR="$HOME/.npm-cache"
           mkdir -p "$NPM_CACHE_DIR"
           export npm_config_cache="$NPM_CACHE_DIR"
           npm run build
-          pm2 restart proposal-helper --update-env
+
+          # Start fresh
+          pm2 start npx --name proposal-helper -- next start -p 3005
+          pm2 save
+
           echo "Deploy done"
           '

@@ -22,27 +22,31 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -p "$SSH_PORT" -H "${{ secrets.ALIYUN_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Check HTML and meta
+      - name: Check manifest
         env:
           ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
         run: |
           SSH_PORT="${ALIYUN_PORT:-22}"
           ssh -p "$SSH_PORT" "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" '
-          echo "=== Static HTML file ==="
-          ls -la /www/wwwroot/proposal-helper/.next/server/app/page.html 2>/dev/null || echo "no page.html"
+          echo "=== Build manifest page references ==="
+          grep -o "page-[a-f0-9]*\.js" /www/wwwroot/proposal-helper/.next/server/app/page.js || echo "no refs"
           echo ""
-          echo "=== Static HTML content (first 500 chars) ==="
-          head -c 500 /www/wwwroot/proposal-helper/.next/server/app/page.html 2>/dev/null || echo "no page.html"
+          echo "=== Build manifest ==="
+          python3 -c "
+          import json
+          with open(\"/www/wwwroot/proposal-helper/.next/build-manifest.json\") as f:
+              d = json.load(f)
+              for k, v in d.items():
+                  if \"page\" in str(v).lower() or \"page\" in k.lower():
+                      print(f\"{k}: {v}\")
+          " 2>/dev/null || echo "no python"
           echo ""
-          echo "=== page.js references ==="
-          grep -o "page-[a-f0-9]*\.js" /www/wwwroot/proposal-helper/.next/server/app/page.js 2>/dev/null || echo "no refs in page.js"
-          echo ""
-          echo "=== All chunks in .next/static ==="
-          find /www/wwwroot/proposal-helper/.next/static/chunks/app -name "page-*.js" 2>/dev/null
-          echo ""
-          echo "=== RSC payload check ==="
-          grep -c "请填写您所在学校" /www/wwwroot/proposal-helper/.next/server/app/page.js 2>/dev/null || echo "not in page.js"
-          echo ""
-          echo "=== Next.js route type ==="
-          cat /www/wwwroot/proposal-helper/.next/prerender-manifest.json 2>/dev/null | head -c 300
+          echo "=== Client manifest page references ==="
+          cat /www/wwwroot/proposal-helper/.next/server/client-reference-manifest.json 2>/dev/null | python3 -c "
+          import json, sys
+          d = json.load(sys.stdin)
+          for k in d:
+              if \"Feedback\" in k or \"page\" in k:
+                  print(f\"{k}: {d[k]}\")
+          " 2>/dev/null || echo "no client refs"
           '
