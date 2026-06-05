@@ -10,7 +10,7 @@ export function LandingPage({ onSelectPath }: Props) {
   const [showFlow, setShowFlow] = useState(true);
   if (showFlow) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-3 py-8">
+      <main className="mx-auto flex min-h-screen max-w-6xl flex-col items-center px-3 pt-16 pb-8">
         <div className="text-center">
           <h1 className="text-[32px] font-extrabold tracking-[-0.02em] text-[#141413]">
             课题申报小助手
@@ -20,7 +20,7 @@ export function LandingPage({ onSelectPath }: Props) {
           </p>
         </div>
 
-        <div className="mt-12 w-full">
+        <div className="my-auto w-full">
 
           {/* 桌面端：水平 5 步 */}
           <div className="hidden gap-0 md:flex">
