@@ -22,7 +22,7 @@ const emptyForm: FrameworkForm = {
   expectedOutputs: ""
 };
 
-const subjectTags = ["小学数学", "小学语文", "班级管理", "德育", "家校共育", "小学英语", "小学科学"];
+const subjectTags = ["小学数学", "小学语文", "小学英语", "小学科学", "小学音乐", "小学美术", "小学体育"];
 
 const loadingSteps = ["正在分析你的课题想法", "正在梳理研究目标与内容", "正在整理研究方法", "正在规划预期成果"];
 
