@@ -427,7 +427,7 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
             </div>
 
             {resultText ? (
-              <div className="space-y-3 rounded-md bg-[#FAF9F6] p-5 text-sm leading-7 text-[#141413]">
+              <div className="space-y-4 rounded-md bg-[#FAF9F6] p-5 text-sm leading-8 text-[#141413]">
                 {resultText.split("\n\n").map((block, i) => (
                   <p key={i} className="whitespace-pre-wrap">
                     {block}
