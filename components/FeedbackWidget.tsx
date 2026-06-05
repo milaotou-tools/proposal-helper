@@ -73,18 +73,16 @@ export function FeedbackWidget() {
           <input
             value={school}
             onChange={(e) => setSchool(e.target.value)}
-            placeholder="学校名称（选填）"
+            placeholder="请填写您所在学校，帮助作者了解使用小工具的小伙伴在哪里～"
             className="focus-ring mb-3 h-10 w-full rounded-md border border-[#E8E6E1] bg-white px-3 text-sm text-[#141413] placeholder:text-[#9CA3AF]"
           />
-          {type === "suggestion" && (
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="你的建议（选填）"
-              rows={3}
-              className="focus-ring mb-3 w-full resize-y rounded-md border border-[#E8E6E1] bg-white px-3 py-3 text-sm text-[#141413] placeholder:text-[#9CA3AF]"
-            />
-          )}
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder={type === "suggestion" ? "你的建议（选填）" : "想对作者说的话（选填）"}
+            rows={3}
+            className="focus-ring mb-3 w-full resize-y rounded-md border border-[#E8E6E1] bg-white px-3 py-3 text-sm text-[#141413] placeholder:text-[#9CA3AF]"
+          />
           {error && <p className="mb-3 text-xs text-[#DC2626]">{error}</p>}
           <button
             type="button"
