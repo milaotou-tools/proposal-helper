@@ -1,0 +1,59 @@
+name: Clear Nginx Cache
+
+on:
+  workflow_dispatch:
+
+jobs:
+  clear:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ALIYUN_SSH_KEY }}
+
+      - name: Trust host key
+        env:
+          ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
+        run: |
+          SSH_PORT="${ALIYUN_PORT:-22}"
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "$SSH_PORT" -H "${{ secrets.ALIYUN_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Clear Nginx proxy cache
+        env:
+          ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
+        run: |
+          SSH_PORT="${ALIYUN_PORT:-22}"
+          ssh -p "$SSH_PORT" "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" '
+          set -e
+
+          # Find Nginx proxy cache directories
+          echo "=== Checking common cache locations ==="
+          for DIR in /www/server/nginx/proxy_cache /var/cache/nginx /tmp/nginx_cache /www/server/nginx/proxy_cache_dir; do
+            if [ -d "$DIR" ]; then
+              CACHE_COUNT=$(find "$DIR" -type f 2>/dev/null | wc -l)
+              echo "Found: $DIR ($CACHE_COUNT files)"
+              find "$DIR" -type f -delete 2>/dev/null && echo "  -> Cleaned $DIR" || echo "  -> Failed to clean $DIR"
+            fi
+          done
+
+          # Look for nginx cache config
+          echo ""
+          echo "=== Nginx proxy_cache_path config ==="
+          grep -r "proxy_cache_path" /www/server/panel/vhost/nginx/ 2>/dev/null || echo "No proxy_cache_path in panel vhosts"
+          grep -r "proxy_cache_path" /www/server/nginx/conf/ 2>/dev/null || echo "No proxy_cache_path in nginx conf"
+
+          # Check for proxy_cache directive in our site
+          echo ""
+          echo "=== Proxy cache in site config ==="
+          SITE_CONF=$(grep -rl "8083" /www/server/panel/vhost/nginx/proxy/ 2>/dev/null | head -1)
+          if [ -n "$SITE_CONF" ]; then
+            grep -n "proxy_cache\|proxy_no_cache\|proxy_cache_bypass" "$SITE_CONF" || echo "No cache directives found"
+          fi
+
+          # Reload nginx
+          nginx -s reload && echo "Nginx reloaded OK"
+          '
