@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { StepNavigation } from "@/components/StepNavigation";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
+import { PolishEditor } from "@/components/PolishEditor";
 
 const DRAFT_STEPS = [
   { label: "输入草稿", description: "粘贴你的申报书" },
@@ -84,6 +85,7 @@ function extractSection(draft: string, section: string): string {
 export function DraftSteps({ onBack }: { onBack: () => void }) {
   const [currentStep, setCurrentStep] = useState<Step>(0);
   const [draft, setDraft] = useState("");
+  const [polishedDraft, setPolishedDraft] = useState("");
   const [polishSection, setPolishSection] = useState("选题依据");
   const [resultTitle, setResultTitle] = useState("");
   const [resultText, setResultText] = useState("");
@@ -96,6 +98,27 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
   const [completedDiagnosis, setCompletedDiagnosis] = useState(false);
   const [completedPolish, setCompletedPolish] = useState(false);
   const [completedExpert, setCompletedExpert] = useState(false);
+
+  function updateSectionInDraft(section: string, newText: string) {
+    const escaped = section.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const pattern = new RegExp(
+      `((?:^|\\n)(?:\\d+[、.]\\s*)?${escaped}[：:]\\s*)[\\s\\S]*?(?=\\n(?:\\d+[、.]\\s*)?(?:${polishSections.map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})[：:]|$)`,
+      "i"
+    );
+    const current = polishedDraft || draft;
+    if (pattern.test(current)) {
+      setPolishedDraft(current.replace(pattern, `$1${newText}`));
+    } else {
+      // Section not found, append
+      setPolishedDraft(current + `\n\n${section}：${newText}`);
+    }
+  }
+
+  // Sync polished draft when draft is first loaded
+  function setDraftAndSync(value: string) {
+    setDraft(value);
+    setPolishedDraft(value);
+  }
 
   function runAction(title: string, action: () => Promise<string>) {
     setResultTitle(title);
@@ -206,7 +229,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
               <button
                 type="button"
                 onClick={() => {
-                  setDraft(draftExamples[0].value);
+                  setDraftAndSync(draftExamples[0].value);
                   setResultText("");
                   setError("");
                 }}
@@ -221,7 +244,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                 type="button"
                 onClick={() => {
                   if (window.confirm("确定要清空当前草稿吗？")) {
-                    setDraft("");
+                    setDraftAndSync("");
                     setResultText("");
                     setError("");
                     setCompletedDiagnosis(false);
@@ -239,7 +262,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
               placeholder="在此粘贴你的申报书草稿..."
               rows={14}
               value={draft}
-              onChange={(e) => setDraft(e.target.value)}
+              onChange={(e) => setDraftAndSync(e.target.value)}
               className="focus-ring w-full resize-y rounded-md border border-[#E8E6E1] bg-white px-3 py-3 text-sm leading-6 text-[#141413] placeholder:text-[#9CA3AF]"
             />
 
@@ -329,10 +352,12 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
         {/* Step 2: 逐栏打磨 */}
         {currentStep === 2 && (
           <div className="rounded-md border border-[#E8E6E1] bg-white p-6">
-            <p className="mb-1 text-sm font-bold text-[#6B7280]">操作提示</p>
-            <p className="mb-5 text-sm leading-6 text-[#9CA3AF]">
-              选择一个栏目，AI 会针对该栏目进行深度打磨，优化表述、补充细节。
-            </p>
+            <div className="mb-4 flex items-start justify-between">
+              <div>
+                <p className="text-sm font-bold text-[#6B7280]">操作提示</p>
+                <p className="text-sm leading-6 text-[#9CA3AF]">选择栏目，AI 深度打磨。左侧查看建议，右侧直接编辑原文。</p>
+              </div>
+            </div>
 
             <div className="mb-5">
               <label className="mb-2 block text-sm font-bold text-[#141413]">选择要打磨的栏目</label>
@@ -358,50 +383,34 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
               </div>
             </div>
 
-            {extractSection(draft, polishSection) && (
-              <div className="mb-5 rounded-md bg-[#FAF9F6] p-4">
-                <p className="text-xs font-bold text-[#9CA3AF]">原文：{polishSection}</p>
-                <p className="mt-1 text-sm leading-6 whitespace-pre-wrap text-[#6B7280]">
-                  {extractSection(draft, polishSection)}
-                </p>
-              </div>
-            )}
+            <PolishEditor
+              section={polishSection}
+              originalText={extractSection(polishedDraft || draft, polishSection)}
+              onUpdate={(text) => updateSectionInDraft(polishSection, text)}
+              resultText={resultTitle.startsWith("逐栏打磨") ? resultText : ""}
+              isLoading={isLoading}
+              onStartPolish={handlePolish}
+            />
 
-            {isLoading ? (
-              <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-8 text-center text-sm text-[#6B7280]">
-                {loadingSteps[loadingStepIndex]}，请稍候...
-              </div>
-            ) : (
-              <div className="flex justify-between">
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep(1)}
-                  className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
-                >
-                  上一步
-                </button>
-                <button
-                  type="button"
-                  onClick={handlePolish}
-                  className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
-                >
-                  开始打磨
-                </button>
-              </div>
-            )}
-
-            {resultText && resultTitle.startsWith("逐栏打磨") && (
-              <div className="mt-6">
-                <h3 className="mb-3 text-sm font-bold text-[#141413]">打磨结果</h3>
-                <div className="space-y-3 rounded-md bg-[#FAF9F6] p-5 text-sm leading-8 text-[#141413]">
-                  {resultText.split("\n\n").map((block, i) => (
-                    <p key={i} className="whitespace-pre-wrap">
-                      {block}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            )}
+            <div className="mt-6 flex justify-between">
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentStep(1);
+                  setError("");
+                }}
+                className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
+              >
+                上一步
+              </button>
+              <button
+                type="button"
+                onClick={handlePolish}
+                className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
+              >
+                开始打磨
+              </button>
+            </div>
 
             {completedPolish && (
               <div className="mt-6 flex justify-end">
