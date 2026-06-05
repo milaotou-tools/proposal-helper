@@ -142,34 +142,37 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
   }
 
   function handleDiagnosis() {
-    if (!draft.trim()) {
+    const content = polishedDraft || draft;
+    if (!content.trim()) {
       setError("请先粘贴申报书草稿。");
       return;
     }
     runAction("整体诊断结果", () =>
-      postAi("/api/review-draft", { draft, scope: "整体诊断" }, allowCollection)
+      postAi("/api/review-draft", { draft: content, scope: "整体诊断" }, allowCollection)
     );
     setCompletedDiagnosis(true);
   }
 
   function handlePolish() {
-    if (!draft.trim()) {
+    const content = polishedDraft || draft;
+    if (!content.trim()) {
       setError("请先粘贴申报书草稿。");
       return;
     }
     runAction(`逐栏打磨：${polishSection}`, () =>
-      postAi("/api/polish-section", { draft, section: polishSection }, allowCollection)
+      postAi("/api/polish-section", { draft: content, section: polishSection }, allowCollection)
     );
     setCompletedPolish(true);
   }
 
   function handleExpertReview() {
-    if (!draft.trim()) {
+    const content = polishedDraft || draft;
+    if (!content.trim()) {
       setError("请先粘贴申报书草稿。");
       return;
     }
     runAction("模拟专家预审意见", () =>
-      postAi("/api/expert-review", { draft }, allowCollection)
+      postAi("/api/expert-review", { draft: content }, allowCollection)
     );
     setCompletedExpert(true);
   }
@@ -352,10 +355,10 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
         {currentStep === 2 && (
           <div className="flex flex-col gap-5 lg:flex-row">
             {/* 左侧：步骤内容 */}
-            <div className="flex-1 rounded-md border border-[#E8E6E1] bg-white p-6">
+            <div className="flex flex-1 flex-col rounded-md border border-[#E8E6E1] bg-white p-6">
               <div className="mb-4">
                 <p className="text-sm font-bold text-[#6B7280]">操作提示</p>
-                <p className="text-sm leading-6 text-[#9CA3AF]">选择栏目，AI 深度打磨。左侧查看建议，右侧直接编辑原文。</p>
+                <p className="text-sm leading-6 text-[#9CA3AF]">选择栏目查看原文，点击"开始打磨"获取 AI 建议。复制左侧"修改后文本"，在右侧全文编辑器中定位并替换。</p>
               </div>
 
               <div className="mb-5">
@@ -382,15 +385,28 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                 </div>
               </div>
 
-              {/* AI 打磨建议区 */}
-              {!resultText && !isLoading && (
-                <div className="rounded-md bg-[#FAF9F6] px-4 py-12 text-center text-sm text-[#9CA3AF]">
-                  选择栏目后点击"开始打磨"查看 AI 建议
+              {/* 该栏目的原文 */}
+              {extractSection(polishedDraft || draft, polishSection) && (
+                <div className="mb-5 rounded-md bg-[#FAF9F6] p-4">
+                  <p className="text-xs font-bold text-[#9CA3AF]">当前栏目原文</p>
+                  <p className="mt-1 text-sm leading-7 whitespace-pre-wrap text-[#6B7280]">
+                    {extractSection(polishedDraft || draft, polishSection)}
+                  </p>
                 </div>
               )}
 
+              <button
+                type="button"
+                onClick={handlePolish}
+                disabled={isLoading}
+                className="focus-ring mb-5 h-11 w-full rounded-md bg-[#141413] text-sm font-extrabold text-white transition hover:bg-[#2A2A28] disabled:cursor-not-allowed disabled:bg-[#D1D5DB]"
+              >
+                开始打磨
+              </button>
+
+              {/* AI 打磨建议区 */}
               {isLoading && (
-                <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-8 text-center text-sm text-[#6B7280]">
+                <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-12 text-center text-sm text-[#6B7280]">
                   {loadingSteps[loadingStepIndex]}，请稍候...
                 </div>
               )}
@@ -401,9 +417,8 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                     <div
                       key={i}
                       onClick={() => {
-                        // Find matching text in right editor
                         const phrase = (() => {
-                          const qm = block.match(/[“”]([^“”]{4,30})[“”]/);
+                          const qm = block.match(/[“]([^”]{4,30})[”]/);
                           if (qm) return qm[1];
                           const dq = block.match(/"([^"]{4,30})"/);
                           if (dq) return dq[1];
@@ -437,7 +452,8 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                 </div>
               )}
 
-              <div className="mt-6 flex justify-between">
+              {/* 底部按钮：始终可见 */}
+              <div className="mt-auto flex justify-between pt-6">
                 <button
                   type="button"
                   onClick={() => {
@@ -450,42 +466,29 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                 </button>
                 <button
                   type="button"
-                  onClick={handlePolish}
+                  onClick={() => {
+                    setCurrentStep(3);
+                    setError("");
+                  }}
                   className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
                 >
-                  开始打磨
+                  下一步：模拟预审
                 </button>
               </div>
-
-              {completedPolish && (
-                <div className="mt-6 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCurrentStep(3);
-                      setError("");
-                    }}
-                    className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
-                  >
-                    下一步：模拟预审
-                  </button>
-                </div>
-              )}
             </div>
 
-            {/* 右侧：原文编辑面板 */}
-            <div className="flex-1 rounded-md border border-[#E8E6E1] bg-white p-6">
+            {/* 右侧：全文编辑面板 */}
+            <div className="flex flex-1 flex-col rounded-md border border-[#E8E6E1] bg-white p-6">
               <div className="mb-4">
                 <p className="text-sm font-bold text-[#6B7280]">原文编辑</p>
-                <p className="text-sm leading-6 text-[#9CA3AF]">直接编辑草稿，切换栏目保留修改</p>
+                <p className="text-sm leading-6 text-[#9CA3AF]">下方为完整草稿，可直接编辑。粘贴 AI 修改后文本替换对应段落。</p>
               </div>
               <textarea
                 id="polish-editor-textarea"
-                value={extractSection(polishedDraft || draft, polishSection)}
-                onChange={(e) => updateSectionInDraft(polishSection, e.target.value)}
-                className="w-full resize-y rounded-md border border-[#E8E6E1] bg-white px-3 py-3 text-sm leading-8 text-[#141413] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#141413]/10"
-                rows={22}
-                placeholder="该栏目暂无原文内容"
+                value={polishedDraft || draft}
+                onChange={(e) => setPolishedDraft(e.target.value)}
+                className="flex-1 w-full resize-none rounded-md border border-[#E8E6E1] bg-white px-3 py-3 text-sm leading-8 text-[#141413] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#141413]/10"
+                placeholder="暂无草稿内容"
               />
             </div>
           </div>
