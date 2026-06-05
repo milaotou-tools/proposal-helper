@@ -218,11 +218,8 @@ export function LandingPage({ onSelectPath }: Props) {
           <button
             type="button"
             onClick={() => onSelectPath("framework")}
-            className="group rounded-xl border border-[#E8E6E1] bg-white p-6 text-left transition hover:border-[#0070F3] hover:shadow-md"
+            className="group rounded-xl border border-[#E8E6E1] bg-white p-6 text-center transition hover:border-[#0070F3] hover:shadow-md"
           >
-            <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-[#EBF5FF] text-2xl">
-              🧠
-            </div>
             <h3 className="text-lg font-extrabold text-[#141413] group-hover:text-[#0070F3]">
               我没有申报书，从想法开始
             </h3>
@@ -234,11 +231,8 @@ export function LandingPage({ onSelectPath }: Props) {
           <button
             type="button"
             onClick={() => onSelectPath("draft")}
-            className="group rounded-xl border border-[#E8E6E1] bg-white p-6 text-left transition hover:border-[#D97706] hover:shadow-md"
+            className="group rounded-xl border border-[#E8E6E1] bg-white p-6 text-center transition hover:border-[#D97706] hover:shadow-md"
           >
-            <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-[#FEF3E2] text-2xl">
-              📝
-            </div>
             <h3 className="text-lg font-extrabold text-[#141413] group-hover:text-[#D97706]">
               我已经有草稿，需要打磨
             </h3>
