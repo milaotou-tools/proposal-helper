@@ -29,9 +29,16 @@ export function LandingPage({ onSelectPath }: Props) {
           <h1 className="text-[34px] font-extrabold tracking-[-0.02em] text-[#141413]">
             课题申报小助手
           </h1>
-          <p className="mt-3 text-[15px] leading-7 text-[#6B7280]">
-            对着空白文档无从下手，直接让 AI 生成又千篇一律。小助手把专家的申报思路拆成步骤，跟着你的具体想法陪你修改。
-          </p>
+          <div className="mt-3 space-y-1.5">
+            <p className="text-[15px] leading-7 text-[#9CA3AF]">
+              <span className="mr-2 text-[#141413] font-bold">✕</span>
+              对着空白文档无从下手，直接让 AI 生成又千篇一律。
+            </p>
+            <p className="text-[15px] leading-7 text-[#6B7280]">
+              <span className="mr-2 text-[#16A34A] font-bold">✓</span>
+              小助手把专家的申报思路拆成步骤，跟着你的具体想法陪你修改。
+            </p>
+          </div>
         </div>
 
         {/* AI 区域 */}
