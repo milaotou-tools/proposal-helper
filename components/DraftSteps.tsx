@@ -106,6 +106,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
   const [resultTitle, setResultTitle] = useState("");
   const [resultText, setResultText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingPolishSection, setLoadingPolishSection] = useState<string | null>(null);
   const [loadingStepIndex, setLoadingStepIndex] = useState(0);
   const [error, setError] = useState("");
   const [allowCollection, setAllowCollection] = useState(true);
@@ -245,6 +246,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
       })
       .finally(() => {
         setIsLoading(false);
+        setLoadingPolishSection(null);
         clearInterval(interval);
       });
   }
@@ -267,6 +269,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
       setError("请先粘贴申报书草稿。");
       return;
     }
+    setLoadingPolishSection(polishSection);
     runAction(`逐栏打磨：${polishSection}`, () =>
       postAi("/api/polish-section", { draft: content, section: polishSection }, allowCollection)
     );
@@ -507,25 +510,24 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                 </div>
               )}
 
-              {!polishCache.current[polishSection] && (
+              {!polishCache.current[polishSection] && !(isLoading && loadingPolishSection === polishSection) && (
                 <button
                   type="button"
                   onClick={handlePolish}
-                  disabled={isLoading}
-                  className="focus-ring mb-5 h-11 w-full rounded-md bg-[#141413] text-sm font-extrabold text-white transition hover:bg-[#2A2A28] disabled:cursor-not-allowed disabled:bg-[#D1D5DB]"
+                  className="focus-ring mb-5 h-11 w-full rounded-md bg-[#141413] text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
                 >
-                  {isLoading ? "打磨中..." : "开始打磨"}
+                  开始打磨
                 </button>
               )}
 
               {/* AI 打磨建议区 */}
-              {isLoading && (
+              {isLoading && loadingPolishSection === polishSection && (
                 <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-12 text-center text-sm text-[#6B7280]">
                   {loadingSteps[loadingStepIndex]}，请稍候...
                 </div>
               )}
 
-              {resultText && resultTitle.startsWith("逐栏打磨") && !isLoading && (
+              {resultText && resultTitle.startsWith("逐栏打磨") && !(isLoading && loadingPolishSection === polishSection) && (
                 <div
                   onClick={() => {
                     // Don't hijack if user is selecting text to copy
