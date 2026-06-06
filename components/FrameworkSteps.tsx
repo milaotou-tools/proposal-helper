@@ -27,12 +27,53 @@ const emptyForm: FrameworkForm = {
 
 const STAGES = ["幼儿园", "小学", "初中", "高中"];
 
-const stageSubjects: Record<string, string[]> = {
-  "幼儿园": ["语言", "科学", "艺术", "健康", "社会", "区域活动", "游戏活动", "一日生活", "家园共育"],
-  "小学": ["语文", "数学", "英语", "科学", "音乐", "美术", "体育", "班级管理", "德育", "家校共育"],
-  "初中": ["语文", "数学", "英语", "物理", "化学", "生物", "历史", "地理", "道德与法治", "音乐", "美术", "体育", "信息技术", "班级管理", "心理健康"],
-  "高中": ["语文", "数学", "英语", "物理", "化学", "生物", "历史", "地理", "思想政治", "音乐", "美术", "体育", "信息技术", "通用技术", "班级管理", "心理健康"]
+type StageExample = {
+  stageSubject: string;
+  idea: string;
+  problem: string;
+  researchObjects: string;
+  practiceBase: string;
+  expectedOutputs: string;
 };
+
+const stageExamples: Record<string, StageExample> = {
+  "幼儿园": {
+    stageSubject: "幼儿园语言",
+    idea: "绘本阅读促进幼儿语言发展的实践研究",
+    problem: "部分幼儿在集体活动中语言表达意愿不强，词汇量发展不均衡",
+    researchObjects: "自己所带班级幼儿",
+    practiceBase: "已在班级开展绘本阅读活动，积累了一些观察记录",
+    expectedOutputs: "课题报告、绘本阅读活动案例、幼儿语言发展观察记录、家园共读资源"
+  },
+  "小学": {
+    stageSubject: "小学数学",
+    idea: "AI 辅助学生知识结构化学习的研究",
+    problem: "学生在复习时知识点零散，难以形成结构化理解，传统复习方式效率较低",
+    researchObjects: "自己所教班级学生",
+    practiceBase: "已在教学中尝试过相关做法，积累了一些实践经验",
+    expectedOutputs: "课题报告、教学案例、学生作品、校本资源包"
+  },
+  "初中": {
+    stageSubject: "初中物理",
+    idea: "基于实验探究的物理概念建构研究",
+    problem: "学生在物理概念学习中依赖记忆而非理解，实验探究环节流于形式",
+    researchObjects: "自己所教班级学生",
+    practiceBase: "已在课堂中尝试增加实验探究环节，有初步观察记录",
+    expectedOutputs: "课题报告、实验教学案例、学生探究报告样例、教学资源包"
+  },
+  "高中": {
+    stageSubject: "高中思想政治",
+    idea: "议题式教学在思想政治课中的应用研究",
+    problem: "学生对抽象政治概念理解困难，课堂参与度不高，知识与现实脱节",
+    researchObjects: "自己所教班级学生",
+    practiceBase: "已尝试引入社会热点议题组织课堂讨论，学生反馈积极",
+    expectedOutputs: "课题报告、议题教学设计集、课堂实录、学生思辨作品"
+  }
+};
+
+function getExample(stage: string): StageExample {
+  return stageExamples[stage] || stageExamples["小学"];
+}
 
 const loadingSteps = ["正在分析你的课题想法", "正在梳理研究目标与内容", "正在整理研究方法", "正在规划预期成果"];
 
@@ -151,13 +192,14 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
             <div className="mb-4 flex items-start justify-between">
               <div>
                 <p className="text-sm font-bold text-[#6B7280]">操作提示</p>
-                <p className="text-sm leading-6 text-[#9CA3AF]">请先选择你任教的学段和学科。如果不确定，填一个大概的范围就行，后续可以修改。</p>
+                <p className="text-sm leading-6 text-[#9CA3AF]">先选择你的学段，再填写教学领域或课题方向。学科教改、学校规划、班级管理、家校共育等都可以。</p>
               </div>
               <button
                 type="button"
                 onClick={() => {
-                  updateField("stage", "小学");
-                  updateField("stageSubject", "小学数学");
+                  const eg = getExample(form.stage || "小学");
+                  updateField("stage", form.stage || "小学");
+                  updateField("stageSubject", eg.stageSubject);
                 }}
                 className="ml-3 shrink-0 rounded-md border border-[#E8E6E1] bg-white px-2.5 py-1 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280]"
               >
@@ -166,7 +208,7 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
             </div>
 
             {/* 学段选择 */}
-            <div className="mb-4 flex flex-wrap gap-2">
+            <div className="mb-5 flex flex-wrap gap-2">
               {STAGES.map((stage) => (
                 <button
                   key={stage}
@@ -184,29 +226,6 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
                   {stage}
                 </button>
               ))}
-            </div>
-
-            {/* 学科标签 */}
-            {form.stage && stageSubjects[form.stage] && (
-              <div className="mb-5 flex flex-wrap gap-2">
-                {stageSubjects[form.stage].map((subject) => (
-                  <button
-                    key={subject}
-                    type="button"
-                    onClick={() => updateField("stageSubject", form.stage + subject)}
-                    className={`focus-ring rounded-md border px-3 py-2 text-sm font-bold transition ${
-                      form.stageSubject === form.stage + subject
-                        ? "border-[#141413] bg-[#141413] text-white"
-                        : "border-[#E8E6E1] bg-[#FAF9F6] text-[#141413] hover:bg-[#F3F2EF]"
-                    }`}
-                  >
-                    {subject}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <div className="mb-4">
               <button
                 type="button"
                 onClick={() => {
@@ -221,9 +240,9 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
             </div>
 
             <label className="flex flex-col gap-2">
-              <span className="text-sm font-bold text-[#141413]">学段学科</span>
+              <span className="text-sm font-bold text-[#141413]">教学领域 / 课题方向</span>
               <input
-                placeholder="例如：初中物理、高中思想政治、幼儿园语言、小学班级管理"
+                placeholder="例如：初中物理、高中思想政治、幼儿园语言、小学家校共育、学校德育规划"
                 autoComplete="off"
                 value={form.stageSubject}
                 onChange={(e) => updateField("stageSubject", e.target.value)}
@@ -249,13 +268,14 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
             <div className="mb-4 flex items-start justify-between">
               <div>
                 <p className="text-sm font-bold text-[#6B7280]">操作提示</p>
-                <p className="text-sm leading-6 text-[#9CA3AF]">请描述你发现的真实教学问题和初步研究想法。越具体，生成的框架越贴合你的实际情况。</p>
+                <p className="text-sm leading-6 text-[#9CA3AF]">请描述你发现的真实问题和你打算怎么研究。越具体，生成的框架越贴合你的实际情况。</p>
               </div>
               <button
                 type="button"
                 onClick={() => {
-                  updateField("idea", "AI 辅助学生画数学概念图的研究");
-                  updateField("problem", "学生复习时知识点零散，难以形成结构化理解，传统复习方式效率较低");
+                  const eg = getExample(form.stage);
+                  updateField("idea", eg.idea);
+                  updateField("problem", eg.problem);
                 }}
                 className="ml-3 shrink-0 rounded-md border border-[#E8E6E1] bg-white px-2.5 py-1 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280]"
               >
@@ -270,7 +290,7 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
                   <span className="ml-2 rounded-sm bg-[#FEF3E2] px-1.5 py-0.5 text-xs text-[#141413]">必填</span>
                 </span>
                 <textarea
-                  placeholder="例如：我想研究 AI 怎么帮助学生画数学概念图。"
+                  placeholder="例如：我想探索 AI 如何帮助学生进行知识结构化学习。"
                   rows={3}
                   value={form.idea}
                   onChange={(e) => updateField("idea", e.target.value)}
@@ -323,9 +343,10 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
               <button
                 type="button"
                 onClick={() => {
-                  updateField("researchObjects", "六年级学生");
-                  updateField("practiceBase", "已尝试过概念图作业和单元复习题型整理，积累了部分学生作品");
-                  updateField("expectedOutputs", "课题报告、概念图作业样例、课堂案例、学生作品集");
+                  const eg = getExample(form.stage);
+                  updateField("researchObjects", eg.researchObjects);
+                  updateField("practiceBase", eg.practiceBase);
+                  updateField("expectedOutputs", eg.expectedOutputs);
                 }}
                 className="ml-3 shrink-0 rounded-md border border-[#E8E6E1] bg-white px-2.5 py-1 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280]"
               >
@@ -337,7 +358,7 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
               <label className="flex flex-col gap-2">
                 <span className="text-sm font-bold text-[#141413]">研究对象</span>
                 <input
-                  placeholder="例如：六年级学生、低段学生、新手班主任"
+                  placeholder="例如：自己所教班级学生、所带年级、全校班主任团队"
                   autoComplete="off"
                   value={form.researchObjects}
                   onChange={(e) => updateField("researchObjects", e.target.value)}
