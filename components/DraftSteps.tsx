@@ -411,7 +411,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
               <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-8 text-center text-sm text-[#6B7280]">
                 {loadingSteps[loadingStepIndex]}，请稍候...
               </div>
-            ) : (
+            ) : !completedDiagnosis ? (
               <div className="flex justify-between">
                 <button
                   type="button"
@@ -423,12 +423,13 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                 <button
                   type="button"
                   onClick={handleDiagnosis}
-                  className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
+                  disabled={isLoading}
+                  className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28] disabled:cursor-not-allowed disabled:bg-[#D1D5DB]"
                 >
                   开始诊断
                 </button>
               </div>
-            )}
+            ) : null}
 
             {resultText && resultTitle === "整体诊断结果" && (
               <div className="mt-6">
@@ -660,9 +661,10 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                 <button
                   type="button"
                   onClick={handleExpertReview}
-                  className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
+                  disabled={isLoading}
+                  className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28] disabled:cursor-not-allowed disabled:bg-[#D1D5DB]"
                 >
-                  开始预审
+                  {isLoading ? "预审中..." : "开始预审"}
                 </button>
               </div>
             )}
