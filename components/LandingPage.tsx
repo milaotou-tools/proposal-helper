@@ -30,7 +30,7 @@ export function LandingPage({ onSelectPath }: Props) {
             课题申报小助手
           </h1>
           <p className="mt-3 text-[15px] leading-7 text-[#6B7280]">
-            本工具帮你写框架、打磨文字，你只负责最后的润色
+            对着空白文档无从下手，直接让 AI 生成又千篇一律。小助手把专家的申报思路拆成步骤，跟着你的具体想法陪你修改。
           </p>
         </div>
 
