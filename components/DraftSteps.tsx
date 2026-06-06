@@ -598,7 +598,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                   </div>
                 </div>
                 <p className="text-sm leading-6 text-[#9CA3AF]">
-                  下方为完整草稿，可直接编辑。
+                  在此将原文修改成预审文本。
                   {polishedDraft !== draft && "编辑后的版本将用于模拟预审。"}
                 </p>
               </div>
