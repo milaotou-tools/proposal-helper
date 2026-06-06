@@ -129,7 +129,7 @@ export function LandingPage({ onSelectPath }: Props) {
               </span>
               <p className="mt-2.5 text-[14px] font-extrabold text-[#141413]">根据规范微调</p>
               <p className="mt-1 text-[12px] leading-[18px] text-[#6B7280]">
-                调整格式、字数、语言
+                调整格式、字数
               </p>
             </div>
           </div>
