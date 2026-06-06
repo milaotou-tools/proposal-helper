@@ -41,6 +41,11 @@ export function LandingPage({ onSelectPath }: Props) {
           </div>
         </div>
 
+          <p className="mt-4 text-[13px] text-[#9CA3AF]">
+            适用：幼儿园 · 小学 · 初中 · 高中
+          </p>
+        </div>
+
         {/* AI 区域 */}
         <div className="mt-14">
           <div className="flex items-center gap-2 mb-4">
