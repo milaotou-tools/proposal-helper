@@ -222,6 +222,10 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
       .then((text) => {
         const cleaned = stripMarkdown(text);
         setResultText(cleaned);
+        // Mark diagnosis complete when result arrives
+        if (title === "整体诊断结果") {
+          setCompletedDiagnosis(true);
+        }
         // Cache polish results per section
         if (title.startsWith("逐栏打磨")) {
           polishCache.current[polishSection] = cleaned;
@@ -260,7 +264,6 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
     runAction("整体诊断结果", () =>
       postAi("/api/review-draft", { draft: content, scope: "整体诊断" }, allowCollection)
     );
-    setCompletedDiagnosis(true);
   }
 
   function handlePolish() {
