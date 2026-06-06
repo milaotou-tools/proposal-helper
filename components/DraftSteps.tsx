@@ -507,14 +507,16 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                 </div>
               )}
 
-              <button
-                type="button"
-                onClick={handlePolish}
-                disabled={isLoading}
-                className="focus-ring mb-5 h-11 w-full rounded-md bg-[#141413] text-sm font-extrabold text-white transition hover:bg-[#2A2A28] disabled:cursor-not-allowed disabled:bg-[#D1D5DB]"
-              >
-                开始打磨
-              </button>
+              {!polishCache.current[polishSection] && (
+                <button
+                  type="button"
+                  onClick={handlePolish}
+                  disabled={isLoading}
+                  className="focus-ring mb-5 h-11 w-full rounded-md bg-[#141413] text-sm font-extrabold text-white transition hover:bg-[#2A2A28] disabled:cursor-not-allowed disabled:bg-[#D1D5DB]"
+                >
+                  {isLoading ? "打磨中..." : "开始打磨"}
+                </button>
+              )}
 
               {/* AI 打磨建议区 */}
               {isLoading && (
