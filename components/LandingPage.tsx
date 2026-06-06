@@ -7,14 +7,8 @@ type Props = {
 };
 
 const Arrow = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" className="shrink-0 text-[#D1D5DB]">
+  <svg width="20" height="20" viewBox="0 0 16 16" className="shrink-0 text-[#D1D5DB]">
     <path d="M6 3L11 8L6 13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const DownArrow = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" className="shrink-0 text-[#D1D5DB]">
-    <path d="M3 6L8 11L13 6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -23,43 +17,36 @@ export function LandingPage({ onSelectPath }: Props) {
 
   if (showFlow) {
     return (
-      <main className="mx-auto max-w-xl px-6 pt-20 pb-8">
+      <main className="mx-auto max-w-3xl px-6 pt-20 pb-8">
         {/* 标题 */}
         <div className="text-center">
-          <h1 className="text-[34px] font-extrabold tracking-[-0.02em] text-[#141413]">
+          <h1 className="text-[40px] font-extrabold tracking-[-0.02em] text-[#141413]">
             课题申报小助手
           </h1>
-          <div className="mt-3 space-y-1.5">
-            <p className="text-[15px] leading-7 text-[#6B7280]">
-              对着空白文档无从下手，直接让 AI 生成又千篇一律。
-            </p>
-            <p className="text-[15px] leading-7 text-[#6B7280]">
-              <span className="mr-2 text-[#16A34A] font-bold">✓</span>
-              小助手把专家的申报思路拆成步骤，跟着你的具体想法陪你修改。
-            </p>
-          </div>
-          <p className="mt-4 text-[13px] text-[#9CA3AF]">
-            适用：幼儿园 · 小学 · 初中 · 高中
+          <p className="mt-2 text-[13px] tracking-[0.06em] text-[#9CA3AF]">
+            幼 · 小 · 初 · 高
+          </p>
+          <p className="mt-4 text-[17px] leading-relaxed tracking-[0.04em] text-[#6B7280]">
+            &ldquo;把专家的申报思路拆成步骤，陪着你把想法变成申请书。&rdquo;
           </p>
         </div>
 
         {/* AI 区域 */}
-        <div className="mt-14">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="h-5 w-1 rounded-full bg-[#0070F3]" />
-            <span className="text-xs font-extrabold tracking-[0.12em] text-[#0070F3] uppercase">
+        <div className="mt-12">
+          <div className="mb-4">
+            <span className="text-sm font-extrabold tracking-[0.12em] text-[#0070F3] uppercase">
               本工具帮你
             </span>
           </div>
 
-          <div className="flex items-stretch gap-2">
+          <div className="flex items-stretch gap-4">
             {/* Step 1 */}
-            <div className="flex-1 rounded-xl border border-[#0070F3]/20 bg-[#F5F9FF] p-4">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#0070F3] text-[11px] font-extrabold text-white">
+            <div className="flex-1 rounded-xl border border-[#0070F3]/20 bg-[#F5F9FF] p-5">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#0070F3] text-[12px] font-extrabold text-white">
                 1
               </span>
-              <p className="mt-2.5 text-[14px] font-extrabold text-[#141413]">发现问题</p>
-              <p className="mt-1 text-[12px] leading-[18px] text-[#6B7280]">
+              <p className="mt-3 text-[15px] font-extrabold text-[#141413]">发现问题</p>
+              <p className="mt-1.5 text-[13px] leading-[19px] text-[#6B7280]">
                 观察到的真实教学问题
               </p>
             </div>
@@ -69,12 +56,12 @@ export function LandingPage({ onSelectPath }: Props) {
             </div>
 
             {/* Step 2 */}
-            <div className="flex-1 rounded-xl border border-[#0070F3]/20 bg-[#F5F9FF] p-4">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#0070F3] text-[11px] font-extrabold text-white">
+            <div className="flex-1 rounded-xl border border-[#0070F3]/20 bg-[#F5F9FF] p-5">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#0070F3] text-[12px] font-extrabold text-white">
                 2
               </span>
-              <p className="mt-2.5 text-[14px] font-extrabold text-[#141413]">生成框架</p>
-              <p className="mt-1 text-[12px] leading-[18px] text-[#6B7280]">
+              <p className="mt-3 text-[15px] font-extrabold text-[#141413]">生成框架</p>
+              <p className="mt-1.5 text-[13px] leading-[19px] text-[#6B7280]">
                 AI 整理结构化申报书
               </p>
             </div>
@@ -84,12 +71,12 @@ export function LandingPage({ onSelectPath }: Props) {
             </div>
 
             {/* Step 3 */}
-            <div className="flex-1 rounded-xl border border-[#0070F3]/20 bg-[#F5F9FF] p-4">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#0070F3] text-[11px] font-extrabold text-white">
+            <div className="flex-1 rounded-xl border border-[#0070F3]/20 bg-[#F5F9FF] p-5">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#0070F3] text-[12px] font-extrabold text-white">
                 3
               </span>
-              <p className="mt-2.5 text-[14px] font-extrabold text-[#141413]">诊断打磨预审</p>
-              <p className="mt-1 text-[12px] leading-[18px] text-[#6B7280]">
+              <p className="mt-3 text-[15px] font-extrabold text-[#141413]">诊断打磨预审</p>
+              <p className="mt-1.5 text-[13px] leading-[19px] text-[#6B7280]">
                 诊断薄弱点，逐栏打磨
               </p>
             </div>
@@ -97,32 +84,28 @@ export function LandingPage({ onSelectPath }: Props) {
         </div>
 
         {/* 交接点 */}
-        <div className="my-8 flex items-center gap-3">
+        <div className="mt-3 mb-1 flex items-center gap-3">
           <div className="h-px flex-1 bg-[#E8E6E1]" />
-          <div className="flex flex-col items-center gap-1">
-            <DownArrow />
-            <span className="whitespace-nowrap text-[11px] font-bold text-[#9CA3AF]">交给你来完成</span>
-          </div>
+          <span className="whitespace-nowrap text-[12px] font-bold text-[#9CA3AF]">后续</span>
           <div className="h-px flex-1 bg-[#E8E6E1]" />
         </div>
 
         {/* 用户区域 */}
         <div>
-          <div className="flex items-center gap-2 mb-4">
-            <div className="h-5 w-1 rounded-full bg-[#D1D5DB]" />
-            <span className="text-xs font-extrabold tracking-[0.12em] text-[#9CA3AF] uppercase">
+          <div className="mb-4">
+            <span className="text-sm font-extrabold tracking-[0.12em] text-[#9CA3AF] uppercase">
               你来完善
             </span>
           </div>
 
-          <div className="flex items-stretch gap-2">
+          <div className="flex items-stretch gap-4">
             {/* Step 4 */}
-            <div className="flex-1 rounded-xl border border-dashed border-[#D1D5DB] bg-[#FAF9F6] p-4">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#D1D5DB] text-[11px] font-extrabold text-[#9CA3AF]">
+            <div className="flex-1 rounded-xl border border-dashed border-[#D1D5DB] bg-[#FAF9F6] p-5">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#D1D5DB] text-[12px] font-extrabold text-[#9CA3AF]">
                 4
               </span>
-              <p className="mt-2.5 text-[14px] font-extrabold text-[#141413]">添加图表</p>
-              <p className="mt-1 text-[12px] leading-[18px] text-[#6B7280]">
+              <p className="mt-3 text-[15px] font-extrabold text-[#141413]">添加图表</p>
+              <p className="mt-1.5 text-[13px] leading-[19px] text-[#6B7280]">
                 补充流程图、框架图
               </p>
             </div>
@@ -132,13 +115,28 @@ export function LandingPage({ onSelectPath }: Props) {
             </div>
 
             {/* Step 5 */}
-            <div className="flex-1 rounded-xl border border-dashed border-[#D1D5DB] bg-[#FAF9F6] p-4">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#D1D5DB] text-[11px] font-extrabold text-[#9CA3AF]">
+            <div className="flex-1 rounded-xl border border-dashed border-[#D1D5DB] bg-[#FAF9F6] p-5">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#D1D5DB] text-[12px] font-extrabold text-[#9CA3AF]">
                 5
               </span>
-              <p className="mt-2.5 text-[14px] font-extrabold text-[#141413]">根据规范微调</p>
-              <p className="mt-1 text-[12px] leading-[18px] text-[#6B7280]">
-                调整格式
+              <p className="mt-3 text-[15px] font-extrabold text-[#141413]">根据规范微调</p>
+              <p className="mt-1.5 text-[13px] leading-[19px] text-[#6B7280]">
+                添加参考文献、调整格式
+              </p>
+            </div>
+
+            <div className="flex items-center">
+              <Arrow />
+            </div>
+
+            {/* Step 6 */}
+            <div className="flex-1 rounded-xl border border-dashed border-[#D1D5DB] bg-[#FAF9F6] p-5">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#D1D5DB] text-[12px] font-extrabold text-[#9CA3AF]">
+                6
+              </span>
+              <p className="mt-3 text-[15px] font-extrabold text-[#141413]">提交申请书</p>
+              <p className="mt-1.5 text-[13px] leading-[19px] text-[#6B7280]">
+                提交申报材料
               </p>
             </div>
           </div>
@@ -148,7 +146,7 @@ export function LandingPage({ onSelectPath }: Props) {
           <button
             type="button"
             onClick={() => setShowFlow(false)}
-            className="h-11 rounded-full bg-[#141413] px-10 text-[15px] font-semibold text-white transition hover:bg-[#2A2A28]"
+            className="h-12 rounded-full bg-[#141413] px-12 text-[16px] font-semibold text-white transition hover:bg-[#2A2A28]"
           >
             我知道啦
           </button>

@@ -317,7 +317,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
             申报书打磨
           </h1>
           <p className="mt-1 text-sm text-[#6B7280]">
-            按顺序完成诊断、打磨、预审，走完流程后可自由选择功能继续微调。
+            按顺序完成诊断、打磨、预审，逐步完善申报书。
           </p>
         </header>
 
