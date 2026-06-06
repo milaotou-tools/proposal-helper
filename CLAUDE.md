@@ -33,3 +33,26 @@
 - **PM2 重复实例**：部署前先 `pm2 delete` + `fuser -k`
 - **.next 删不干净**：先停 PM2 再 `rm -rf .next`
 - **GitHub Actions workflow YAML**：用 Bash heredoc 写，不要用编辑器直接写（可能编码问题导致 `workflow_dispatch` 无法识别）
+
+## 2026-06-06 Codex 交接状态
+
+- 实际维护项目：`C:\Users\admin\Desktop\proposal-helper-mvp`
+- GitHub：`milaotou-tools/proposal-helper`
+- 正式地址：`https://proposal.we-teach.cn`
+- 阿里云入口：`http://116.62.220.255:8083`
+- 当前主分支提交：`aea8fb3 Integrate framework feedback into result card`
+- 本次修改：
+  - `components/FrameworkSteps.tsx`
+  - 将“无明确想法路线”的使用反馈组件移入申报书框架结果卡片。
+  - 反馈区使用 `mt-6 border-t border-[#E8E6E1] pt-5`，与“已有想法/草稿路线”的结果卡片结构保持一致。
+  - 已删除结果卡片下方原有的独立反馈卡片容器。
+- 验证结果：
+  - `npm run build` 通过。
+  - SCP 部署工作流 `27061244154` 成功。
+  - 线上首页返回 200。
+  - `/api/health` 返回正常，DeepSeek 已配置。
+  - 线上脚本确认包含卡片内反馈结构，不再包含 `mx-auto mt-8 max-w-3xl` 的旧独立容器。
+- 部署提醒：
+  - 普通 `Deploy to Aliyun` 工作流仍可能因服务器 Git 拉取失败而报 exit code 128。
+  - 遇到该问题，使用 `Deploy via SCP (bypass git)` 工作流。
+- 不要修改 `C:\Users\admin\Desktop\一周订正情况反馈` 中历史兼容的课题助手页面；该功能已经拆分到本独立项目。
