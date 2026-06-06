@@ -6,6 +6,7 @@ import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { usePersistedState } from "@/lib/use-persisted-state";
 
 type FrameworkForm = {
+  stage: string;
   stageSubject: string;
   idea: string;
   problem: string;
@@ -15,6 +16,7 @@ type FrameworkForm = {
 };
 
 const emptyForm: FrameworkForm = {
+  stage: "",
   stageSubject: "",
   idea: "",
   problem: "",
@@ -23,7 +25,14 @@ const emptyForm: FrameworkForm = {
   expectedOutputs: ""
 };
 
-const subjectTags = ["小学数学", "小学语文", "小学英语", "小学科学", "小学音乐", "小学美术", "小学体育"];
+const STAGES = ["幼儿园", "小学", "初中", "高中"];
+
+const stageSubjects: Record<string, string[]> = {
+  "幼儿园": ["语言", "科学", "艺术", "健康", "社会", "区域活动", "游戏活动", "一日生活", "家园共育"],
+  "小学": ["语文", "数学", "英语", "科学", "音乐", "美术", "体育", "班级管理", "德育", "家校共育"],
+  "初中": ["语文", "数学", "英语", "物理", "化学", "生物", "历史", "地理", "道德与法治", "音乐", "美术", "体育", "信息技术", "班级管理", "心理健康"],
+  "高中": ["语文", "数学", "英语", "物理", "化学", "生物", "历史", "地理", "思想政治", "音乐", "美术", "体育", "信息技术", "通用技术", "班级管理", "心理健康"]
+};
 
 const loadingSteps = ["正在分析你的课题想法", "正在梳理研究目标与内容", "正在整理研究方法", "正在规划预期成果"];
 
@@ -146,24 +155,58 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
               </div>
               <button
                 type="button"
-                onClick={() => updateField("stageSubject", "小学数学")}
+                onClick={() => {
+                  updateField("stage", "小学");
+                  updateField("stageSubject", "小学数学");
+                }}
                 className="ml-3 shrink-0 rounded-md border border-[#E8E6E1] bg-white px-2.5 py-1 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280]"
               >
                 填入示例
               </button>
             </div>
 
-            <div className="mb-5 flex flex-wrap gap-2">
-              {subjectTags.map((tag) => (
+            {/* 学段选择 */}
+            <div className="mb-4 flex flex-wrap gap-2">
+              {STAGES.map((stage) => (
                 <button
-                  key={tag}
+                  key={stage}
                   type="button"
-                  onClick={() => updateField("stageSubject", tag)}
-                  className="focus-ring rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-3 py-2 text-sm font-bold text-[#141413] hover:bg-[#F3F2EF]"
+                  onClick={() => {
+                    updateField("stage", stage);
+                    updateField("stageSubject", "");
+                  }}
+                  className={`focus-ring rounded-md px-3 py-2 text-sm font-bold transition ${
+                    form.stage === stage
+                      ? "bg-[#141413] text-white"
+                      : "border border-[#E8E6E1] bg-[#FAF9F6] text-[#141413] hover:bg-[#F3F2EF]"
+                  }`}
                 >
-                  {tag}
+                  {stage}
                 </button>
               ))}
+            </div>
+
+            {/* 学科标签 */}
+            {form.stage && stageSubjects[form.stage] && (
+              <div className="mb-5 flex flex-wrap gap-2">
+                {stageSubjects[form.stage].map((subject) => (
+                  <button
+                    key={subject}
+                    type="button"
+                    onClick={() => updateField("stageSubject", form.stage + subject)}
+                    className={`focus-ring rounded-md border px-3 py-2 text-sm font-bold transition ${
+                      form.stageSubject === form.stage + subject
+                        ? "border-[#141413] bg-[#141413] text-white"
+                        : "border-[#E8E6E1] bg-[#FAF9F6] text-[#141413] hover:bg-[#F3F2EF]"
+                    }`}
+                  >
+                    {subject}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="mb-4">
               <button
                 type="button"
                 onClick={() => {
@@ -180,7 +223,7 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
             <label className="flex flex-col gap-2">
               <span className="text-sm font-bold text-[#141413]">学段学科</span>
               <input
-                placeholder="例如：小学数学、小学语文、班级管理、德育、家校共育"
+                placeholder="例如：初中物理、高中思想政治、幼儿园语言、小学班级管理"
                 autoComplete="off"
                 value={form.stageSubject}
                 onChange={(e) => updateField("stageSubject", e.target.value)}

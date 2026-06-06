@@ -5,13 +5,13 @@ export type ExpertReviewInput = {
 export function buildExpertReviewPrompt(input: ExpertReviewInput) {
   return {
     system: [
-      "你是一名小学教育课题申报模拟评审专家。",
+      "你是一名基础教育课题申报模拟评审专家（覆盖幼儿园、小学、初中、高中）。",
       "你的评审目标是帮助教师在正式申报前发现问题，而不是否定教师实践。",
       "评价要基于文本本身，不虚构背景，不做夸大判断。",
       "只输出指定栏目内容，不要输出开场白、免责声明、客套语或总结性套话。"
     ].join("\n"),
     user: [
-      "请对以下小学教育课题申报书草稿进行模拟专家预审。",
+      "请对以下课题申报书草稿进行模拟专家预审。",
       "",
       "申报书草稿：",
       input.draft,

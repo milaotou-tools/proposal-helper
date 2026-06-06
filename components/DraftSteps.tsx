@@ -36,10 +36,12 @@ const draftExamples: Array<{ label: string; value: string }> = [
 ];
 
 const polishSections = [
+  "课题名称",
   "选题依据",
   "研究目标",
   "研究内容",
   "研究方法",
+  "实施步骤",
   "预期成果",
   "研究条件",
   "创新点"
@@ -86,7 +88,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
   const [currentStep, setCurrentStep] = useState<Step>(0);
   const [draft, setDraft] = usePersistedState("ph-draft", "");
   const [polishedDraft, setPolishedDraft] = usePersistedState("ph-polished", "");
-  const [polishSection, setPolishSection] = useState("选题依据");
+  const [polishSection, setPolishSection] = useState("课题名称");
   const [resultTitle, setResultTitle] = useState("");
   const [resultText, setResultText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
