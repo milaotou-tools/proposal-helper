@@ -9,7 +9,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN">
-      <body>{children}</body>
+      <body className="flex min-h-screen flex-col">
+        <div className="flex-1">{children}</div>
+        <footer className="py-4 text-center text-xs text-[#9CA3AF]">
+          课题申报小助手 · 由 娄仲达 开发
+        </footer>
+      </body>
     </html>
   );
 }

@@ -208,16 +208,7 @@ export function LandingPage({ onSelectPath }: Props) {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-7xl flex-col items-center justify-center px-4 py-8">
-      <div className="text-center">
-        <h1 className="text-[32px] font-extrabold tracking-[-0.02em] text-[#141413]">
-          课题申报小助手
-        </h1>
-        <p className="mt-3 text-base leading-7 text-[#6B7280]">
-          从零起步 + 打磨已有草稿
-        </p>
-      </div>
-
-      <div className="mt-14 w-full">
+      <div className="w-full">
         <h2 className="mb-5 text-center text-sm font-bold tracking-[0.12em] text-[#6B7280]">
           选择你的起点
         </h2>
