@@ -58,7 +58,7 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#FAF9F6] px-4 py-6 text-[#141413] sm:px-6">
+    <main className="bg-[#FAF9F6] px-4 py-6 text-[#141413] sm:px-6">
       <section className="mx-auto max-w-4xl">
         <h1 className="mb-6 text-2xl font-extrabold">管理后台</h1>
         <div className="mb-6 flex gap-3">

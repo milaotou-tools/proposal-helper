@@ -278,7 +278,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
   }
 
   return (
-    <main className="min-h-screen bg-[#FAF9F6] px-4 py-6 text-[#141413] sm:px-6 lg:px-8">
+    <main className="bg-[#FAF9F6] px-4 py-6 text-[#141413] sm:px-6 lg:px-8">
       <section className={`mx-auto flex flex-col gap-6 ${currentStep === 2 ? "max-w-6xl" : "max-w-4xl"}`}>
         {/* 返回按钮 */}
         <button
