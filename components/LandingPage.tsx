@@ -30,7 +30,7 @@ export function LandingPage({ onSelectPath }: Props) {
             课题申报小助手
           </h1>
           <p className="mt-3 text-[15px] leading-7 text-[#6B7280]">
-            AI 帮你写框架、打磨文字，你只负责最后的润色
+            本工具帮你写框架、打磨文字，你只负责最后的润色
           </p>
         </div>
 
@@ -39,7 +39,7 @@ export function LandingPage({ onSelectPath }: Props) {
           <div className="flex items-center gap-2 mb-4">
             <div className="h-5 w-1 rounded-full bg-[#0070F3]" />
             <span className="text-xs font-extrabold tracking-[0.12em] text-[#0070F3] uppercase">
-              AI 帮你
+              本工具帮你
             </span>
           </div>
 
@@ -170,7 +170,7 @@ export function LandingPage({ onSelectPath }: Props) {
             我没有申报书，从想法开始
           </h3>
           <p className="mt-2 text-sm leading-6 text-[#6B7280]">
-            填写你的课题想法和教学问题，AI 帮你生成一份完整的申报书框架。
+            填写你的课题想法和教学问题，本工具帮你生成一份完整的申报书框架。
           </p>
         </button>
 
@@ -184,7 +184,7 @@ export function LandingPage({ onSelectPath }: Props) {
             我已经有草稿，需要打磨
           </h3>
           <p className="mt-2 text-sm leading-6 text-[#6B7280]">
-            上传你的申报书草稿，AI 帮你整体诊断、逐栏打磨、模拟专家预审。
+            上传你的申报书草稿，本工具帮你整体诊断、逐栏打磨、模拟专家预审。
           </p>
         </button>
       </div>
