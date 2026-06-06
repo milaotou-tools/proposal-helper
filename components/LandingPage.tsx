@@ -30,8 +30,7 @@ export function LandingPage({ onSelectPath }: Props) {
             课题申报小助手
           </h1>
           <div className="mt-3 space-y-1.5">
-            <p className="text-[15px] leading-7 text-[#9CA3AF]">
-              <span className="mr-2 text-[#141413] font-bold">✕</span>
+            <p className="text-[15px] leading-7 text-[#6B7280]">
               对着空白文档无从下手，直接让 AI 生成又千篇一律。
             </p>
             <p className="text-[15px] leading-7 text-[#6B7280]">
@@ -39,8 +38,6 @@ export function LandingPage({ onSelectPath }: Props) {
               小助手把专家的申报思路拆成步骤，跟着你的具体想法陪你修改。
             </p>
           </div>
-        </div>
-
           <p className="mt-4 text-[13px] text-[#9CA3AF]">
             适用：幼儿园 · 小学 · 初中 · 高中
           </p>
