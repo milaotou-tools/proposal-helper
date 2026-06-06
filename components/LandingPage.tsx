@@ -27,7 +27,7 @@ export function LandingPage({ onSelectPath }: Props) {
             {/* 工具覆盖区：Step 1-3 */}
             <div className="relative flex flex-[5] rounded-lg border-2 border-[#0070F3] bg-[#EFF6FF] p-4 pt-6">
               <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#0070F3] px-3 py-0.5 text-[11px] font-extrabold text-white whitespace-nowrap">
-                AI 帮你到这儿
+                本工具帮你到这儿
               </span>
               <div className="flex w-full items-stretch gap-0">
                 {/* Step 1 */}
@@ -121,7 +121,7 @@ export function LandingPage({ onSelectPath }: Props) {
             {/* 工具覆盖区 */}
             <div className="relative rounded-lg border-2 border-[#0070F3] bg-[#EFF6FF] px-3 py-4">
               <span className="absolute -top-3 left-4 rounded-full bg-[#0070F3] px-3 py-0.5 text-[11px] font-extrabold text-white">
-                AI 帮你到这儿
+                本工具帮你到这儿
               </span>
 
               {/* Step 1 */}
