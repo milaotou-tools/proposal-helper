@@ -149,7 +149,7 @@ export function LandingPage({ onSelectPath }: Props) {
   }
 
   return (
-    <main className="mx-auto max-w-xl px-6 pt-20 pb-8">
+    <main className="mx-auto max-w-2xl px-6 pt-20 pb-8">
       <div className="text-center">
         <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#6B7280]">
           Choose Your Path
