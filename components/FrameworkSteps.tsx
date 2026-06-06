@@ -512,15 +512,13 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
                 复制结果
               </button>
             </div>
+
+            <div className="mt-6 border-t border-[#E8E6E1] pt-5">
+              <FeedbackWidget />
+            </div>
           </div>
         )}
       </section>
-
-      {currentStep === 4 && (
-        <section className="mx-auto mt-8 max-w-3xl">
-          <FeedbackWidget />
-        </section>
-      )}
     </main>
   );
 }
