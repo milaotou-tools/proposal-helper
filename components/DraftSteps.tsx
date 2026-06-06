@@ -623,7 +623,8 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                     setExpertReviewFresh(false);
                     setError("");
                   }}
-                  className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
+                  disabled={Object.keys(polishCache.current).length === 0}
+                  className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28] disabled:cursor-not-allowed disabled:bg-[#D1D5DB]"
                 >
                   下一步：模拟预审
                 </button>
