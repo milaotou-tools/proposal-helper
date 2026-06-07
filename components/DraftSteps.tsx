@@ -663,14 +663,9 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                 return (
                   <>
                     <div className="flex justify-between">
-                      <div className="flex gap-3">
-                        <button type="button" onClick={() => setCurrentStep(2)} className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]">
-                          上一步
-                        </button>
-                        <button type="button" onClick={() => { setCurrentStep(2); setError(""); }} className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]">
-                          返回打磨
-                        </button>
-                      </div>
+                      <button type="button" onClick={() => { setCurrentStep(2); setError(""); }} className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]">
+                        返回打磨
+                      </button>
                       <button type="button" onClick={handleSaveAndExport} className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]">
                         导出终稿
                       </button>
