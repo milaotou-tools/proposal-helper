@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { StepNavigation } from "@/components/StepNavigation";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { usePersistedState } from "@/lib/use-persisted-state";
+import { postAi, stripMarkdown, copyToClipboard } from "@/lib/utils";
 
 type FrameworkForm = {
   stage: string;
@@ -85,29 +86,6 @@ const FRAMEWORK_STEPS = [
   { label: "查看结果", description: "框架输出" }
 ];
 
-async function postAi(url: string, payload: unknown, allowCollection?: boolean) {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-allow-collection": allowCollection ? "1" : "0" },
-    body: JSON.stringify(payload)
-  });
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    throw new Error(data.error || `请求失败，状态码 ${res.status}`);
-  }
-
-  return data.text as string;
-}
-
-function stripMarkdown(text: string) {
-  return text
-    .replace(/^#{1,4}\s+/gm, "")
-    .replace(/\*\*(.+?)\*\*/g, "$1")
-    .replace(/\*(.+?)\*/g, "$1");
-}
-
 export function FrameworkSteps({ onBack }: { onBack: () => void }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [form, setForm] = usePersistedState<FrameworkForm>("ph-framework-form", emptyForm);
@@ -116,6 +94,8 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
   const [loadingStepIndex, setLoadingStepIndex] = useState(0);
   const [error, setError] = useState("");
   const [allowCollection, setAllowCollection] = useState(true);
+  const [copied, setCopied] = useState(false);
+  const retryRef = useRef<(() => void) | null>(null);
 
   function updateField(field: keyof FrameworkForm, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -127,6 +107,7 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
       return;
     }
 
+    retryRef.current = () => handleGenerate();
     setError("");
     setIsLoading(true);
 
@@ -181,8 +162,17 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
         />
 
         {error && (
-          <div className="rounded-md border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm leading-6 text-[#DC2626]">
-            {error}
+          <div className="flex items-start justify-between gap-3 rounded-md border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm leading-6 text-[#DC2626]">
+            <span>{error}</span>
+            {retryRef.current && (
+              <button
+                type="button"
+                onClick={() => retryRef.current?.()}
+                className="shrink-0 rounded-md border border-[#FECACA] bg-white px-3 py-1 text-xs font-bold text-[#DC2626] transition hover:bg-[#FEF2F2]"
+              >
+                重试
+              </button>
+            )}
           </div>
         )}
 
@@ -504,12 +494,16 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(resultText).catch(() => undefined);
+                onClick={async () => {
+                  const ok = await copyToClipboard(resultText);
+                  if (ok) {
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 1800);
+                  }
                 }}
                 className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
               >
-                复制结果
+                {copied ? "已复制 ✓" : "复制结果"}
               </button>
             </div>
 

@@ -39,7 +39,7 @@ export function LandingPage({ onSelectPath }: Props) {
             </span>
           </div>
 
-          <div className="flex items-stretch gap-4">
+          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:gap-4">
             {/* Step 1 */}
             <div className="flex-1 rounded-xl border border-[#0070F3]/20 bg-[#F5F9FF] p-5">
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#0070F3] text-[12px] font-extrabold text-white">
@@ -51,7 +51,7 @@ export function LandingPage({ onSelectPath }: Props) {
               </p>
             </div>
 
-            <div className="flex items-center">
+            <div className="hidden sm:flex items-center">
               <Arrow />
             </div>
 
@@ -66,7 +66,7 @@ export function LandingPage({ onSelectPath }: Props) {
               </p>
             </div>
 
-            <div className="flex items-center">
+            <div className="hidden sm:flex items-center">
               <Arrow />
             </div>
 
@@ -98,7 +98,7 @@ export function LandingPage({ onSelectPath }: Props) {
             </span>
           </div>
 
-          <div className="flex items-stretch gap-4">
+          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:gap-4">
             {/* Step 4 */}
             <div className="flex-1 rounded-xl border border-dashed border-[#D1D5DB] bg-[#FAF9F6] p-5">
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#D1D5DB] text-[12px] font-extrabold text-[#9CA3AF]">
@@ -110,7 +110,7 @@ export function LandingPage({ onSelectPath }: Props) {
               </p>
             </div>
 
-            <div className="flex items-center">
+            <div className="hidden sm:flex items-center">
               <Arrow />
             </div>
 
@@ -125,7 +125,7 @@ export function LandingPage({ onSelectPath }: Props) {
               </p>
             </div>
 
-            <div className="flex items-center">
+            <div className="hidden sm:flex items-center">
               <Arrow />
             </div>
 

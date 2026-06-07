@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { StepNavigation } from "@/components/StepNavigation";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { usePersistedState } from "@/lib/use-persisted-state";
+import { postAi, stripMarkdown } from "@/lib/utils";
 
 const DRAFT_STEPS = [
   { label: "输入草稿", description: "粘贴你的申报书" },
@@ -63,29 +64,6 @@ const polishSections = [
 
 const loadingSteps = ["正在分析中", "正在整理思路", "正在生成结果"];
 
-function stripMarkdown(text: string) {
-  return text
-    .replace(/^#{1,4}\s+/gm, "")
-    .replace(/\*\*(.+?)\*\*/g, "$1")
-    .replace(/\*(.+?)\*/g, "$1");
-}
-
-async function postAi(url: string, payload: unknown, allowCollection?: boolean) {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-allow-collection": allowCollection ? "1" : "0" },
-    body: JSON.stringify(payload)
-  });
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    throw new Error(data.error || `请求失败，状态码 ${res.status}`);
-  }
-
-  return data.text as string;
-}
-
 type Step = 0 | 1 | 2 | 3 | "free";
 
 function extractSection(draft: string, section: string): string {
@@ -110,9 +88,10 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
   const [loadingStepIndex, setLoadingStepIndex] = useState(0);
   const [error, setError] = useState("");
   const [allowCollection, setAllowCollection] = useState(true);
+  const retryRef = useRef<(() => void) | null>(null);
 
   // Cache AI polish results per section
-  const polishCache = useRef<Record<string, string>>({});
+  const [polishCache, setPolishCache] = usePersistedState<Record<string, string>>("ph-polish-cache", {});
 
   // Session ID to link original draft and final output
   const sessionId = useRef(
@@ -228,7 +207,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
         }
         // Cache polish results per section
         if (title.startsWith("逐栏打磨")) {
-          polishCache.current[polishSection] = cleaned;
+          setPolishCache((prev) => ({ ...prev, [polishSection]: cleaned }));
         }
         // Auto-save final output when expert review completes
         if (title === "模拟专家预审意见") {
@@ -261,6 +240,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
       setError("请先粘贴申报书草稿。");
       return;
     }
+    retryRef.current = () => handleDiagnosis();
     runAction("整体诊断结果", () =>
       postAi("/api/review-draft", { draft: content, scope: "整体诊断" }, allowCollection)
     );
@@ -272,6 +252,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
       setError("请先粘贴申报书草稿。");
       return;
     }
+    retryRef.current = () => handlePolish();
     setLoadingPolishSection(polishSection);
     runAction(`逐栏打磨：${polishSection}`, () =>
       postAi("/api/polish-section", { draft: content, section: polishSection }, allowCollection)
@@ -285,6 +266,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
       setError("请先粘贴申报书草稿。");
       return;
     }
+    retryRef.current = () => handleExpertReview();
     runAction("模拟专家预审意见", () =>
       postAi("/api/expert-review", { draft: content }, allowCollection)
     );
@@ -330,8 +312,17 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
         />
 
         {error && (
-          <div className="rounded-md border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm leading-6 text-[#DC2626]">
-            {error}
+          <div className="flex items-start justify-between gap-3 rounded-md border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm leading-6 text-[#DC2626]">
+            <span>{error}</span>
+            {retryRef.current && (
+              <button
+                type="button"
+                onClick={() => retryRef.current?.()}
+                className="shrink-0 rounded-md border border-[#FECACA] bg-white px-3 py-1 text-xs font-bold text-[#DC2626] transition hover:bg-[#FEF2F2]"
+              >
+                重试
+              </button>
+            )}
           </div>
         )}
 
@@ -367,6 +358,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                     setCompletedDiagnosis(false);
                     setCompletedPolish(false);
                     setCompletedExpert(false);
+                    setPolishCache({});
                   }
                 }}
                 className="rounded-md border border-[#D1D5DB] bg-white px-2.5 py-1 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280]"
@@ -486,7 +478,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                       type="button"
                       onClick={() => {
                         setPolishSection(section);
-                        const cached = polishCache.current[section];
+                        const cached = polishCache[section];
                         setResultText(cached || "");
                         if (cached) setResultTitle(`逐栏打磨：${section}`);
                         setError("");
@@ -513,7 +505,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                 </div>
               )}
 
-              {!polishCache.current[polishSection] && !(isLoading && loadingPolishSection === polishSection) && (
+              {!polishCache[polishSection] && !(isLoading && loadingPolishSection === polishSection) && (
                 <button
                   type="button"
                   onClick={handlePolish}
@@ -623,7 +615,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                     setExpertReviewFresh(false);
                     setError("");
                   }}
-                  disabled={Object.keys(polishCache.current).length === 0}
+                  disabled={Object.keys(polishCache).length === 0}
                   className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28] disabled:cursor-not-allowed disabled:bg-[#D1D5DB]"
                 >
                   下一步：模拟预审
@@ -824,6 +816,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                   setResultText("");
                   setResultTitle("");
                   setError("");
+                  setPolishCache({});
                 }}
                 className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
               >
@@ -837,6 +830,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                 导出定稿
               </button>
             </div>
+
           </div>
         )}
 
