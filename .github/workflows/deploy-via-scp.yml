@@ -18,7 +18,10 @@ jobs:
         run: |
           git clone --depth 1 "https://oauth2:${SECRETS_PAT}@github.com/milaotou-tools/secrets.git" /tmp/secrets-inject
           if [ -d /tmp/secrets-inject/proposal-helper-mvp/lib/prompts/data ]; then
-            cp -v /tmp/secrets-inject/proposal-helper-mvp/lib/prompts/data/*.txt lib/prompts/data/ 2>/dev/null || echo "No prompt data files found"
+            mkdir -p lib/prompts/data
+            cp -v /tmp/secrets-inject/proposal-helper-mvp/lib/prompts/data/*.txt lib/prompts/data/
+          else
+            echo "No prompt data in secrets repo, using fallback prompts"
           fi
           rm -rf /tmp/secrets-inject
 
@@ -143,7 +146,8 @@ jobs:
         env:
           SECRETS_PAT: ${{ secrets.SECRETS_REPO_PAT }}
         run: |
-          if [ ! -d lib/prompts/data ]; then
+          mkdir -p lib/prompts/data
+          if [ -z "$(ls lib/prompts/data/*.txt 2>/dev/null)" ]; then
             echo "No prompt data to sync"
             exit 0
           fi
