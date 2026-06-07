@@ -9,3 +9,4 @@ data
 *.pid
 .vercel
 tsconfig.tsbuildinfo
+lib/prompts/data/

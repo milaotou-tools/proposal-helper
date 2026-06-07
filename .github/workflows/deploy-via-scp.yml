@@ -12,6 +12,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Inject sensitive files from private repo
+        env:
+          SECRETS_PAT: ${{ secrets.SECRETS_REPO_PAT }}
+        run: |
+          git clone --depth 1 "https://oauth2:${SECRETS_PAT}@github.com/milaotou-tools/secrets.git" /tmp/secrets-inject
+          if [ -d /tmp/secrets-inject/proposal-helper-mvp/lib/prompts/data ]; then
+            cp -v /tmp/secrets-inject/proposal-helper-mvp/lib/prompts/data/*.txt lib/prompts/data/ 2>/dev/null || echo "No prompt data files found"
+          fi
+          rm -rf /tmp/secrets-inject
+
       - name: Set up SSH agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -127,3 +137,28 @@ jobs:
 
           echo "Deploy done"
           '
+
+      - name: Sync sensitive files to private backup
+        if: success()
+        env:
+          SECRETS_PAT: ${{ secrets.SECRETS_REPO_PAT }}
+        run: |
+          if [ ! -d lib/prompts/data ]; then
+            echo "No prompt data to sync"
+            exit 0
+          fi
+          git clone --depth 1 "https://oauth2:${SECRETS_PAT}@github.com/milaotou-tools/secrets.git" /tmp/secrets-backup
+          mkdir -p /tmp/secrets-backup/proposal-helper-mvp/lib/prompts/data
+          cp -v lib/prompts/data/*.txt /tmp/secrets-backup/proposal-helper-mvp/lib/prompts/data/ 2>/dev/null || true
+          cd /tmp/secrets-backup
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to sync"
+          else
+            git commit -m "auto-sync proposal-helper-mvp prompt files"
+            git push origin main
+            echo "Synced to secrets repo"
+          fi
+          rm -rf /tmp/secrets-backup

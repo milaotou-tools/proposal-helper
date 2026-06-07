@@ -1,7 +1,15 @@
+import { fillTemplate, loadSystemPrompt, loadUserTemplate } from "./load-prompt";
+
 export type PolishSectionInput = {
   draft: string;
   section: string;
 };
+
+const FALLBACK_SYSTEM =
+  "你是一名基础教育课题申报指导专家，负责对申报书草稿进行逐栏打磨。不要整篇重写。";
+
+const FALLBACK_USER =
+  "{{scopeDescription}}\n\n原始草稿：\n{{draft}}\n\n请输出打磨结果。";
 
 export function buildPolishSectionPrompt(input: PolishSectionInput) {
   const isOverall = !input.section || input.section === "整体诊断" || input.section === "整体";
@@ -11,28 +19,10 @@ export function buildPolishSectionPrompt(input: PolishSectionInput) {
     : `需要打磨的栏目：${input.section}。只打磨这一个栏目，不要扩展到其他栏目。`;
 
   return {
-    system: [
-      "你是一名基础教育课题申报指导专家（覆盖幼儿园、小学、初中、高中），负责对申报书草稿进行逐栏打磨。",
-      "不要一键整篇胡乱重写；要保留教师原本的真实想法，把表达改得更规范、更聚焦、更像一线教育课题申报书。",
-      "不得虚构学校数据、学生数据、调研结果、已有成果或研究成效；信息不足处标注\"需用户补充\"。",
-      "只输出打磨结果，不要输出开场白、免责声明、客套语或总结性套话。"
-    ].join("\n"),
-    user: [
+    system: loadSystemPrompt("polish-section", FALLBACK_SYSTEM),
+    user: fillTemplate(loadUserTemplate("polish-section", FALLBACK_USER), {
       scopeDescription,
-      "",
-      "原始草稿：",
-      input.draft,
-      "",
-      "请按以下格式输出：",
-      "",
-      "## 原栏目问题",
-      "简要说明这一栏当前的问题。",
-      "",
-      "## 修改建议",
-      "列出具体修改方向，说明如何更聚焦、更可操作。",
-      "",
-      "## 修改后文本",
-      "给出可复制、可再编辑的版本。文本要适合一线教师使用，正式但不空泛。"
-    ].join("\n")
+      draft: input.draft,
+    }),
   };
 }

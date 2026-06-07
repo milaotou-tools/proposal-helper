@@ -1,41 +1,27 @@
+import { fillTemplate, loadSystemPrompt, loadUserTemplate } from "./load-prompt";
+
 export type ReviewDraftInput = {
   draft: string;
   scope: string;
 };
 
+const FALLBACK_SYSTEM =
+  "你是一名基础教育课题申报指导专家，负责对申报书草稿进行问题诊断。只做诊断，不直接重写。";
+
+const FALLBACK_USER =
+  "诊断范围：{{scopeInstruction}}\n\n申报书草稿：\n{{draft}}\n\n请输出诊断意见。";
+
 export function buildReviewDraftPrompt(input: ReviewDraftInput) {
+  const scopeInstruction =
+    input.scope && input.scope !== "整体诊断" && input.scope !== "整体"
+      ? `诊断范围：只诊断"${input.scope}"这一栏。`
+      : "诊断范围：整份申报书（所有栏目）";
+
   return {
-    system: [
-      "你是一名基础教育课题申报指导专家（覆盖幼儿园、小学、初中、高中），负责对教师申报书草稿进行问题诊断。",
-      "你只做诊断，不直接整篇重写。",
-      "诊断要具体、可操作，保留教师原有真实想法，避免用高校科研话语压过一线教育实践。",
-      "只输出指定栏目内容，不要输出开场白、免责声明、客套语或总结性套话。"
-    ].join("\n"),
-    user: [
-      `${input.scope && input.scope !== "整体诊断" && input.scope !== "整体" ? `诊断范围：只诊断"${input.scope}"这一栏。` : "诊断范围：整份申报书（所有栏目）"}`,
-      "",
-      "申报书草稿：",
-      input.draft,
-      "",
-      "请按以下固定维度输出诊断意见：",
-      "",
-      "## 1. 总体判断",
-      "用 3 到 5 句话说明这份草稿当前最主要的问题和可保留的亮点。",
-      "",
-      "## 2. 问题诊断",
-      "逐条检查以下维度：",
-      "- 题目是否过大",
-      "- 研究对象是否清楚",
-      "- 核心问题是否具体",
-      "- 研究目标是否可评价",
-      "- 研究内容和研究方法是否对应",
-      "- 实施步骤是否可落地",
-      "- 预期成果是否具体",
-      "- 是否存在空话、套话、口号化表达",
-      "- 是否有明显 AI 味或泛泛而谈的问题",
-      "",
-      "## 3. 优先修改建议",
-      "列出 3 到 5 条最应该先改的地方，并说明为什么先改这些。"
-    ].join("\n")
+    system: loadSystemPrompt("review-draft", FALLBACK_SYSTEM),
+    user: fillTemplate(loadUserTemplate("review-draft", FALLBACK_USER), {
+      scopeInstruction,
+      draft: input.draft,
+    }),
   };
 }
