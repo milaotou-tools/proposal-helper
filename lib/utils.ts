@@ -48,3 +48,31 @@ export async function postAi(url: string, payload: unknown, allowCollection?: bo
 
   return data.text as string;
 }
+
+export async function postAiStream(
+  url: string,
+  payload: unknown,
+  onChunk: (chunk: string) => void,
+  allowCollection?: boolean
+): Promise<void> {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-allow-collection": allowCollection ? "1" : "0" },
+    body: JSON.stringify(payload)
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({ error: `请求失败，状态码 ${res.status}` }));
+    throw new Error(data.error || `请求失败，状态码 ${res.status}`);
+  }
+
+  const reader = res.body?.getReader();
+  if (!reader) throw new Error("响应体不可读");
+
+  const decoder = new TextDecoder();
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    onChunk(decoder.decode(value, { stream: true }));
+  }
+}

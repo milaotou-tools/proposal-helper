@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { StepNavigation } from "@/components/StepNavigation";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { usePersistedState } from "@/lib/use-persisted-state";
-import { postAi, stripMarkdown } from "@/lib/utils";
+import { postAiStream, stripMarkdown } from "@/lib/utils";
 
 const DRAFT_STEPS = [
   { label: "输入草稿", description: "粘贴你的申报书" },
@@ -62,8 +62,6 @@ const polishSections = [
   "创新点"
 ];
 
-const loadingSteps = ["正在分析中", "正在整理思路", "正在生成结果"];
-
 type Step = 0 | 1 | 2 | 3 | "free";
 
 function extractSection(draft: string, section: string): string {
@@ -85,7 +83,6 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
   const [resultText, setResultText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [loadingPolishSection, setLoadingPolishSection] = useState<string | null>(null);
-  const [loadingStepIndex, setLoadingStepIndex] = useState(0);
   const [error, setError] = useState("");
   const [allowCollection, setAllowCollection] = useState(true);
   const lastReviewedDraft = useRef("");
@@ -188,29 +185,28 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
     setPolishedDraft(value);
   }
 
-  function runAction(title: string, action: () => Promise<string>) {
+  function runStreamingAction(title: string, url: string, payload: unknown) {
     setResultTitle(title);
     setResultText("");
     setError("");
     setIsLoading(true);
 
-    const interval = window.setInterval(() => {
-      setLoadingStepIndex((prev) => (prev + 1) % loadingSteps.length);
-    }, 1600);
+    let fullText = "";
+    retryRef.current = () => runStreamingAction(title, url, payload);
 
-    action()
-      .then((text) => {
-        const cleaned = stripMarkdown(text);
+    postAiStream(url, payload, (chunk) => {
+      fullText += chunk;
+      setResultText(stripMarkdown(fullText));
+    }, allowCollection)
+      .then(() => {
+        const cleaned = stripMarkdown(fullText);
         setResultText(cleaned);
-        // Mark diagnosis complete when result arrives
         if (title === "整体诊断结果") {
           setCompletedDiagnosis(true);
         }
-        // Cache polish results per section
         if (title.startsWith("逐栏打磨")) {
           setPolishCache((prev) => ({ ...prev, [polishSection]: cleaned }));
         }
-        // Auto-save final output when expert review completes
         if (title === "模拟专家预审意见") {
           lastReviewedDraft.current = polishedDraft || draft;
           fetch("/api/save-final", {
@@ -232,7 +228,6 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
       .finally(() => {
         setIsLoading(false);
         setLoadingPolishSection(null);
-        clearInterval(interval);
       });
   }
 
@@ -242,10 +237,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
       setError("请先粘贴申报书草稿。");
       return;
     }
-    retryRef.current = () => handleDiagnosis();
-    runAction("整体诊断结果", () =>
-      postAi("/api/review-draft", { draft: content, scope: "整体诊断" }, allowCollection)
-    );
+    runStreamingAction("整体诊断结果", "/api/review-draft", { draft: content, scope: "整体诊断", allowCollection });
   }
 
   function handlePolish() {
@@ -254,11 +246,8 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
       setError("请先粘贴申报书草稿。");
       return;
     }
-    retryRef.current = () => handlePolish();
     setLoadingPolishSection(polishSection);
-    runAction(`逐栏打磨：${polishSection}`, () =>
-      postAi("/api/polish-section", { draft: content, section: polishSection }, allowCollection)
-    );
+    runStreamingAction(`逐栏打磨：${polishSection}`, "/api/polish-section", { draft: content, section: polishSection, allowCollection });
     setCompletedPolish(true);
   }
 
@@ -268,10 +257,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
       setError("请先粘贴申报书草稿。");
       return;
     }
-    retryRef.current = () => handleExpertReview();
-    runAction("模拟专家预审意见", () =>
-      postAi("/api/expert-review", { draft: content }, allowCollection)
-    );
+    runStreamingAction("模拟专家预审意见", "/api/expert-review", { draft: content, allowCollection });
     setCompletedExpert(true);
   }
 
@@ -407,9 +393,15 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
             </div>
 
             {isLoading ? (
-              <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-8 text-center text-sm text-[#6B7280]">
-                {loadingSteps[loadingStepIndex]}，请稍候...
-              </div>
+              resultText ? (
+                <div className="rounded-md bg-[#FAF9F6] p-4 text-sm leading-8 whitespace-pre-wrap text-[#141413]">
+                  {resultText}<span className="animate-pulse">▊</span>
+                </div>
+              ) : (
+                <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-8 text-center text-sm text-[#6B7280]">
+                  正在分析中，请稍候...
+                </div>
+              )
             ) : !completedDiagnosis ? (
               <div className="flex justify-between">
                 <button
@@ -430,7 +422,8 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
               </div>
             ) : null}
 
-            {resultText && resultTitle === "整体诊断结果" && (
+            {!isLoading && resultText && resultTitle === "整体诊断结果" && (
+
               <div className="mt-6">
                 <h3 className="mb-3 text-sm font-bold text-[#141413]">诊断结果</h3>
                 <div className="space-y-3 rounded-md bg-[#FAF9F6] p-5 text-sm leading-8 text-[#141413]">
@@ -518,9 +511,15 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
 
               {/* AI 打磨建议区 */}
               {isLoading && loadingPolishSection === polishSection && (
-                <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-12 text-center text-sm text-[#6B7280]">
-                  {loadingSteps[loadingStepIndex]}，请稍候...
-                </div>
+                resultText ? (
+                  <div className="rounded-md bg-[#FAF9F6] p-4 text-sm leading-8 whitespace-pre-wrap text-[#141413]">
+                    {resultText}<span className="animate-pulse">▊</span>
+                  </div>
+                ) : (
+                  <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-12 text-center text-sm text-[#6B7280]">
+                    正在打磨中，请稍候...
+                  </div>
+                )
               )}
 
               {resultText && resultTitle.startsWith("逐栏打磨") && !(isLoading && loadingPolishSection === polishSection) && (
@@ -652,9 +651,15 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
               // D: Loading
               if (isLoading) {
                 return (
-                  <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-8 text-center text-sm text-[#6B7280]">
-                    {loadingSteps[loadingStepIndex]}，请稍候...
-                  </div>
+                  resultText ? (
+                    <div className="rounded-md bg-[#FAF9F6] p-4 text-sm leading-8 whitespace-pre-wrap text-[#141413]">
+                      {resultText}<span className="animate-pulse">▊</span>
+                    </div>
+                  ) : (
+                    <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-8 text-center text-sm text-[#6B7280]">
+                      正在预审中，请稍候...
+                    </div>
+                  )
                 );
               }
 

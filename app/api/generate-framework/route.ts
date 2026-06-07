@@ -1,5 +1,5 @@
 import { buildGenerateFrameworkPrompt } from "@/lib/prompts/generate-framework";
-import { jsonError, runPromptWithCollection, validateField } from "@/lib/route-helpers";
+import { jsonError, runPromptStream, validateField } from "@/lib/route-helpers";
 
 export const runtime = "nodejs";
 
@@ -20,5 +20,5 @@ export async function POST(request: Request) {
 
   const prompt = buildGenerateFrameworkPrompt(input);
   const allowCollection = typeof body.allowCollection === "boolean" ? body.allowCollection : true;
-  return runPromptWithCollection(prompt.system, prompt.user, "generate-framework", { ...input }, request, allowCollection);
+  return runPromptStream(prompt.system, prompt.user, "generate-framework", { ...input }, request, allowCollection);
 }

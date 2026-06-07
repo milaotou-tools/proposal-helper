@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createChatCompletion } from "@/lib/ai-client";
+import { createChatCompletion, streamChatCompletion } from "@/lib/ai-client";
 import { saveCollectionEntry } from "@/lib/data-collection";
 
 const MAX_DRAFT_LENGTH = 50000;
@@ -90,4 +90,56 @@ export async function runPromptWithCollection(
     const message = caught instanceof Error ? caught.message : "生成失败，请稍后重试。";
     return NextResponse.json({ error: message }, { status: 500 });
   }
+}
+
+export async function runPromptStream(
+  system: string,
+  user: string,
+  action: string,
+  inputSummary: Record<string, unknown>,
+  request: Request,
+  allowCollection?: boolean
+) {
+  const hashedIp = request.headers.get("x-hashed-ip") || "unknown";
+  const consent = typeof allowCollection === "boolean" ? allowCollection : true;
+
+  const stream = streamChatCompletion([
+    { role: "system", content: system },
+    { role: "user", content: user }
+  ]);
+
+  const encoder = new TextEncoder();
+  let fullText = "";
+
+  const readable = new ReadableStream({
+    async start(controller) {
+      try {
+        for await (const chunk of stream) {
+          fullText += chunk;
+          controller.enqueue(encoder.encode(chunk));
+        }
+        controller.close();
+
+        saveCollectionEntry({
+          timestamp: new Date().toISOString(),
+          hashedIp,
+          action,
+          input: inputSummary,
+          outputText: fullText,
+          consent
+        }).catch(() => {});
+      } catch (caught) {
+        const message = caught instanceof Error ? caught.message : "生成失败";
+        controller.enqueue(encoder.encode(`\n[ERROR] ${message}`));
+        controller.close();
+      }
+    }
+  });
+
+  return new NextResponse(readable, {
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-cache"
+    }
+  });
 }

@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { StepNavigation } from "@/components/StepNavigation";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { usePersistedState } from "@/lib/use-persisted-state";
-import { postAi, stripMarkdown, copyToClipboard } from "@/lib/utils";
+import { postAiStream, stripMarkdown, copyToClipboard } from "@/lib/utils";
 
 type FrameworkForm = {
   stage: string;
@@ -76,8 +76,6 @@ function getExample(stage: string): StageExample {
   return stageExamples[stage] || stageExamples["小学"];
 }
 
-const loadingSteps = ["正在分析你的课题想法", "正在梳理研究目标与内容", "正在整理研究方法", "正在规划预期成果"];
-
 const FRAMEWORK_STEPS = [
   { label: "学段学科", description: "你的教学背景" },
   { label: "课题想法", description: "想法与问题" },
@@ -91,7 +89,6 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
   const [form, setForm] = usePersistedState<FrameworkForm>("ph-framework-form", emptyForm);
   const [resultText, setResultText] = usePersistedState("ph-framework-result", "");
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingStepIndex, setLoadingStepIndex] = useState(0);
   const [error, setError] = useState("");
   const [allowCollection, setAllowCollection] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -109,15 +106,16 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
 
     retryRef.current = () => handleGenerate();
     setError("");
+    setResultText("");
     setIsLoading(true);
 
-    const interval = window.setInterval(() => {
-      setLoadingStepIndex((prev) => (prev + 1) % loadingSteps.length);
-    }, 1600);
-
-    postAi("/api/generate-framework", form, allowCollection)
-      .then((text) => {
-        setResultText(stripMarkdown(text));
+    let fullText = "";
+    postAiStream("/api/generate-framework", form, (chunk) => {
+      fullText += chunk;
+      setResultText(stripMarkdown(fullText));
+    }, allowCollection)
+      .then(() => {
+        setResultText(stripMarkdown(fullText));
         setCurrentStep(4);
       })
       .catch((caught) => {
@@ -125,7 +123,6 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
       })
       .finally(() => {
         setIsLoading(false);
-        clearInterval(interval);
       });
   }
 
@@ -436,8 +433,19 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
             </label>
 
             {isLoading ? (
-              <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-8 text-center text-sm text-[#6B7280]">
-                {loadingSteps[loadingStepIndex]}，请稍候...
+              <div>
+                {resultText ? (
+                  <div className="space-y-3 rounded-md bg-[#FAF9F6] p-5 text-sm leading-8 text-[#141413]">
+                    {resultText.split("\n\n").map((block, i) => (
+                      <p key={i} className="whitespace-pre-wrap">{block}</p>
+                    ))}
+                    <p className="animate-pulse text-[#9CA3AF]">▊ 生成中...</p>
+                  </div>
+                ) : (
+                  <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-8 text-center text-sm text-[#6B7280]">
+                    正在分析，请稍候...
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex justify-between">

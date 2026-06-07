@@ -1,5 +1,5 @@
 import { buildPolishSectionPrompt } from "@/lib/prompts/polish-section";
-import { jsonError, runPromptWithCollection, validateDraft, stringField } from "@/lib/route-helpers";
+import { jsonError, runPromptStream, validateDraft, stringField } from "@/lib/route-helpers";
 
 export const runtime = "nodejs";
 
@@ -16,5 +16,5 @@ export async function POST(request: Request) {
 
   const prompt = buildPolishSectionPrompt(input);
   const allowCollection = typeof body.allowCollection === "boolean" ? body.allowCollection : true;
-  return runPromptWithCollection(prompt.system, prompt.user, "polish-section", { section: input.section, draft: input.draft }, request, allowCollection);
+  return runPromptStream(prompt.system, prompt.user, "polish-section", { section: input.section, draft: input.draft }, request, allowCollection);
 }
