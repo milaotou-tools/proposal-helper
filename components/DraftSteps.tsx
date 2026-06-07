@@ -467,7 +467,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
             <div className="flex flex-1 flex-col rounded-md border border-[#E8E6E1] bg-white p-6">
               <div className="mb-4">
                 <p className="text-sm font-bold text-[#6B7280]">操作提示</p>
-                <p className="text-sm leading-6 text-[#9CA3AF]">选择栏目查看原文，点击"开始打磨"获取 AI 建议。复制左侧"修改后文本"，在右侧全文编辑器中定位并替换。</p>
+                <p className="text-sm leading-6 text-[#9CA3AF]">选择栏目查看原文，点击"开始打磨"获取 AI 建议。点击建议段落可定位到对应原文位置，复制修改内容后在下方编辑器中替换。</p>
               </div>
 
               <div className="mb-5">
