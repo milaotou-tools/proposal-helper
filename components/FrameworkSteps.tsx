@@ -76,6 +76,8 @@ function getExample(stage: string): StageExample {
   return stageExamples[stage] || stageExamples["小学"];
 }
 
+const loadingSteps = ["正在分析你的课题想法", "正在梳理研究目标与内容", "正在整理研究方法", "正在规划预期成果"];
+
 const FRAMEWORK_STEPS = [
   { label: "学段学科", description: "你的教学背景" },
   { label: "课题想法", description: "想法与问题" },
@@ -89,6 +91,7 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
   const [form, setForm] = usePersistedState<FrameworkForm>("ph-framework-form", emptyForm);
   const [resultText, setResultText] = usePersistedState("ph-framework-result", "");
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStepIndex, setLoadingStepIndex] = useState(0);
   const [error, setError] = useState("");
   const [allowCollection, setAllowCollection] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -109,8 +112,13 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
     setResultText("");
     setIsLoading(true);
 
+    const interval = window.setInterval(() => {
+      setLoadingStepIndex((prev) => (prev + 1) % loadingSteps.length);
+    }, 1600);
+
     let fullText = "";
     postAiStream("/api/generate-framework", form, (chunk) => {
+      if (!fullText) clearInterval(interval);
       fullText += chunk;
       setResultText(stripMarkdown(fullText));
     }, allowCollection)
@@ -123,6 +131,7 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
       })
       .finally(() => {
         setIsLoading(false);
+        clearInterval(interval);
       });
   }
 
@@ -443,7 +452,7 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
                   </div>
                 ) : (
                   <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-8 text-center text-sm text-[#6B7280]">
-                    正在分析，请稍候...
+                    {loadingSteps[loadingStepIndex]}，请稍候...
                   </div>
                 )}
               </div>

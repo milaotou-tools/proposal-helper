@@ -62,6 +62,8 @@ const polishSections = [
   "创新点"
 ];
 
+const loadingSteps = ["正在分析中", "正在整理思路", "正在生成结果"];
+
 type Step = 0 | 1 | 2 | 3 | "free";
 
 function extractSection(draft: string, section: string): string {
@@ -83,6 +85,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
   const [resultText, setResultText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [loadingPolishSection, setLoadingPolishSection] = useState<string | null>(null);
+  const [loadingStepIndex, setLoadingStepIndex] = useState(0);
   const [error, setError] = useState("");
   const [allowCollection, setAllowCollection] = useState(true);
   const lastReviewedDraft = useRef("");
@@ -191,10 +194,15 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
     setError("");
     setIsLoading(true);
 
+    const interval = window.setInterval(() => {
+      setLoadingStepIndex((prev) => (prev + 1) % loadingSteps.length);
+    }, 1600);
+
     let fullText = "";
     retryRef.current = () => runStreamingAction(title, url, payload);
 
     postAiStream(url, payload, (chunk) => {
+      if (!fullText) clearInterval(interval);
       fullText += chunk;
       setResultText(stripMarkdown(fullText));
     }, allowCollection)
@@ -228,6 +236,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
       .finally(() => {
         setIsLoading(false);
         setLoadingPolishSection(null);
+        clearInterval(interval);
       });
   }
 
@@ -399,7 +408,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                 </div>
               ) : (
                 <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-8 text-center text-sm text-[#6B7280]">
-                  正在分析中，请稍候...
+                  {loadingSteps[loadingStepIndex]}，请稍候...
                 </div>
               )
             ) : !completedDiagnosis ? (
@@ -517,7 +526,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                   </div>
                 ) : (
                   <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-12 text-center text-sm text-[#6B7280]">
-                    正在打磨中，请稍候...
+                    {loadingSteps[loadingStepIndex]}，请稍候...
                   </div>
                 )
               )}
@@ -657,7 +666,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                     </div>
                   ) : (
                     <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-8 text-center text-sm text-[#6B7280]">
-                      正在预审中，请稍候...
+                      {loadingSteps[loadingStepIndex]}，请稍候...
                     </div>
                   )
                 );
