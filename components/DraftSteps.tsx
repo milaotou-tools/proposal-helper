@@ -190,6 +190,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
 
   function runAction(title: string, action: () => Promise<string>) {
     setResultTitle(title);
+    setResultText("");
     setError("");
     setIsLoading(true);
 
