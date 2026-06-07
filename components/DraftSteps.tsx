@@ -88,6 +88,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
   const [loadingStepIndex, setLoadingStepIndex] = useState(0);
   const [error, setError] = useState("");
   const [allowCollection, setAllowCollection] = useState(true);
+  const lastReviewedDraft = useRef("");
   const retryRef = useRef<(() => void) | null>(null);
 
   // Cache AI polish results per section
@@ -164,7 +165,6 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
   const [completedDiagnosis, setCompletedDiagnosis] = useState(false);
   const [completedPolish, setCompletedPolish] = useState(false);
   const [completedExpert, setCompletedExpert] = useState(false);
-  const [expertReviewFresh, setExpertReviewFresh] = useState(false);
 
   function updateSectionInDraft(section: string, newText: string) {
     const escaped = section.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -212,6 +212,7 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
         }
         // Auto-save final output when expert review completes
         if (title === "模拟专家预审意见") {
+          lastReviewedDraft.current = polishedDraft || draft;
           fetch("/api/save-final", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -272,7 +273,6 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
       postAi("/api/expert-review", { draft: content }, allowCollection)
     );
     setCompletedExpert(true);
-    setExpertReviewFresh(true);
   }
 
   function getStepNumber(step: Step): number {
@@ -613,7 +613,6 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                   type="button"
                   onClick={() => {
                     setCurrentStep(3);
-                    setExpertReviewFresh(false);
                     setError("");
                   }}
                   disabled={Object.keys(polishCache).length === 0}
@@ -646,66 +645,71 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
               </p>
             </div>
 
-            {isLoading ? (
-              <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-8 text-center text-sm text-[#6B7280]">
-                {loadingSteps[loadingStepIndex]}，请稍候...
-              </div>
-            ) : (
-              <div className="flex justify-between">
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep(2)}
-                  className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
-                >
-                  上一步
-                </button>
-                <button
-                  type="button"
-                  onClick={handleExpertReview}
-                  disabled={isLoading}
-                  className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28] disabled:cursor-not-allowed disabled:bg-[#D1D5DB]"
-                >
-                  {isLoading ? "预审中..." : "开始预审"}
-                </button>
-              </div>
-            )}
+            {(() => {
+              const currentDraft = polishedDraft || draft;
+              const draftChanged = lastReviewedDraft.current && currentDraft !== lastReviewedDraft.current;
 
-            {resultText && resultTitle === "模拟专家预审意见" && (
-              <div className="mt-6">
-                <h3 className="mb-3 text-sm font-bold text-[#141413]">
-                  {expertReviewFresh ? "预审意见" : "上次预审意见"}
-                </h3>
-                <div className="space-y-3 rounded-md bg-[#FAF9F6] p-5 text-sm leading-8 text-[#141413]">
-                  {resultText.split("\n\n").map((block, i) => (
-                    <p key={i} className="whitespace-pre-wrap">
-                      {block}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            )}
+              // D: Loading
+              if (isLoading) {
+                return (
+                  <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-8 text-center text-sm text-[#6B7280]">
+                    {loadingSteps[loadingStepIndex]}，请稍候...
+                  </div>
+                );
+              }
 
-            {completedExpert && (
-              <div className="mt-6 flex justify-between">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCurrentStep(2);
-                    setError("");
-                  }}
-                  className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
-                >
-                  返回打磨
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveAndExport}
-                  className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
-                >
-                  导出终稿
-                </button>
-              </div>
-            )}
+              // B: Reviewed, draft unchanged — show result, no re-review button
+              if (completedExpert && !draftChanged) {
+                return (
+                  <>
+                    <div className="flex justify-between">
+                      <div className="flex gap-3">
+                        <button type="button" onClick={() => setCurrentStep(2)} className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]">
+                          上一步
+                        </button>
+                        <button type="button" onClick={() => { setCurrentStep(2); setError(""); }} className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]">
+                          返回打磨
+                        </button>
+                      </div>
+                      <button type="button" onClick={handleSaveAndExport} className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]">
+                        导出终稿
+                      </button>
+                    </div>
+                    {resultText && resultTitle === "模拟专家预审意见" && (
+                      <div className="mt-6">
+                        <h3 className="mb-3 text-sm font-bold text-[#141413]">预审意见</h3>
+                        <div className="space-y-3 rounded-md bg-[#FAF9F6] p-5 text-sm leading-8 text-[#141413]">
+                          {resultText.split("\n\n").map((block, i) => <p key={i} className="whitespace-pre-wrap">{block}</p>)}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              }
+
+              // C: Reviewed, draft changed — show old result + allow re-review
+              // A: First time — no result, just review button
+              return (
+                <>
+                  <div className="flex justify-between">
+                    <button type="button" onClick={() => setCurrentStep(2)} className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]">
+                      上一步
+                    </button>
+                    <button type="button" onClick={handleExpertReview} className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]">
+                      开始预审
+                    </button>
+                  </div>
+                  {resultText && resultTitle === "模拟专家预审意见" && (
+                    <div className="mt-6">
+                      <h3 className="mb-3 text-sm font-bold text-[#141413]">上次预审意见</h3>
+                      <div className="space-y-3 rounded-md bg-[#FAF9F6] p-5 text-sm leading-8 text-[#141413]">
+                        {resultText.split("\n\n").map((block, i) => <p key={i} className="whitespace-pre-wrap">{block}</p>)}
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
 
             {completedExpert && (
               <div className="mt-6 border-t border-[#E8E6E1] pt-5">
@@ -781,7 +785,6 @@ export function DraftSteps({ onBack }: { onBack: () => void }) {
                 type="button"
                 onClick={() => {
                   setCurrentStep(3);
-                  setExpertReviewFresh(false);
                   setError("");
                 }}
                 className="focus-ring rounded-lg border border-[#E8E6E1] bg-white p-4 text-left transition hover:border-[#141413] hover:shadow-sm"
