@@ -139,7 +139,8 @@ export async function runPromptStream(
   return new NextResponse(readable, {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
-      "Cache-Control": "no-cache"
+      "Cache-Control": "no-cache",
+      "X-Accel-Buffering": "no"
     }
   });
 }
