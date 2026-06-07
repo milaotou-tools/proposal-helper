@@ -70,8 +70,9 @@ async function getCollectionStats() {
   };
 }
 
-export async function GET(request: NextRequest) {
-  const password = request.nextUrl.searchParams.get("p") || request.headers.get("x-admin-password") || "";
+export async function POST(request: NextRequest) {
+  const body = await request.json().catch(() => ({}));
+  const password = body.p || body.password || "";
   const expected = process.env.ADMIN_PASSWORD;
 
   if (!expected || password !== expected) {

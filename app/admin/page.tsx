@@ -40,8 +40,16 @@ export default function AdminPage() {
     setError("");
     try {
       const [fbRes, usageRes] = await Promise.all([
-        fetch(`/api/admin/feedback?p=${encodeURIComponent(password)}`),
-        fetch(`/api/admin/stats?p=${encodeURIComponent(password)}`)
+        fetch("/api/admin/feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ p: password })
+        }),
+        fetch("/api/admin/stats", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ p: password })
+        })
       ]);
 
       if (!fbRes.ok || !usageRes.ok) throw new Error("密码错误或无权访问");
