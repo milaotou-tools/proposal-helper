@@ -9,7 +9,7 @@ type StepNavigationProps = {
 export function StepNavigation({ steps, currentStep, onGoToStep }: StepNavigationProps) {
   return (
     <nav aria-label="步骤导航" className="w-full">
-      <ol className="flex items-center">
+      <ol className="flex items-center gap-0.5">
         {steps.map((step, i) => {
           const isCompleted = i < currentStep;
           const isCurrent = i === currentStep;
@@ -21,17 +21,17 @@ export function StepNavigation({ steps, currentStep, onGoToStep }: StepNavigatio
                 type="button"
                 disabled={!isClickable}
                 onClick={() => onGoToStep(i)}
-                className={`group flex items-center gap-2 ${
-                  isClickable ? "cursor-pointer" : "cursor-default"
+                className={`group flex items-center gap-2 rounded-lg px-1.5 py-1 transition ${
+                  isClickable ? "cursor-pointer hover:bg-white/70" : "cursor-default"
                 }`}
               >
                 <span
-                  className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-extrabold transition ${
+                  className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition ${
                     isCompleted
-                      ? "bg-[#141413] text-white"
+                      ? "bg-slate-900 text-white shadow-sm"
                       : isCurrent
-                        ? "bg-[#0070F3] text-white ring-2 ring-[#0070F3]/30"
-                        : "bg-[#E8E6E1] text-[#9CA3AF]"
+                        ? "bg-sky-500 text-white shadow-sm ring-4 ring-sky-200/60"
+                        : "bg-slate-100 text-slate-400"
                   }`}
                 >
                   {isCompleted ? (
@@ -44,18 +44,18 @@ export function StepNavigation({ steps, currentStep, onGoToStep }: StepNavigatio
                 </span>
                 <div className="hidden sm:block">
                   <p
-                    className={`text-[13px] font-extrabold leading-4 ${
+                    className={`text-[13px] font-semibold leading-4 ${
                       isCurrent
-                        ? "text-[#0070F3]"
+                        ? "text-sky-600"
                         : isCompleted
-                          ? "text-[#141413]"
-                          : "text-[#9CA3AF]"
+                          ? "text-slate-900"
+                          : "text-slate-400"
                     }`}
                   >
                     {step.label}
                   </p>
                   {step.description && (
-                    <p className="mt-0.5 text-[11px] leading-4 text-[#9CA3AF]">
+                    <p className="mt-0.5 text-[11px] leading-4 text-slate-400">
                       {step.description}
                     </p>
                   )}
@@ -64,7 +64,7 @@ export function StepNavigation({ steps, currentStep, onGoToStep }: StepNavigatio
               {i < steps.length - 1 && (
                 <div
                   className={`mx-2 h-px flex-1 ${
-                    i < currentStep ? "bg-[#141413]" : "bg-[#E8E6E1]"
+                    i < currentStep ? "bg-slate-300" : "bg-slate-200/80"
                   }`}
                 />
               )}

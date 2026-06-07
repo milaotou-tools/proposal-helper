@@ -5,20 +5,20 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        page: "#FAF9F6",
+        page: "#F6F4EF",
         surface1: "#FFFFFF",
-        surface2: "#F5F4F0",
-        surface3: "#EFEDE9",
-        ink: "#141413",
-        "ink-hover": "#2A2A28",
-        accent: "#0070F3",
-        "accent-hover": "#0060DF",
-        borderSubtle: "#E8E6E1",
-        textPrimary: "#111827",
-        textSecondary: "#6B7280",
-        stripBlue: "#0070F3",
-        stripAmber: "#D97706",
-        stripGreen: "#16A34A"
+        surface2: "#F8FAFD",
+        surface3: "#EEF3FB",
+        ink: "#182233",
+        "ink-hover": "#24324A",
+        accent: "#5B84E6",
+        "accent-hover": "#4D76DE",
+        borderSubtle: "#DDE4EE",
+        textPrimary: "#182233",
+        textSecondary: "#64748B",
+        stripBlue: "#5B84E6",
+        stripAmber: "#C08A2D",
+        stripGreen: "#2F9E73"
       },
       fontFamily: {
         sans: ["Inter", '"Noto Sans SC"', "sans-serif"],

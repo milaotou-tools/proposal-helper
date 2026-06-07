@@ -9,12 +9,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN">
-      <body className="flex min-h-screen flex-col">
-        <header className="py-2.5 text-center text-[11px] text-[#9CA3AF] border-b border-[#E8E6E1]/50">
+      <body className="flex min-h-screen flex-col text-slate-900">
+        <header className="shell-band border-b py-2.5 text-center text-[11px] text-slate-500/80">
           AI 引擎 · DeepSeek V4 Pro
         </header>
         <div className="flex-1">{children}</div>
-        <footer className="py-4 text-center text-xs text-[#9CA3AF]">
+        <footer className="py-4 text-center text-xs text-slate-500/75">
           课题申报小助手 · 由 娄仲达 开发
         </footer>
       </body>
