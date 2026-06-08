@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>申报书逐栏修改对比表示范</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 40px 48px;
+      background: #ffffff;
+      color: #111827;
+      font-family: "Microsoft YaHei", "Noto Sans SC", sans-serif;
+    }
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .meta {
+      margin: 8px 0 24px;
+      color: #6b7280;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      border-top: 2px solid #111827;
+      border-bottom: 2px solid #111827;
+    }
+    thead tr {
+      border-bottom: 1px solid #111827;
+    }
+    tbody tr + tr {
+      border-top: 1px solid #e5e7eb;
+    }
+    th,
+    td {
+      padding: 12px 14px;
+      vertical-align: top;
+      font-size: 13px;
+      line-height: 1.8;
+      text-align: left;
+      word-break: break-word;
+    }
+    th {
+      background: #ffffff;
+      font-weight: 700;
+      color: #111827;
+    }
+    td {
+      color: #1f2937;
+    }
+    .section {
+      width: 108px;
+      font-weight: 700;
+      color: #111827;
+    }
+    .note {
+      width: 18%;
+      color: #4b5563;
+    }
+    .changed {
+      border-radius: 2px;
+      background: #fff2b8;
+      color: #7c2d12;
+      box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.18);
+    }
+    .muted {
+      color: #6b7280;
+    }
+    @media print {
+      body { padding: 24px; }
+      tr { page-break-inside: avoid; page-break-after: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>申报书逐栏修改对比表</h1>
+    <p class="meta">导出时间：{时间}。优化之处已用浅黄色标记。</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>栏目</th>
+          <th>原稿</th>
+          <th>打磨后</th>
+          <th class="note">进步之处</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="section">研究目标</td>
+          <td>
+            通过人工智能辅助教学，提升学生阅读能力。
+          </td>
+          <td>
+            通过人工智能辅助课堂阅读指导，<span class="changed">帮助学生在真实任务中提升阅读理解与表达能力</span>。
+          </td>
+          <td class="note">表述更具体，目标从结果描述收束到课堂可落地的能力培养。</td>
+        </tr>
+        <tr>
+          <td class="section">实施步骤</td>
+          <td>
+            先进行准备，再开展实施，最后进行总结。
+          </td>
+          <td>
+            <span class="changed">先做学情诊断与资源准备</span>，再开展课堂实施，最后收集反馈并完善研究记录。
+          </td>
+          <td class="note">步骤更清楚，补上了前置准备和过程留痕。</td>
+        </tr>
+        <tr>
+          <td class="section">预期成果</td>
+          <td>
+            形成研究报告。
+          </td>
+          <td>
+            形成研究报告，<span class="changed">同步整理课堂案例与实践反思</span>。
+          </td>
+          <td class="note">成果层次更完整，兼顾报告与教学案例。</td>
+        </tr>
+      </tbody>
+    </table>
+  </main>
+</body>
+</html>

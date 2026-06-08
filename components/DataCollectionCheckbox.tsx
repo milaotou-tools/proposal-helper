@@ -8,7 +8,7 @@ export function DataCollectionCheckbox({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-500">
+    <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-600">
       <input
         type="checkbox"
         checked={checked}

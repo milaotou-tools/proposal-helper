@@ -9,13 +9,19 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN">
-      <body className="flex min-h-screen flex-col text-slate-900">
-        <header className="shell-band border-b py-2.5 text-center text-[11px] text-slate-500/80">
-          AI 引擎 · DeepSeek V4 Pro
+      <body className="flex min-h-screen flex-col text-slate-900 antialiased">
+        <header className="shell-band border-b border-white/70">
+          <div className="mx-auto flex max-w-7xl items-center justify-center px-4 py-2.5 sm:px-6 lg:px-8">
+            <span className="text-[11px] font-semibold tracking-[0.28em] text-slate-500">
+              AI 引擎 · DeepSeek V4 Pro
+            </span>
+          </div>
         </header>
         <div className="flex-1">{children}</div>
-        <footer className="py-4 text-center text-xs text-slate-500/75">
-          课题申报小助手 · 由 娄仲达 开发
+        <footer className="pb-4 pt-5">
+          <div className="mx-auto max-w-7xl px-4 text-center text-xs text-slate-500/75 sm:px-6 lg:px-8">
+            课题申报小助手
+          </div>
         </footer>
       </body>
     </html>

@@ -34,7 +34,7 @@ export function FeedbackWidget() {
 
   if (submitted) {
     return (
-      <div className="surface px-5 py-4 text-center text-sm text-slate-600">
+      <div className="surface px-5 py-4 text-center text-sm text-slate-700">
         感谢你的反馈！
       </div>
     );

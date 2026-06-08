@@ -11,16 +11,16 @@ export function AppShell() {
   const [page, setPage] = useState<PageState>("landing");
 
   if (page === "landing") {
-    return (
-      <LandingPage
-        onSelectPath={(path) => setPage(path)}
-      />
-    );
+    return <LandingPage onSelectPath={(path) => setPage(path)} />;
   }
 
   if (page === "framework") {
     return <FrameworkSteps onBack={() => setPage("landing")} />;
   }
 
-  return <DraftSteps onBack={() => setPage("landing")} />;
+  return (
+    <DraftSteps
+      onBack={() => setPage("landing")}
+    />
+  );
 }

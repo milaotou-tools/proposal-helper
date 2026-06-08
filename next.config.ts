@@ -1,7 +1,8 @@
-import type { NextConfig } from "next";
+﻿import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  distDir: process.env.NODE_ENV === "development" ? ".next-dev" : ".next-local",
   async headers() {
     return [
       {
@@ -18,3 +19,4 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
