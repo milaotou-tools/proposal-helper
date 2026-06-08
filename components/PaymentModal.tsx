@@ -12,7 +12,7 @@ type Props = {
 const UNLOCK_CODE = "keti149";
 
 export function PaymentModal({ isOpen, onClose, onSuccess }: Props) {
-  const [step, setStep] = useState<"qrcode" | "unlock" | "done">("qrcode");
+  const [step, setStep] = useState<"plans" | "payment" | "done">("plans");
   const [code, setCode] = useState("");
   const [codeError, setCodeError] = useState("");
 
@@ -28,14 +28,14 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: Props) {
   }
 
   function handleDone() {
-    setStep("qrcode");
+    setStep("plans");
     setCode("");
     setCodeError("");
     onSuccess();
   }
 
   function handleClose() {
-    setStep("qrcode");
+    setStep("plans");
     setCode("");
     setCodeError("");
     onClose();
@@ -43,11 +43,95 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 px-4">
-      {/* QR Code step */}
-      {step === "qrcode" && (
+      {/* Plans comparison step */}
+      {step === "plans" && (
+        <div className="relative w-full max-w-2xl rounded-2xl border border-[#E8E6E1] bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.15)]">
+          {/* Close button */}
+          <button
+            type="button"
+            onClick={handleClose}
+            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full text-[#9CA3AF] transition hover:bg-[#F3F2EF] hover:text-[#141413]"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M4 4L12 12M12 4L4 12" />
+            </svg>
+          </button>
+
+          {/* Title */}
+          <p className="text-center text-lg font-extrabold tracking-[-0.01em] text-[#141413]">
+            升级套餐
+          </p>
+
+          {/* Two cards */}
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            {/* Free card */}
+            <div className="rounded-2xl border border-[#E8E6E1] bg-white p-5 shadow-[0_4px_20px_rgba(15,23,42,0.06)]">
+              <p className="text-sm font-extrabold text-[#141413]">免费版</p>
+              <p className="mt-1 text-2xl font-extrabold text-[#141413]">免费</p>
+              <p className="mt-1 text-xs text-[#9CA3AF]">轻巧使用</p>
+
+              <button
+                type="button"
+                disabled
+                className="mt-3 h-10 w-full rounded-full border border-[#E8E6E1] bg-white text-sm font-bold text-[#9CA3AF]"
+              >
+                当前套餐
+              </button>
+
+              <ul className="mt-5 space-y-3 border-t border-[#E8E6E1] pt-4">
+                <li className="flex items-start gap-2.5 text-sm leading-6 text-[#4B5563]">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mt-1 shrink-0">
+                    <polyline points="3 8 6.5 11.5 13 5" />
+                  </svg>
+                  打磨 3 个栏目
+                </li>
+                <li className="flex items-start gap-2.5 text-sm leading-6 text-[#4B5563]">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mt-1 shrink-0">
+                    <polyline points="3 8 6.5 11.5 13 5" />
+                  </svg>
+                  预审 1 次
+                </li>
+              </ul>
+            </div>
+
+            {/* Upgrade card */}
+            <div className="rounded-2xl border border-[#E8E6E1] p-5 shadow-[0_4px_20px_rgba(15,23,42,0.06)]" style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(250,249,246,0.9) 0%, rgba(255,255,255,1) 60%)" }}>
+              <p className="text-sm font-extrabold text-[#141413]">升级版</p>
+              <p className="mt-1 text-2xl font-extrabold text-[#141413]">¥{PAID_PRICE}</p>
+              <p className="mt-1 text-xs text-[#9CA3AF]">解锁全面体验</p>
+
+              <button
+                type="button"
+                onClick={() => setStep("payment")}
+                className="mt-3 h-10 w-full rounded-full bg-[#141413] text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
+              >
+                升级至Plus
+              </button>
+
+              <ul className="mt-5 space-y-3 border-t border-[#E8E6E1] pt-4">
+                <li className="flex items-start gap-2.5 text-sm leading-6 text-[#141413]">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#141413" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mt-1 shrink-0">
+                    <polyline points="3 8 6.5 11.5 13 5" />
+                  </svg>
+                  支持多轮打磨迭代
+                </li>
+                <li className="flex items-start gap-2.5 text-sm leading-6 text-[#141413]">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#141413" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mt-1 shrink-0">
+                    <polyline points="3 8 6.5 11.5 13 5" />
+                  </svg>
+                  打磨、预审不限量
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment step */}
+      {step === "payment" && (
         <div className="w-full max-w-md rounded-2xl border border-[#E8E6E1] bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.15)]">
           <p className="text-lg font-extrabold tracking-[-0.01em] text-[#141413]">
-            升级付费版
+            完成付款
           </p>
 
           <div className="mt-4 rounded-xl border border-[#E8E6E1] bg-[#FAF9F6] p-4 text-center">
@@ -56,14 +140,8 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: Props) {
             <p className="mt-1 text-xs text-[#9CA3AF]">一次付费，永久解锁</p>
           </div>
 
-          <ul className="mt-4 space-y-2 text-sm leading-6 text-[#4B5563]">
-            <li>· 打磨全部 9 个栏目，不限次数</li>
-            <li>· 多次专家预审</li>
-            <li>· 终审后可返回打磨继续修改</li>
-          </ul>
-
           {/* QR Code placeholder */}
-          <div className="mt-5 flex flex-col items-center rounded-xl border border-dashed border-[#E8E6E1] bg-[#FAF9F6] p-5">
+          <div className="mt-4 flex flex-col items-center rounded-xl border border-dashed border-[#E8E6E1] bg-[#FAF9F6] p-5">
             <div className="flex h-40 w-40 items-center justify-center rounded-lg border border-[#E8E6E1] bg-white text-center text-xs leading-5 text-[#9CA3AF]">
               支付宝收款码
               <br />
@@ -77,55 +155,24 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: Props) {
             </p>
           </div>
 
-          <div className="mt-5 flex flex-col gap-2">
-            <button
-              type="button"
-              onClick={() => setStep("unlock")}
-              className="h-11 w-full rounded-md bg-[#141413] text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
-            >
-              已付款，输入解锁码
-            </button>
-            <button
-              type="button"
-              onClick={handleClose}
-              className="h-10 w-full rounded-md border border-[#E8E6E1] bg-white text-sm font-bold text-[#6B7280] transition hover:bg-[#F3F2EF]"
-            >
-              暂不升级
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Unlock code step */}
-      {step === "unlock" && (
-        <div className="w-full max-w-md rounded-2xl border border-[#E8E6E1] bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.15)]">
-          <p className="text-lg font-extrabold tracking-[-0.01em] text-[#141413]">
-            输入解锁码
-          </p>
-          <p className="mt-1 text-sm leading-6 text-[#6B7280]">
-            付款后联系管理员获取解锁码，输入后即可解锁全部功能。
-          </p>
-
-          <input
-            type="text"
-            value={code}
-            onChange={(e) => {
-              setCode(e.target.value);
-              setCodeError("");
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleVerifyCode();
-            }}
-            placeholder="请输入解锁码"
-            autoComplete="off"
-            className="mt-4 h-11 w-full rounded-md border border-[#E8E6E1] bg-white px-3 text-sm text-[#141413] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#141413]/10"
-          />
-
-          {codeError && (
-            <p className="mt-2 text-xs text-[#DC2626]">{codeError}</p>
-          )}
-
-          <div className="mt-5 flex flex-col gap-2">
+          <div className="mt-4 flex flex-col gap-2">
+            <input
+              type="text"
+              value={code}
+              onChange={(e) => {
+                setCode(e.target.value);
+                setCodeError("");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleVerifyCode();
+              }}
+              placeholder="请输入解锁码"
+              autoComplete="off"
+              className="h-11 w-full rounded-md border border-[#E8E6E1] bg-white px-3 text-sm text-[#141413] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#141413]/10"
+            />
+            {codeError && (
+              <p className="text-xs text-[#DC2626]">{codeError}</p>
+            )}
             <button
               type="button"
               onClick={handleVerifyCode}
@@ -136,7 +183,7 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: Props) {
             <button
               type="button"
               onClick={() => {
-                setStep("qrcode");
+                setStep("plans");
                 setCode("");
                 setCodeError("");
               }}

@@ -7,7 +7,8 @@ export async function POST(request: Request) {
   const body = (await request.json()) as Record<string, unknown>;
   const input = {
     draft: validateDraft(body.draft),
-    section: stringField(body.section) || "整体"
+    section: stringField(body.section) || "整体",
+    heading: stringField(body.heading) || "",
   };
 
   if (!input.draft) {

@@ -37,9 +37,9 @@ export function StepNavigation({
                 <span
                   className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition ${
                     isCompleted
-                      ? "border border-[#141413] bg-white/75 text-[#141413]"
+                      ? "bg-[#141413] text-white shadow-sm"
                       : isCurrent
-                        ? "bg-sky-500 text-[#141413] shadow-[0_8px_18px_rgba(14,165,233,0.22)] ring-4 ring-sky-200/70"
+                        ? "bg-sky-500 text-white shadow-[0_8px_18px_rgba(14,165,233,0.22)] ring-4 ring-sky-200/70"
                         : "border border-slate-200/90 bg-slate-100/90 text-slate-500"
                   }`}
                 >

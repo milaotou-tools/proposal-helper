@@ -42,7 +42,7 @@ export function FeedbackWidget() {
 
   return (
     <div className="surface p-5">
-      <h3 className="mb-3 text-sm font-semibold text-slate-900">谢谢你使用我做的工具，这个工具对你有帮助吗？</h3>
+      <h3 className="mb-3 text-sm font-semibold text-slate-900">这个工具对你有帮助吗？</h3>
       <div className="mb-4 flex gap-3">
         <button
           type="button"
@@ -53,7 +53,7 @@ export function FeedbackWidget() {
               : "btn-secondary"
           }`}
         >
-          挺好用
+          好用
         </button>
         <button
           type="button"
@@ -73,13 +73,13 @@ export function FeedbackWidget() {
           <input
             value={school}
             onChange={(e) => setSchool(e.target.value)}
-            placeholder="请填写您所在学校，帮助作者了解使用小工具的小伙伴在哪里～"
+            placeholder="您所在学校（选填）"
             className="focus-ring control mb-3"
           />
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder={type === "suggestion" ? "你的建议（选填）" : "想对作者说的话（选填）"}
+            placeholder={type === "suggestion" ? "你的建议（选填）" : "你的评价（选填）"}
             rows={3}
             className="focus-ring control-area mb-3"
           />

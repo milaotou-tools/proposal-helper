@@ -12,7 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="flex min-h-screen flex-col text-slate-900 antialiased">
         <header className="shell-band border-b border-white/70">
           <div className="mx-auto flex max-w-7xl items-center justify-center px-4 py-2.5 sm:px-6 lg:px-8">
-            <span className="text-[11px] font-semibold tracking-[0.28em] text-slate-500">
+            <span className="text-[11px] font-semibold tracking-[0.12em] text-slate-500">
               AI 引擎 · DeepSeek V4 Pro
             </span>
           </div>
