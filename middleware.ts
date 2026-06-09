@@ -5,7 +5,8 @@ const API_PATTERNS = [
   "/api/generate-framework",
   "/api/review-draft",
   "/api/polish-section",
-  "/api/expert-review"
+  "/api/expert-review",
+  "/api/topic-guidance",
 ];
 
 export async function middleware(request: NextRequest) {

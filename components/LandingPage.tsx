@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import type { SaveSnapshot } from "@/lib/save-store";
 
 type Props = {
   onSelectPath: (path: "framework" | "draft") => void;
+  onStartGuidance: () => void;
+  onRestore: (snapshot: SaveSnapshot) => void;
 };
 
 const Arrow = () => (
@@ -19,8 +22,39 @@ const Arrow = () => (
   </svg>
 );
 
-export function LandingPage({ onSelectPath }: Props) {
+export function LandingPage({ onSelectPath, onStartGuidance, onRestore }: Props) {
   const [showFlow, setShowFlow] = useState(true);
+  const [restoreCode, setRestoreCode] = useState("");
+  const [restoring, setRestoring] = useState(false);
+  const [restoreError, setRestoreError] = useState("");
+  const [showRestore, setShowRestore] = useState(false);
+
+  async function handleRestore() {
+    const code = restoreCode.trim().toUpperCase();
+    if (!code || code.length !== 6) {
+      setRestoreError("请输入有效的 6 位保存码。");
+      return;
+    }
+    setRestoring(true);
+    setRestoreError("");
+    try {
+      const res = await fetch("/api/load-work", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json() as { ok?: boolean; snapshot?: SaveSnapshot; error?: string };
+      if (data.ok && data.snapshot) {
+        onRestore(data.snapshot);
+      } else {
+        setRestoreError(data.error || "未找到记录，请检查保存码是否正确。");
+      }
+    } catch {
+      setRestoreError("网络错误，请稍后重试。");
+    } finally {
+      setRestoring(false);
+    }
+  }
 
   if (showFlow) {
     return (
@@ -144,6 +178,74 @@ export function LandingPage({ onSelectPath }: Props) {
             上传已有草稿，先做诊断、逐栏打磨，再做终审。
           </p>
         </button>
+      </div>
+
+      {/* Topic guidance entry */}
+      <div className="mt-6 text-center">
+        <button
+          type="button"
+          onClick={onStartGuidance}
+          className="text-sm text-slate-500 underline underline-offset-4 transition hover:text-slate-700"
+        >
+          不确定选题方向？先看看选题建议
+        </button>
+      </div>
+
+      {/* Restore saved work */}
+      <div className="mt-6 border-t border-[#E8E6E1] pt-6">
+        {!showRestore ? (
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => setShowRestore(true)}
+              className="text-sm text-slate-500 underline underline-offset-4 transition hover:text-slate-700"
+            >
+              有保存码？继续之前的工作
+            </button>
+          </div>
+        ) : (
+          <div className="mx-auto max-w-sm">
+            <p className="text-center text-sm text-[#6B7280]">输入你的 6 位保存码，恢复之前的工作进度。</p>
+            <div className="mt-3 flex gap-2">
+              <input
+                type="text"
+                value={restoreCode}
+                onChange={(e) => {
+                  setRestoreCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6));
+                  setRestoreError("");
+                }}
+                onKeyDown={(e) => { if (e.key === "Enter") handleRestore(); }}
+                placeholder="例如：A3X9K2"
+                maxLength={6}
+                className="flex-1 rounded-md border border-[#D1D5DB] bg-white px-3 py-2 text-center text-lg font-bold tracking-[0.15em] text-[#141413] placeholder:text-sm placeholder:font-normal placeholder:tracking-normal placeholder:text-[#9CA3AF] focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+              />
+              <button
+                type="button"
+                onClick={handleRestore}
+                disabled={restoring}
+                className="rounded-md bg-[#141413] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#2A2A28] disabled:opacity-50"
+              >
+                {restoring ? "恢复中..." : "恢复"}
+              </button>
+            </div>
+            {restoreError && (
+              <p className="mt-2 text-center text-sm text-[#DC2626]">{restoreError}</p>
+            )}
+            <div className="mt-2 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRestore(false);
+                  setRestoreCode("");
+                  setRestoreError("");
+                }}
+                className="text-xs text-slate-400 underline underline-offset-4 transition hover:text-slate-600"
+              >
+                收起
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );

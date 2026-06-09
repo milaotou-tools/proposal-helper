@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { StepNavigation } from "@/components/StepNavigation";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { usePersistedState } from "@/lib/use-persisted-state";
 import { postAiStream, stripMarkdown, copyToClipboard } from "@/lib/utils";
+import type { SaveSnapshot } from "@/lib/save-store";
 
-type FrameworkForm = {
+export type FrameworkForm = {
   stage: string;
   stageSubject: string;
   idea: string;
@@ -86,16 +87,83 @@ const FRAMEWORK_STEPS = [
   { label: "查看结果", description: "框架输出" }
 ];
 
-export function FrameworkSteps({ onBack }: { onBack: () => void }) {
+type FrameworkStepsProps = {
+  onBack: () => void;
+  restoredSnapshot?: SaveSnapshot | null;
+  guidancePrefill?: { stageSubject: string; idea: string; problem: string } | null;
+};
+
+export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: FrameworkStepsProps) {
   const [currentStep, setCurrentStep] = useState(0);
-  const [form, setForm] = usePersistedState<FrameworkForm>("ph-framework-form", emptyForm);
+  const [form, setForm, resetForm] = usePersistedState<FrameworkForm>("ph-framework-form", emptyForm);
   const [resultText, setResultText] = usePersistedState("ph-framework-result", "");
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStepIndex, setLoadingStepIndex] = useState(0);
   const [error, setError] = useState("");
   const [allowCollection, setAllowCollection] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [saveCode, setSaveCode] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const restoredRef = useRef(false);
   const retryRef = useRef<(() => void) | null>(null);
+
+  // Restore from snapshot or prefill on mount
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+
+    if (restoredSnapshot && restoredSnapshot.type === "framework") {
+      const s = restoredSnapshot;
+      if (s.frameworkForm) {
+        setForm(s.frameworkForm);
+      }
+      if (s.frameworkResult) {
+        setResultText(s.frameworkResult);
+      }
+      if (typeof s.frameworkCurrentStep === "number") {
+        setCurrentStep(s.frameworkCurrentStep);
+      }
+      return;
+    }
+
+    if (guidancePrefill) {
+      setForm((prev) => ({
+        ...prev,
+        stageSubject: guidancePrefill.stageSubject || prev.stageSubject,
+        idea: guidancePrefill.idea || prev.idea,
+        problem: guidancePrefill.problem || prev.problem,
+      }));
+      setCurrentStep(1);
+    }
+  }, [restoredSnapshot, guidancePrefill, setForm, setResultText]);
+
+  async function handleSave() {
+    setSaving(true);
+    setSaveError("");
+    try {
+      const res = await fetch("/api/save-work", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "framework",
+          ...form,
+          frameworkResult: resultText,
+          frameworkCurrentStep: currentStep,
+        }),
+      });
+      const data = await res.json() as { ok?: boolean; code?: string; error?: string };
+      if (data.ok && data.code) {
+        setSaveCode(data.code);
+      } else {
+        setSaveError(data.error || "保存失败，请稍后重试。");
+      }
+    } catch {
+      setSaveError("网络错误，请稍后重试。");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   function updateField(field: keyof FrameworkForm, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -138,17 +206,30 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
   return (
     <main className="bg-[#FAF9F6] px-4 py-6 text-[#141413] sm:px-6 lg:px-8">
       <section className="mx-auto flex max-w-4xl flex-col gap-6">
-        {/* 返回按钮 */}
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex w-fit items-center gap-1.5 rounded-md border border-[#E8E6E1] bg-white px-3 py-1.5 text-xs font-bold text-[#6B7280] transition hover:border-[#D1D5DB] hover:text-[#141413]"
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-            <path d="M9 3L5 7L9 11" />
-          </svg>
-          返回首页
-        </button>
+        {/* 返回按钮 + 保存 */}
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex w-fit items-center gap-1.5 rounded-md border border-[#E8E6E1] bg-white px-3 py-1.5 text-xs font-bold text-[#6B7280] transition hover:border-[#D1D5DB] hover:text-[#141413]"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M9 3L5 7L9 11" />
+            </svg>
+            返回首页
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="inline-flex w-fit items-center gap-1.5 rounded-md border border-[#E8E6E1] bg-white px-3 py-1.5 text-xs font-bold text-[#6B7280] transition hover:border-[#D1D5DB] hover:text-[#141413] disabled:opacity-50"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M7 3V10M7 10L4 7M7 10L10 7" />
+            </svg>
+            {saving ? "保存中..." : "保存进度"}
+          </button>
+        </div>
 
         <header>
           <h1 className="text-2xl font-extrabold tracking-[-0.01em] text-[#141413]">
@@ -170,15 +251,70 @@ export function FrameworkSteps({ onBack }: { onBack: () => void }) {
         {error && (
           <div className="flex items-start justify-between gap-3 rounded-md border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm leading-6 text-[#DC2626]">
             <span>{error}</span>
-            {retryRef.current && (
+            <div className="flex gap-2">
+              {retryRef.current && (
+                <button
+                  type="button"
+                  onClick={() => retryRef.current?.()}
+                  className="shrink-0 rounded-md border border-[#FECACA] bg-white px-3 py-1 text-xs font-bold text-[#DC2626] transition hover:bg-[#FEF2F2]"
+                >
+                  重试
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => retryRef.current?.()}
-                className="shrink-0 rounded-md border border-[#FECACA] bg-white px-3 py-1 text-xs font-bold text-[#DC2626] transition hover:bg-[#FEF2F2]"
+                onClick={() => setError("")}
+                className="shrink-0 rounded-md border border-[#FECACA] bg-white px-2 py-1 text-xs font-bold text-[#DC2626] transition hover:bg-[#FEF2F2]"
               >
-                重试
+                关闭
               </button>
-            )}
+            </div>
+          </div>
+        )}
+
+        {saveError && (
+          <div className="flex items-start justify-between gap-3 rounded-md border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm leading-6 text-[#DC2626]">
+            <span>{saveError}</span>
+            <button
+              type="button"
+              onClick={() => setSaveError("")}
+              className="shrink-0 rounded-md border border-[#FECACA] bg-white px-2 py-1 text-xs font-bold text-[#DC2626] transition hover:bg-[#FEF2F2]"
+            >
+              关闭
+            </button>
+          </div>
+        )}
+
+        {/* Save code modal */}
+        {saveCode && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35" onClick={() => setSaveCode(null)}>
+            <div
+              className="mx-4 w-full max-w-sm rounded-lg bg-white p-6 shadow-lg"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-bold text-[#141413]">进度已保存</h3>
+              <p className="mt-2 text-sm text-[#6B7280]">你的保存码：</p>
+              <p className="mt-1 text-center text-3xl font-extrabold tracking-[0.15em] text-[#141413] select-all">{saveCode}</p>
+              <p className="mt-3 text-xs text-[#9CA3AF]">请复制并保存此码，30天内可恢复进度。</p>
+              <div className="mt-4 flex gap-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await copyToClipboard(saveCode);
+                  }}
+                  className="flex-1 rounded-md border border-[#D1D5DB] bg-white px-4 py-2 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
+                >
+                  复制保存码
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSaveCode(null)}
+                  className="flex-1 rounded-md bg-[#141413] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#2A2A28]"
+                >
+                  知道了
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

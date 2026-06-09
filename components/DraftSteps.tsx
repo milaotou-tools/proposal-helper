@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { StepNavigation } from "@/components/StepNavigation";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { PaymentModal } from "@/components/PaymentModal";
 import { usePersistedState } from "@/lib/use-persisted-state";
-import { postAiStream, stripMarkdown, PAID_PRICE } from "@/lib/utils";
+import { postAiStream, stripMarkdown, copyToClipboard, PAID_PRICE } from "@/lib/utils";
+import type { SaveSnapshot } from "@/lib/save-store";
 
 const DRAFT_STEPS = [
   { label: "输入草稿", description: "粘贴你的申报书" },
@@ -72,6 +73,7 @@ type DetectedSection = { standard: string; heading: string | null; content: stri
 
 type DraftStepsProps = {
   onBack: () => void;
+  restoredSnapshot?: SaveSnapshot | null;
 };
 
 function findHeadingPos(draft: string, heading: string): number {
@@ -369,7 +371,7 @@ function downloadFile(content: string, filename: string, type: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export function DraftSteps({ onBack }: DraftStepsProps) {
+export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
   const [currentStep, setCurrentStep] = useState<Step>(0);
   const [draft, setDraft] = usePersistedState("ph-draft", "");
   const [polishedDraft, setPolishedDraft] = usePersistedState("ph-polished", "");
@@ -389,11 +391,70 @@ export function DraftSteps({ onBack }: DraftStepsProps) {
     "ph-detected-sections",
     polishSections.map(s => ({ standard: s, heading: null, content: null }))
   );
+  const [saveCode, setSaveCode] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const lastReviewedDraft = useRef("");
+  const restoredRef = useRef(false);
   const retryRef = useRef<(() => void) | null>(null);
 
   // Cache AI polish results per section
   const [polishCache, setPolishCache] = usePersistedState<Record<string, string>>("ph-polish-cache", {});
+
+  // Restore from snapshot on mount
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+
+    if (restoredSnapshot && restoredSnapshot.type === "draft") {
+      const s = restoredSnapshot;
+      if (s.draft) setDraft(s.draft);
+      if (s.polishedDraft) setPolishedDraft(s.polishedDraft);
+      if (s.polishCache) setPolishCache(s.polishCache);
+      if (s.detectedSections && s.detectedSections.length > 0) {
+        setDetectedSections(s.detectedSections);
+      }
+      if (s.resultTitle) setResultTitle(s.resultTitle);
+      if (s.resultText) setResultText(s.resultText);
+      if (typeof s.draftCurrentStep === "number") {
+        setCurrentStep(s.draftCurrentStep as Step);
+      }
+      if (s.draft) {
+        lastReviewedDraft.current = "";
+      }
+    }
+  }, [restoredSnapshot, setDraft, setPolishedDraft, setPolishCache, setDetectedSections]);
+
+  async function handleSave() {
+    setSaving(true);
+    setSaveError("");
+    try {
+      const res = await fetch("/api/save-work", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "draft",
+          draft,
+          polishedDraft,
+          polishCache,
+          detectedSections,
+          draftCurrentStep: currentStep,
+          resultTitle,
+          resultText,
+        }),
+      });
+      const data = await res.json() as { ok?: boolean; code?: string; error?: string };
+      if (data.ok && data.code) {
+        setSaveCode(data.code);
+      } else {
+        setSaveError(data.error || "保存失败，请稍后重试。");
+      }
+    } catch {
+      setSaveError("网络错误，请稍后重试。");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   // Session ID to link original draft and final output
   const sessionId = useRef(
@@ -651,17 +712,30 @@ export function DraftSteps({ onBack }: DraftStepsProps) {
   return (
     <main className="bg-[#FAF9F6] px-4 py-6 text-[#141413] sm:px-6 lg:px-8">
       <section className={`mx-auto flex flex-col gap-6 ${currentStep === 2 ? "max-w-6xl" : "max-w-4xl"}`}>
-        {/* 返回按钮 */}
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex w-fit items-center gap-1.5 rounded-md border border-[#E8E6E1] bg-white px-3 py-1.5 text-xs font-bold text-[#6B7280] transition hover:border-[#D1D5DB] hover:text-[#141413]"
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-            <path d="M9 3L5 7L9 11" />
-          </svg>
-          返回首页
-        </button>
+        {/* 返回按钮 + 保存 */}
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex w-fit items-center gap-1.5 rounded-md border border-[#E8E6E1] bg-white px-3 py-1.5 text-xs font-bold text-[#6B7280] transition hover:border-[#D1D5DB] hover:text-[#141413]"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M9 3L5 7L9 11" />
+            </svg>
+            返回首页
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="inline-flex w-fit items-center gap-1.5 rounded-md border border-[#E8E6E1] bg-white px-3 py-1.5 text-xs font-bold text-[#6B7280] transition hover:border-[#D1D5DB] hover:text-[#141413] disabled:opacity-50"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M7 3V10M7 10L4 7M7 10L10 7" />
+            </svg>
+            {saving ? "保存中..." : "保存进度"}
+          </button>
+        </div>
 
         <header>
           <h1 className="text-2xl font-extrabold tracking-[-0.01em] text-[#141413]">
@@ -693,6 +767,19 @@ export function DraftSteps({ onBack }: DraftStepsProps) {
                 重试
               </button>
             )}
+          </div>
+        )}
+
+        {saveError && (
+          <div className="flex items-start justify-between gap-3 rounded-md border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm leading-6 text-[#DC2626]">
+            <span>{saveError}</span>
+            <button
+              type="button"
+              onClick={() => setSaveError("")}
+              className="shrink-0 rounded-md border border-[#FECACA] bg-white px-2 py-1 text-xs font-bold text-[#DC2626] transition hover:bg-[#FEF2F2]"
+            >
+              关闭
+            </button>
           </div>
         )}
 
@@ -1256,6 +1343,39 @@ export function DraftSteps({ onBack }: DraftStepsProps) {
           setShowPaymentModal(false);
         }}
       />
+
+      {/* Save code modal */}
+      {saveCode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35" onClick={() => setSaveCode(null)}>
+          <div
+            className="mx-4 w-full max-w-sm rounded-lg bg-white p-6 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold text-[#141413]">进度已保存</h3>
+            <p className="mt-2 text-sm text-[#6B7280]">你的保存码：</p>
+            <p className="mt-1 text-center text-3xl font-extrabold tracking-[0.15em] text-[#141413] select-all">{saveCode}</p>
+            <p className="mt-3 text-xs text-[#9CA3AF]">请复制并保存此码，30天内可恢复进度。</p>
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  await copyToClipboard(saveCode);
+                }}
+                className="flex-1 rounded-md border border-[#D1D5DB] bg-white px-4 py-2 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
+              >
+                复制保存码
+              </button>
+              <button
+                type="button"
+                onClick={() => setSaveCode(null)}
+                className="flex-1 rounded-md bg-[#141413] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#2A2A28]"
+              >
+                知道了
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
