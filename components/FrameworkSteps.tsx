@@ -29,6 +29,21 @@ const emptyForm: FrameworkForm = {
 
 const STAGES = ["幼儿园", "小学", "初中", "高中"];
 
+const RESEARCH_TYPES: Array<{ value: string; label: string; description: string }> = [
+  { value: "行动研究", label: "行动研究", description: "在真实教学环境中边实践边研究，适合一线教师解决日常教学问题。" },
+  { value: "案例研究", label: "案例研究", description: "深入分析一个或几个典型案例，从中提炼规律和经验。" },
+  { value: "实验研究", label: "实验研究", description: "设置实验组和对照组，比较不同教学方法的差异。适合有测评条件的课题。" },
+  { value: "调查研究", label: "调查研究", description: "通过问卷、访谈等方式收集数据，了解现状并发现问题。" },
+  { value: "经验总结", label: "经验总结", description: "系统梳理和提炼已有的教学实践经验，形成可推广的方法和模式。" },
+];
+
+const guidanceExample: Record<string, string> = {
+  "幼儿园": "我带大班，这学期发现部分孩子在集体活动中语言表达意愿不强，想尝试通过绘本阅读和角色扮演来促进幼儿语言发展，但不知道怎样设计系统的活动方案，也不确定哪些绘本最合适。",
+  "小学": "我教五年级语文，这学期发现学生写作时结构比较混乱，段落之间缺少逻辑衔接。我想到过用思维导图辅助写作教学，也试过几次，但不知道具体怎么系统化操作，也不确定这个方法到底有没有效果。",
+  "初中": "我教初二物理，学生在密度和浮力概念上反复出错，靠刷题效果不好。我想尝试用实验探究的方式帮助学生建构概念，但不知道如何设计有效的探究任务链。",
+  "高中": "我教高一政治，学生对抽象概念理解困难，课堂参与度不高。我尝试过引入社会热点议题组织讨论，学生反馈不错，但不知道怎么把这种课堂实践提升为规范的课题研究。",
+};
+
 type StageExample = {
   stageSubject: string;
   idea: string;
@@ -108,6 +123,74 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
   const restoredRef = useRef(false);
   const retryRef = useRef<(() => void) | null>(null);
 
+  // Inline topic guidance state
+  const [ideaMode, setIdeaMode] = useState<"self" | "ai">("self");
+  const [guidanceSituation, setGuidanceSituation] = useState("");
+  const [guidanceResearchType, setGuidanceResearchType] = useState("");
+  const [guidanceSuggestions, setGuidanceSuggestions] = useState<string[]>([]);
+  const [guidanceSelected, setGuidanceSelected] = useState("");
+  const [guidanceLoading, setGuidanceLoading] = useState(false);
+  const [guidanceStream, setGuidanceStream] = useState("");
+  const [guidanceError, setGuidanceError] = useState("");
+
+  const OUTPUT_PRESETS = [
+    "课题研究报告",
+    "教学设计集",
+    "教学案例集",
+    "课堂实录",
+    "学生作品集",
+    "校本资源包",
+    "调查问卷与分析报告",
+    "校本课程纲要",
+  ];
+
+  function handleGuidanceGenerate() {
+    if (!form.stage) return;
+
+    setGuidanceLoading(true);
+    setGuidanceError("");
+    setGuidanceSuggestions([]);
+    setGuidanceStream("");
+
+    let fullText = "";
+    postAiStream(
+      "/api/topic-guidance",
+      {
+        discipline: form.stageSubject || "",
+        gradeSegment: form.stage,
+        situation: guidanceSituation,
+        researchType: guidanceResearchType,
+      },
+      (chunk) => {
+        fullText += chunk;
+        setGuidanceStream(stripMarkdown(fullText));
+      },
+      true,
+    )
+      .then(() => {
+        const topics = fullText
+          .split(/\n(?=\d+[\.\、\)]\s)/)
+          .map((t) => t.replace(/^\d+[\.\、\)]\s*/, "").trim())
+          .filter((t) => t.length > 5);
+        setGuidanceSuggestions(topics.length >= 2 ? topics : [fullText.trim()]);
+      })
+      .catch((caught) => {
+        setGuidanceError(caught instanceof Error ? caught.message : "生成失败，请稍后重试。");
+      })
+      .finally(() => {
+        setGuidanceLoading(false);
+      });
+  }
+
+  function handleGuidanceUseTopic(topic: string) {
+    updateField("idea", topic);
+    updateField("problem", guidanceSituation || "需进一步明确具体问题");
+    if (guidanceSituation) {
+      updateField("practiceBase", guidanceSituation);
+    }
+    setIdeaMode("self");
+  }
+
   // Restore from snapshot or prefill on mount
   useEffect(() => {
     if (restoredRef.current) return;
@@ -137,6 +220,14 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
       setCurrentStep(1);
     }
   }, [restoredSnapshot, guidancePrefill, setForm, setResultText]);
+
+  // Pre-fill expected outputs when entering Step 2
+  useEffect(() => {
+    if (currentStep === 2 && !form.expectedOutputs.trim()) {
+      const eg = getExample(form.stage);
+      updateField("expectedOutputs", eg.expectedOutputs);
+    }
+  }, [currentStep]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSave() {
     setSaving(true);
@@ -397,53 +488,227 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
         {/* Step 1: 课题想法 + 痛点问题 */}
         {currentStep === 1 && (
           <div className="rounded-md border border-[#E8E6E1] bg-white p-6">
-            <div className="mb-4 flex items-start justify-between">
-              <div>
-                <p className="text-sm font-bold text-[#6B7280]">操作提示</p>
-                <p className="text-sm leading-6 text-[#9CA3AF]">请描述你发现的真实问题和你打算怎么研究。越具体，生成的框架越贴合你的实际情况。</p>
-              </div>
+            {/* Mode tabs */}
+            <div className="mb-5 flex gap-1 rounded-md bg-[#F3F2EF] p-1">
               <button
                 type="button"
-                onClick={() => {
-                  const eg = getExample(form.stage);
-                  updateField("idea", eg.idea);
-                  updateField("problem", eg.problem);
-                }}
-                className="ml-3 shrink-0 rounded-md border border-[#E8E6E1] bg-white px-2.5 py-1 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280]"
+                onClick={() => setIdeaMode("ai")}
+                className={`flex-1 rounded px-3 py-2 text-sm font-bold transition ${
+                  ideaMode === "ai"
+                    ? "bg-white text-[#141413] shadow-sm"
+                    : "text-[#9CA3AF] hover:text-[#6B7280]"
+                }`}
               >
-                填入示例
+                没有头绪，AI帮我找
+              </button>
+              <button
+                type="button"
+                onClick={() => setIdeaMode("self")}
+                className={`flex-1 rounded px-3 py-2 text-sm font-bold transition ${
+                  ideaMode === "self"
+                    ? "bg-white text-[#141413] shadow-sm"
+                    : "text-[#9CA3AF] hover:text-[#6B7280]"
+                }`}
+              >
+                我已有想法
               </button>
             </div>
 
-            <div className="flex flex-col gap-4">
-              <label className="flex flex-col gap-2">
-                <span className="text-sm font-bold text-[#141413]">
-                  初步课题想法
-                  <span className="ml-2 rounded-sm bg-[#FEF3E2] px-1.5 py-0.5 text-xs text-[#141413]">必填</span>
-                </span>
-                <textarea
-                  placeholder="例如：我想探索 AI 如何帮助学生进行知识结构化学习。"
-                  rows={3}
-                  value={form.idea}
-                  onChange={(e) => updateField("idea", e.target.value)}
-                  className="focus-ring resize-y rounded-md border border-[#E8E6E1] bg-white px-3 py-3 text-sm leading-6 text-[#141413] placeholder:text-[#9CA3AF]"
-                />
-              </label>
+            {/* Mode A: self-fill */}
+            {ideaMode === "self" && (
+              <>
+                <div className="mb-4 flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-[#6B7280]">描述你的课题想法</p>
+                    <p className="text-sm leading-6 text-[#9CA3AF]">描述你发现的真实问题和你打算怎么研究。越具体，生成的框架越贴合你的实际情况。</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const eg = getExample(form.stage);
+                      updateField("idea", eg.idea);
+                      updateField("problem", eg.problem);
+                    }}
+                    className="ml-3 shrink-0 rounded-md border border-[#E8E6E1] bg-white px-2.5 py-1 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280]"
+                  >
+                    填入示例
+                  </button>
+                </div>
 
-              <label className="flex flex-col gap-2">
-                <span className="text-sm font-bold text-[#141413]">
-                  当前遇到的教育教学问题
-                  <span className="ml-2 rounded-sm bg-[#FEF3E2] px-1.5 py-0.5 text-xs text-[#141413]">必填</span>
-                </span>
-                <textarea
-                  placeholder="例如：学生复习时知识点零散，不能形成结构化理解。"
-                  rows={3}
-                  value={form.problem}
-                  onChange={(e) => updateField("problem", e.target.value)}
-                  className="focus-ring resize-y rounded-md border border-[#E8E6E1] bg-white px-3 py-3 text-sm leading-6 text-[#141413] placeholder:text-[#9CA3AF]"
-                />
-              </label>
-            </div>
+                <div className="flex flex-col gap-4">
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-[#141413]">
+                      初步课题想法
+                      <span className="ml-2 rounded-sm bg-[#FEF3E2] px-1.5 py-0.5 text-xs text-[#141413]">必填</span>
+                    </span>
+                    <textarea
+                      placeholder="例如：我想探索 AI 如何帮助学生进行知识结构化学习。"
+                      rows={3}
+                      value={form.idea}
+                      onChange={(e) => updateField("idea", e.target.value)}
+                      className="focus-ring resize-y rounded-md border border-[#E8E6E1] bg-white px-3 py-3 text-sm leading-6 text-[#141413] placeholder:text-[#9CA3AF]"
+                    />
+                  </label>
+
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-[#141413]">
+                      当前遇到的教育教学问题
+                      <span className="ml-2 rounded-sm bg-[#FEF3E2] px-1.5 py-0.5 text-xs text-[#141413]">必填</span>
+                    </span>
+                    <textarea
+                      placeholder="例如：学生复习时知识点零散，不能形成结构化理解。"
+                      rows={3}
+                      value={form.problem}
+                      onChange={(e) => updateField("problem", e.target.value)}
+                      className="focus-ring resize-y rounded-md border border-[#E8E6E1] bg-white px-3 py-3 text-sm leading-6 text-[#141413] placeholder:text-[#9CA3AF]"
+                    />
+                  </label>
+                </div>
+              </>
+            )}
+
+            {/* Mode B: AI guidance */}
+            {ideaMode === "ai" && (
+              <>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-[#6B7280]">让 AI 帮你找选题方向</p>
+                    <p className="text-sm leading-6 text-[#9CA3AF]">简单描述你的教学情况，AI 会给出课题选题建议。选一个即可自动填入。</p>
+                  </div>
+                </div>
+
+                {/* Situation */}
+                <div className="mt-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-bold text-[#141413]">教学情况（选填）</p>
+                    <button
+                      type="button"
+                      onClick={() => setGuidanceSituation(guidanceExample[form.stage] || guidanceExample["小学"])}
+                      className="ml-3 shrink-0 rounded-md border border-[#E8E6E1] bg-white px-2.5 py-1 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280]"
+                    >
+                      填入示例
+                    </button>
+                  </div>
+                  <textarea
+                    value={guidanceSituation}
+                    onChange={(e) => setGuidanceSituation(e.target.value)}
+                    placeholder={guidanceExample[form.stage] || guidanceExample["小学"]}
+                    rows={3}
+                    maxLength={2000}
+                    className="mt-2 w-full resize-y rounded-md border border-[#E8E6E1] bg-white px-3 py-3 text-sm leading-6 text-[#141413] placeholder:text-[#9CA3AF] focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+                  />
+                </div>
+
+                {/* Research type */}
+                <div className="mt-4">
+                  <p className="text-sm font-bold text-[#141413]">研究类型偏好（选填）</p>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    {RESEARCH_TYPES.map((rt) => (
+                      <button
+                        key={rt.value}
+                        type="button"
+                        onClick={() => setGuidanceResearchType(rt.value === guidanceResearchType ? "" : rt.value)}
+                        className={`rounded-md border p-3 text-left transition ${
+                          guidanceResearchType === rt.value
+                            ? "border-sky-400 bg-sky-50"
+                            : "border-[#E8E6E1] bg-white hover:border-[#D1D5DB]"
+                        }`}
+                      >
+                        <p className={`text-xs font-bold ${guidanceResearchType === rt.value ? "text-sky-700" : "text-[#141413]"}`}>
+                          {rt.label}
+                        </p>
+                        <p className="mt-0.5 text-[11px] leading-4 text-[#6B7280]">{rt.description}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Results */}
+                <div className="mt-4">
+                  {guidanceLoading && (
+                    <div className="rounded-md bg-[#FAF9F6] px-4 py-8 text-center">
+                      {guidanceStream ? (
+                        <div className="mx-auto max-w-2xl text-left text-sm leading-7 whitespace-pre-wrap text-[#141413]">
+                          {guidanceStream}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-[#9CA3AF]">正在分析你的教学背景，生成选题方向...</p>
+                      )}
+                    </div>
+                  )}
+
+                  {guidanceError && (
+                    <div className="flex items-start justify-between gap-3 rounded-md border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm text-[#DC2626]">
+                      <span>{guidanceError}</span>
+                      <button
+                        type="button"
+                        onClick={() => setGuidanceError("")}
+                        className="shrink-0 rounded-md border border-[#FECACA] bg-white px-2 py-1 text-xs font-bold text-[#DC2626]"
+                      >
+                        关闭
+                      </button>
+                    </div>
+                  )}
+
+                  {!guidanceLoading && guidanceSuggestions.length > 0 && (
+                    <div>
+                      <div className="space-y-2">
+                        {guidanceSuggestions.map((topic, i) => {
+                          const lines = topic.split("\n");
+                          const title = lines[0]?.trim() || topic;
+                          const desc = lines.slice(1).join("\n").trim();
+                          return (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => setGuidanceSelected(topic === guidanceSelected ? "" : topic)}
+                              className={`w-full rounded-md border p-3 text-left transition ${
+                                guidanceSelected === topic
+                                  ? "border-sky-400 bg-sky-50"
+                                  : "border-[#E8E6E1] bg-white hover:border-[#D1D5DB]"
+                              }`}
+                            >
+                              <span className="text-[11px] font-bold text-[#9CA3AF]">选题 {i + 1}</span>
+                              <p className={`mt-1 text-sm leading-6 font-bold ${guidanceSelected === topic ? "text-sky-800" : "text-[#141413]"}`}>
+                                {title}
+                              </p>
+                              {desc && (
+                                <p className="mt-0.5 text-xs leading-5 text-[#6B7280]">{desc}</p>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="mt-4 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setGuidanceSuggestions([]);
+                            setGuidanceSelected("");
+                            setGuidanceStream("");
+                          }}
+                          className="rounded-md border border-[#D1D5DB] bg-white px-4 py-2 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
+                        >
+                          重新生成
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (guidanceSelected) handleGuidanceUseTopic(guidanceSelected);
+                            else if (guidanceSuggestions.length === 1) handleGuidanceUseTopic(guidanceSuggestions[0]);
+                          }}
+                          disabled={!guidanceSelected && guidanceSuggestions.length !== 1}
+                          className="flex-1 rounded-md bg-[#141413] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#2A2A28] disabled:opacity-30"
+                        >
+                          使用此选题
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
 
             <div className="mt-6 flex justify-between">
               <button
@@ -453,13 +718,24 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
               >
                 上一步
               </button>
-              <button
-                type="button"
-                onClick={() => setCurrentStep(2)}
-                className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
-              >
-                下一步：研究背景
-              </button>
+              {ideaMode === "self" && (
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(2)}
+                  className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
+                >
+                  下一步：研究背景
+                </button>
+              )}
+              {ideaMode === "ai" && guidanceSuggestions.length === 0 && !guidanceLoading && (
+                <button
+                  type="button"
+                  onClick={handleGuidanceGenerate}
+                  className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
+                >
+                  生成选题建议
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -509,8 +785,23 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
                 />
               </label>
 
-              <label className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2">
                 <span className="text-sm font-bold text-[#141413]">希望形成的成果</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {OUTPUT_PRESETS.map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => {
+                        const current = form.expectedOutputs.trim();
+                        updateField("expectedOutputs", current ? `${current}、${item}` : item);
+                      }}
+                      className="rounded-md border border-[#E8E6E1] bg-white px-2.5 py-1 text-xs text-[#6B7280] transition hover:border-[#D1D5DB] hover:text-[#141413]"
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </div>
                 <textarea
                   placeholder="例如：课题报告、教学案例、作业设计样例、课堂实录、学生作品集。"
                   rows={3}
@@ -518,7 +809,7 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
                   onChange={(e) => updateField("expectedOutputs", e.target.value)}
                   className="focus-ring resize-y rounded-md border border-[#E8E6E1] bg-white px-3 py-3 text-sm leading-6 text-[#141413] placeholder:text-[#9CA3AF]"
                 />
-              </label>
+              </div>
             </div>
 
             <div className="mt-6 flex justify-between">

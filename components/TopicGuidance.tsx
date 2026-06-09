@@ -220,10 +220,29 @@ export function TopicGuidance({ onBack, onUseTopic }: Props) {
         {/* Step 1: 教学情况 */}
         {currentStep === 1 && (
           <div className="rounded-md border border-[#E8E6E1] bg-white p-6">
-            <p className="text-sm font-bold text-[#6B7280]">补充教学背景（选填）</p>
-            <p className="mt-1 text-xs text-[#9CA3AF]">
-              描述你目前的教学情况和遇到的问题，越具体越好。这能帮AI更准确地推荐选题。
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold text-[#6B7280]">补充教学背景（选填）</p>
+                <p className="mt-1 text-xs text-[#9CA3AF]">
+                  描述你目前的教学情况和遇到的问题，越具体越好。这能帮AI更准确地推荐选题。
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSituation(
+                  gradeSegment === "幼儿园"
+                    ? "我带大班，这学期发现部分孩子在集体活动中语言表达意愿不强，想尝试通过绘本阅读和角色扮演来促进幼儿语言发展，但不知道怎样设计系统的活动方案，也不确定哪些绘本最合适。"
+                    : gradeSegment === "初中"
+                    ? "我教初二物理，学生在密度和浮力概念上反复出错，靠刷题效果不好。我想尝试用实验探究的方式帮助学生建构概念，但不知道如何设计有效的探究任务链。"
+                    : gradeSegment === "高中"
+                    ? "我教高一政治，学生对抽象概念理解困难，课堂参与度不高。我尝试过引入社会热点议题组织讨论，学生反馈不错，但不知道怎么把这种课堂实践提升为规范的课题研究。"
+                    : "我教五年级语文，这学期发现学生写作时结构比较混乱，段落之间缺少逻辑衔接。我想到过用思维导图辅助写作教学，也试过几次，但不知道具体怎么系统化操作，也不确定这个方法到底有没有效果。"
+                )}
+                className="ml-3 shrink-0 rounded-md border border-[#E8E6E1] bg-white px-2.5 py-1 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280]"
+              >
+                填入示例
+              </button>
+            </div>
             <textarea
               value={situation}
               onChange={(e) => setSituation(e.target.value)}
