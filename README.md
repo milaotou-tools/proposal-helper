@@ -4,6 +4,44 @@
 
 ---
 
+## ⚠️ 当前分支：`pay`（付费版）
+
+本分支在免费版基础上加入了付费墙与解锁机制。**`main` 分支为免费版（8083 线上运行版本），本分支为公网付费预发布版，尚未上线。**
+
+### 免费版 vs 付费版
+
+| 功能 | 免费版（main / 8083 线上） | 付费版（pay / 本分支） |
+|------|:---:|:---:|
+| 从想法生成框架 | ✅ 完整 | ✅ 完整 |
+| 草稿诊断 | ✅ 完整 | ✅ 完整 |
+| 逐栏打磨 | ✅ 3 个栏目 | ✅ 全部 9 个栏目 |
+| 模拟预审 | ✅ 1 次 | ✅ 多次，可反复返回修改 |
+| 双文件导出（TXT + HTML） | ✅ | ✅ |
+| 三线表 HTML 对比 | ✅ | ✅ |
+| 付费墙 | — | ✅ 解锁码验证 |
+| 单一价格 | — | **149 元** |
+| 个人化信息 | 有（8083 保留） | 已移除 |
+
+### 本分支新增内容
+
+- `components/PaymentModal.tsx` — 付费弹窗与解锁码验证
+- `components/AppShell.tsx` — 集成付费墙，未解锁拦截
+- `components/LandingPage.tsx` — 精简去个人化，保留轻量付费提示条
+- `DraftSteps.tsx` — 逐栏打磨动态栏目映射，debug 模式多次打磨
+- `lib/prompts/polish-section.ts` — 打磨提示词微调
+- `public/export-demo.html` — 三线表导出样式预览
+- `app/globals.css` — 扩展 Codex 柔和色系
+
+### 待办（pay 分支）
+
+- [ ] 文献综述等栏目输出格式调整（打磨 prompt 微调）
+- [ ] 模拟预审结果格式调整
+- [ ] HTML 对比画面优化
+- [ ] 付费页面体验优化
+- [ ] 接入真实支付 API（当前为解锁码模拟）
+
+---
+
 ## 📋 项目概述
 
 一线教师做课题申报时面临两难：**完全没有申报书**，不知道从何写起；**已有草稿**，但找不到专家预审、逐栏打磨。
@@ -64,6 +102,10 @@ proposal-helper-mvp/
 ├── tsconfig.json
 ├── .env.example
 ├── deploy.sh                       # 服务器端部署脚本
+├── scripts/
+│   └── start-dev.cmd               # 本地开发快速启动
+├── public/
+│   └── export-demo.html            # 三线表导出样式预览
 ├── .github/workflows/              # CI/CD 工作流
 │   ├── deploy-aliyun.yml
 │   ├── deploy-via-scp.yml
@@ -84,13 +126,13 @@ proposal-helper-mvp/
 │       ├── health/                 # 健康检查
 │       └── admin/                  # 管理员数据接口
 ├── components/
-│   ├── AppShell.tsx                # 顶层路由
-│   ├── LandingPage.tsx             # 入职引导页
-│   ├── ProposalHelperApp.tsx       # 主应用布局
+│   ├── AppShell.tsx                # 顶层路由 + 付费墙
+│   ├── LandingPage.tsx             # 入职引导页（去个人化）
 │   ├── FrameworkSteps.tsx          # 5 步框架向导
-│   ├── DraftSteps.tsx              # 4 步草稿向导
+│   ├── DraftSteps.tsx              # 4 步草稿向导（动态栏目映射）
 │   ├── PolishEditor.tsx            # 左右分栏打磨编辑器
 │   ├── StepNavigation.tsx          # 步骤指示器
+│   ├── PaymentModal.tsx            # 付费弹窗与解锁码验证
 │   ├── DataCollectionCheckbox.tsx  # 数据采集同意勾选
 │   └── FeedbackWidget.tsx          # 用户反馈表单
 └── lib/
@@ -253,6 +295,21 @@ MIT License.
 
 ## 📅 更新日志
 
+### 2026-06-09 (`pay` 分支)
+
+- [x] 付费墙：新增 `PaymentModal` 解锁码验证，`AppShell` 集成未解锁拦截
+- [x] 去个人化：`LandingPage` 精简，移除个人信息
+- [x] 逐栏打磨动态栏目映射，debug 模式支持多次打磨
+- [x] 打磨提示词微调：文献综述等栏目格式优化
+- [x] UI 色系扩展：Codex 柔和风格
+- [x] 新增 `export-demo.html` 三线表导出预览
+- [x] 新增 `scripts/start-dev.cmd` 本地启动脚本
+- [x] 修复 `X-Accel-Buffering` 头防止 Nginx 响应缓冲
+- [x] 修复流式输出首 chunk 前 loading 文字不旋转
+- [x] 删除 `/paid` 原型页，付费逻辑整合到主流程
+- [ ] 接入真实支付 API
+- [ ] 付费页面体验优化
+
 ### 2026-06-07
 
 - [x] 提取核心 Prompt 到 gitignored 数据文件，兜底为通用 Prompt
@@ -274,12 +331,6 @@ MIT License.
 - [x] 模拟专家预审功能
 - [x] 用户反馈系统
 
-### TODO
-
-- [ ] 增加更多学科垂直领域的预设示例
-- [ ] 申报书历史记录与版本对比
-- [ ] 移动端适配优化
-
 ---
 
-*本文档于 2026 年 6 月 7 日更新。*
+*本文档于 2026 年 6 月 9 日更新。*
