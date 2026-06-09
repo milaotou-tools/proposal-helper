@@ -391,7 +391,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
     "ph-detected-sections",
     polishSections.map(s => ({ standard: s, heading: null, content: null }))
   );
-  const [saveCode, setSaveCode] = usePersistedState<string | null>("ph-draft-save-code", null);
+  const [saveCode, setSaveCode] = usePersistedState<string | null>("ph-save-code", null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const lastReviewedDraft = useRef("");
@@ -411,7 +411,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
     if (restoredRef.current) return;
     restoredRef.current = true;
 
-    if (restoredSnapshot && restoredSnapshot.type === "draft") {
+    if (restoredSnapshot?.draft || restoredSnapshot?.polishedDraft) {
       const s = restoredSnapshot;
       if (s.draft) setDraft(s.draft);
       if (s.polishedDraft) setPolishedDraft(s.polishedDraft);

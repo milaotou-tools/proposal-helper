@@ -69,15 +69,17 @@ export async function saveWork(
     expiresAt: new Date(now + EXPIRY_DAYS * 24 * 60 * 60 * 1000).toISOString(),
   };
 
-  // If an existing code is provided and still valid, update it
+  // If an existing code is provided and still valid, merge and update
   if (existingCode) {
     const sanitized = existingCode.toUpperCase().replace(/[^A-Z0-9]/g, "");
     if (sanitized.length === CODE_LENGTH) {
       const existing = await loadWork(sanitized);
       if (existing) {
+        // Merge: new fields overwrite existing, but keep fields not in the new snapshot
+        const merged: SaveSnapshot = { ...existing, ...snapshot, createdAt: existing.createdAt, expiresAt: record.expiresAt };
         await fs.writeFile(
           path.join(SAVE_DIR, `${sanitized}.json`),
-          JSON.stringify(record, null, 2),
+          JSON.stringify(merged, null, 2),
           "utf-8",
         );
         return sanitized;
