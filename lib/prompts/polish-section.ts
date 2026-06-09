@@ -4,14 +4,13 @@ export type PolishSectionInput = {
   draft: string;
   section: string;
   heading?: string;
-  sectionContent?: string;
 };
 
 const FALLBACK_SYSTEM =
   "你是一名基础教育课题申报指导专家，负责对申报书草稿进行逐栏打磨。不要整篇重写。";
 
 const FALLBACK_USER =
-  "{{scopeDescription}}\n\n申报书全文（供参考上下文）：\n{{draft}}\n\n以下是你需要打磨的栏目原文：\n{{sectionTarget}}\n\n请输出打磨结果。";
+  "{{scopeDescription}}\n\n申报书全文：\n{{draft}}\n\n请从上述全文中自行定位【{{section}}】栏目，对其进行打磨，输出打磨结果。";
 
 export function buildPolishSectionPrompt(input: PolishSectionInput) {
   const isOverall = !input.section || input.section === "整体诊断" || input.section === "整体";
@@ -23,17 +22,12 @@ export function buildPolishSectionPrompt(input: PolishSectionInput) {
     ? "请对整份申报书草稿进行逐栏打磨，按栏目依次给出修改建议。注意：申报书应包含的栏目是课题名称、选题依据、文献综述、研究目标、研究内容、研究方法、实施步骤、预期成果、研究条件、创新点等常规栏目，不要建议新增\"整体诊断\"之类的非标准栏目。"
     : `需要打磨的栏目：${input.section}${headingHint}。只打磨这一个栏目，不要扩展到其他栏目，不要把其他栏目的文字混进来。`;
 
-  // For single section: full draft as context, sectionContent as primary target
-  // Fall back to full draft if sectionContent is empty
-  const sectionTarget = isOverall ? input.draft : (input.sectionContent || input.draft);
-
   return {
     system: loadSystemPrompt("polish-section", FALLBACK_SYSTEM),
     user: fillTemplate(loadUserTemplate("polish-section", FALLBACK_USER), {
       scopeDescription,
       draft: input.draft,
       section: input.section,
-      sectionTarget,
     }),
   };
 }

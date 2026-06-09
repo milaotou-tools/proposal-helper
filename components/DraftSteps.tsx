@@ -421,9 +421,6 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
   const restoredRef = useRef(false);
   const retryRef = useRef<(() => void) | null>(null);
 
-  // Snapshot of section content at polish time, used to invalidate stale cache
-  const polishSnapshot = useRef<Record<string, string>>({});
-
   // Post-polish tool state
   const [livePageResult, setLivePageResult] = usePersistedState<string>("ph-livepage-result", "");
   const [isLivePageLoading, setIsLivePageLoading] = useState(false);
@@ -669,7 +666,6 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
         }
         if (title.startsWith("逐栏打磨")) {
           setPolishCache((prev) => ({ ...prev, [polishSection]: cleaned }));
-          polishSnapshot.current[polishSection] = extractSection(polishedDraft || draft, polishSection, detectedSections, true) || "";
         }
         if (title === "模拟专家预审意见") {
           setCompletedExpert(true);
@@ -714,9 +710,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
     }
     setLoadingPolishSection(polishSection);
     const heading = detectedSections.find(s => s.standard === polishSection)?.heading;
-    const usePolished = !!(polishedDraft && polishedDraft !== draft);
-    const sectionContent = extractSection(content, polishSection, detectedSections, usePolished) || "";
-    runStreamingAction(`逐栏打磨：${polishSection}`, "/api/polish-section", { draft: content, section: polishSection, heading, sectionContent, allowCollection });
+    runStreamingAction(`逐栏打磨：${polishSection}`, "/api/polish-section", { draft: content, section: polishSection, heading, allowCollection });
     setCompletedPolish(true);
   }
 
@@ -901,6 +895,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                 type="button"
                 onClick={() => {
                   setCurrentStep(1);
+                  setPolishCache({});
                   setError("");
                 }}
                 className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
@@ -1014,12 +1009,9 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                       type="button"
                       onClick={() => {
                         setPolishSection(standard);
-                        const currentContent = extractSection(polishedDraft || draft, standard, detectedSections, true) || "";
-                        const snapshot = polishSnapshot.current[standard];
-                        const cached = (snapshot && snapshot === currentContent) ? polishCache[standard] : undefined;
+                        const cached = polishCache[standard];
                         setResultText(cached || "");
                         if (cached) setResultTitle(`逐栏打磨：${standard}`);
-                        else if (!cached && polishCache[standard]) setResultTitle("");
                         setError("");
                       }}
                       className={`focus-ring rounded-md px-3 py-2 text-sm font-bold transition ${
@@ -1034,12 +1026,12 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                 </div>
               </div>
 
-              {/* 该栏目的原文 */}
-              {extractSection(polishedDraft || draft, polishSection, detectedSections, !!(polishedDraft && polishedDraft !== draft)) && (
+              {/* 该栏目的原文 — 始终基于原始草稿，作为稳定参照 */}
+              {extractSection(draft, polishSection, detectedSections) && (
                 <div className="mb-5 rounded-md bg-[#FAF9F6] p-4">
                   <p className="text-xs font-bold text-[#9CA3AF]">当前栏目原文</p>
                   <p className="mt-1 text-sm leading-7 whitespace-pre-wrap text-[#6B7280]">
-                    {extractSection(polishedDraft || draft, polishSection, detectedSections, !!(polishedDraft && polishedDraft !== draft))}
+                    {extractSection(draft, polishSection, detectedSections)}
                   </p>
                 </div>
               )}
@@ -1095,19 +1087,13 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                   上一步
                 </button>
                 {!(isLoading && loadingPolishSection === polishSection) && (
-                  (() => {
-                    const currentContent = extractSection(polishedDraft || draft, polishSection, detectedSections, true) || "";
-                    const hasValidCache = !!(polishCache[polishSection] && polishSnapshot.current[polishSection] === currentContent);
-                    return (
                   <button
                     type="button"
                     onClick={handlePolish}
                     className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
                   >
-                    {hasValidCache ? "重新打磨" : "开始打磨"}
+                    {polishCache[polishSection] ? "重新打磨" : "开始打磨"}
                   </button>
-                    );
-                  })()
                 )}
               </div>
             </div>
