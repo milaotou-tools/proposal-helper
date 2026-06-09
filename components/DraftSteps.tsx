@@ -1083,15 +1083,20 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                 >
                   上一步
                 </button>
-                {/* TODO: re-enable polishCache gate before production */}
                 {!(isLoading && loadingPolishSection === polishSection) && (
+                  (() => {
+                    const currentContent = extractSection(polishedDraft || draft, polishSection, detectedSections, true) || "";
+                    const hasValidCache = !!(polishCache[polishSection] && polishSnapshot.current[polishSection] === currentContent);
+                    return (
                   <button
                     type="button"
                     onClick={handlePolish}
                     className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
                   >
-                    开始打磨
+                    {hasValidCache ? "重新打磨" : "开始打磨"}
                   </button>
+                    );
+                  })()
                 )}
               </div>
             </div>
