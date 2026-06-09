@@ -82,18 +82,29 @@ type DraftStepsProps = {
 };
 
 function findHeadingPos(draft: string, heading: string): number {
-  // Try exact match first
-  const idx = draft.indexOf(heading);
-  if (idx !== -1) return idx;
+  // Build a list of variants to try: original, with/without colon, colon-normalized
+  const variants: string[] = [heading];
+
+  // Colon normalization: AI may include/exclude colon; user may edit either way
+  if (heading.endsWith("：") || heading.endsWith(":")) {
+    variants.push(heading.slice(0, -1));
+  } else {
+    variants.push(heading + "：");
+    variants.push(heading + ":");
+  }
+
+  for (const variant of variants) {
+    const idx = draft.indexOf(variant);
+    if (idx !== -1) return idx;
+  }
 
   // Normalize quotes (AI often returns curly quotes while draft has straight ones, or vice versa)
   const normHeading = heading.replace(/[""]/g, '"').replace(/['']/g, "'");
   const normDraft = draft.replace(/[""]/g, '"').replace(/['']/g, "'");
   if (normHeading !== heading) {
-    const nIdx = normDraft.indexOf(normHeading);
-    if (nIdx !== -1) {
-      // Map back to original draft position (approximate: scan for matching region)
-      return nIdx;
+    for (const variant of [normHeading, normHeading.endsWith("：") || normHeading.endsWith(":") ? normHeading.slice(0, -1) : normHeading + "："]) {
+      const nIdx = normDraft.indexOf(variant);
+      if (nIdx !== -1) return nIdx;
     }
   }
 
