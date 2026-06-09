@@ -37,6 +37,9 @@ function restoreAllToLocalStorage(snapshot: SaveSnapshot) {
   if (snapshot.detectedSections && snapshot.detectedSections.length > 0) {
     writeLocal("ph-detected-sections", snapshot.detectedSections);
   }
+  if (snapshot.livePageResult !== undefined) {
+    writeLocal("ph-livepage-result", snapshot.livePageResult);
+  }
 }
 
 export function AppShell() {

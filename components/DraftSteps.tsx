@@ -23,6 +23,11 @@ const draftExamples: Array<{ label: string; value: string }> = [
       "",
       "选题依据：当前小学数学复习中，学生对知识点的掌握比较零散，不能很好地把单元知识联系起来。随着人工智能技术的发展，教师可以借助 AI 工具帮助学生整理知识结构，提高学生的数学学习能力。",
       "",
+      "文献综述：",
+      "1. 概念图在数学教学中的应用研究方面，Novak 最早提出概念图理论，国内外学者已将概念图应用于数学复习课、概念教学等场景，研究表明概念图有助于学生建立知识间的关联。",
+      "2. 人工智能支持教学方面，AI 技术已在智能辅导、自动批改、个性化推荐等领域取得进展，但在概念图自动生成与评价方面的应用研究仍较少。",
+      "3. 小学数学复习教学方面，现有研究多关注练习设计、错题管理等策略，将 AI 工具与概念图结合应用于单元复习的实践研究尚不多见。",
+      "",
       "研究目标：",
       "1. 探索 AI 辅助学生绘制数学概念图的方法。",
       "2. 提高学生数学复习效率和知识整理能力。",
@@ -123,23 +128,31 @@ function findHeadingPos(draft: string, heading: string): number {
   return -1;
 }
 
-function extractSection(draft: string, section: string, detectedSections: DetectedSection[]): string {
+function extractSection(draft: string, section: string, detectedSections: DetectedSection[], skipAiContent?: boolean): string {
+  // 课题名称 always extracts just the first line — never use AI content
+  if (section === "课题名称") {
+    // Find the first non-empty line that looks like a title
+    const lines = draft.split("\n");
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      // Skip metadata lines (学校/姓名/申报人 etc.)
+      if (/^(学校|姓名|申报人|单位|作者|所在单位|工作单位|联系方式|电话|邮箱)[：:]/.test(trimmed)) continue;
+      // First substantive line is the title
+      return trimmed;
+    }
+    return "";
+  }
+
   const targetEntry = detectedSections.find(s => s.standard === section);
 
-  // Use AI-extracted content if available
-  if (targetEntry?.content) return targetEntry.content;
+  // Use AI-extracted content if available (only for original draft, not modified)
+  if (!skipAiContent && targetEntry?.content) return targetEntry.content;
 
   // Fallback to heading-based regex extraction
   const targetHeading = targetEntry?.heading || section;
   const startPos = findHeadingPos(draft, targetHeading);
   if (startPos === -1) return "";
-
-  // For "课题名称", the heading IS the content (the title line itself)
-  if (section === "课题名称") {
-    const lineEnd = draft.indexOf("\n", startPos);
-    const titleLine = lineEnd !== -1 ? draft.slice(startPos, lineEnd) : draft.slice(startPos);
-    return titleLine.trim();
-  }
 
   // Find the colon on the heading line only
   const lineEnd = draft.indexOf("\n", startPos);
@@ -252,12 +265,12 @@ function buildComparisonExportHtml(originalDraft: string, modifiedDraft: string,
   const generatedAt = new Date().toLocaleString("zh-CN");
   const changedSections = detected.filter(({ standard }) => {
     const original = extractSection(originalDraft, standard, detected);
-    const modified = extractSection(modifiedDraft, standard, detected);
+    const modified = extractSection(modifiedDraft, standard, detected, true);
     return original.trim() !== modified.trim();
   });
   const rows = changedSections.map(({ standard }) => {
     const original = extractSection(originalDraft, standard, detected);
-    const modified = extractSection(modifiedDraft, standard, detected);
+    const modified = extractSection(modifiedDraft, standard, detected, true);
     return `
       <tr>
         <td class="section">${escapeHtml(standard)}</td>
@@ -393,11 +406,15 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const lastReviewedDraft = useRef("");
+  const lastDiagnosedDraft = useRef("");
   const restoredRef = useRef(false);
   const retryRef = useRef<(() => void) | null>(null);
 
+  // Snapshot of section content at polish time, used to invalidate stale cache
+  const polishSnapshot = useRef<Record<string, string>>({});
+
   // Post-polish tool state
-  const [livePageResult, setLivePageResult] = useState("");
+  const [livePageResult, setLivePageResult] = usePersistedState<string>("ph-livepage-result", "");
   const [isLivePageLoading, setIsLivePageLoading] = useState(false);
   const [showPostTools, setShowPostTools] = useState(false);
 
@@ -419,6 +436,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
       }
       if (s.resultTitle) setResultTitle(s.resultTitle);
       if (s.resultText) setResultText(s.resultText);
+      if (s.livePageResult) setLivePageResult(s.livePageResult);
       if (typeof s.draftCurrentStep === "number") {
         setCurrentStep(s.draftCurrentStep as Step);
       }
@@ -445,6 +463,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
           draftCurrentStep: currentStep,
           resultTitle,
           resultText,
+          livePageResult: livePageResult || undefined,
         }),
       });
       const data = await res.json() as { ok?: boolean; code?: string; error?: string };
@@ -565,13 +584,15 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
     const prefix = current.slice(startPos, startContent);
     const after = current.slice(endPos);
     setPolishedDraft(before + prefix + newText + after);
+    // Clear AI-extracted content for this section so future extractSection calls
+    // re-extract from the actual (edited) draft text instead of returning stale AI content.
+    setDetectedSections((prev) =>
+      prev.map((s) => (s.standard === section ? { ...s, content: null } : s))
+    );
   }
 
-  // Sync polished draft when draft is first loaded
-  function setDraftAndSync(value: string) {
+  function setDraftOnly(value: string) {
     setDraft(value);
-    pushHistory(polishedDraft || draft);
-    setPolishedDraft(value);
   }
 
   function runStreamingAction(title: string, url: string, payload: unknown) {
@@ -633,9 +654,11 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
         setResultText(cleaned);
         if (title === "整体诊断结果") {
           setCompletedDiagnosis(true);
+          lastDiagnosedDraft.current = polishedDraft || draft;
         }
         if (title.startsWith("逐栏打磨")) {
           setPolishCache((prev) => ({ ...prev, [polishSection]: cleaned }));
+          polishSnapshot.current[polishSection] = extractSection(polishedDraft || draft, polishSection, detectedSections, true) || "";
         }
         if (title === "模拟专家预审意见") {
           setCompletedExpert(true);
@@ -680,7 +703,9 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
     }
     setLoadingPolishSection(polishSection);
     const heading = detectedSections.find(s => s.standard === polishSection)?.heading;
-    runStreamingAction(`逐栏打磨：${polishSection}`, "/api/polish-section", { draft: content, section: polishSection, heading, allowCollection });
+    const usePolished = !!(polishedDraft && polishedDraft !== draft);
+    const sectionContent = extractSection(content, polishSection, detectedSections, usePolished) || "";
+    runStreamingAction(`逐栏打磨：${polishSection}`, "/api/polish-section", { draft: content, section: polishSection, heading, sectionContent, allowCollection });
     setCompletedPolish(true);
   }
 
@@ -816,7 +841,10 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
               <button
                 type="button"
                 onClick={() => {
-                  setDraftAndSync(draftExamples[0].value);
+                  setDraftOnly(draftExamples[0].value);
+                  setPolishedDraft("");
+                  historyStack.current = [];
+                  historyIndex.current = -1;
                   setResultText("");
                   setError("");
                 }}
@@ -831,7 +859,10 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                 type="button"
                 onClick={() => {
                   if (window.confirm("确定要清空当前草稿吗？")) {
-                    setDraftAndSync("");
+                    setDraftOnly("");
+                    setPolishedDraft("");
+                    historyStack.current = [];
+                    historyIndex.current = -1;
                     setResultText("");
                     setError("");
                     setCompletedDiagnosis(false);
@@ -850,7 +881,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
               placeholder="在此粘贴你的申报书草稿..."
               rows={14}
               value={draft}
-              onChange={(e) => setDraftAndSync(e.target.value)}
+              onChange={(e) => setDraftOnly(e.target.value)}
               className="focus-ring w-full resize-y rounded-md border border-[#E8E6E1] bg-white px-3 py-3 text-sm leading-6 text-[#141413] placeholder:text-[#9CA3AF]"
             />
 
@@ -883,6 +914,12 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                 {draft.slice(0, 200)}{draft.length > 200 ? "..." : ""}
               </p>
             </div>
+
+            {completedDiagnosis && draft !== lastDiagnosedDraft.current && !isLoading && (
+              <div className="mb-5 rounded-md border border-[#FED7AA] bg-[#FFF7ED] px-4 py-3 text-sm leading-6 text-[#C2410C]">
+                草稿已修改，当前诊断结果基于旧版本。建议重新开始诊断。
+              </div>
+            )}
 
             {isLoading ? (
               resultText ? (
@@ -966,9 +1003,12 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                       type="button"
                       onClick={() => {
                         setPolishSection(standard);
-                        const cached = polishCache[standard];
+                        const currentContent = extractSection(polishedDraft || draft, standard, detectedSections, true) || "";
+                        const snapshot = polishSnapshot.current[standard];
+                        const cached = (snapshot && snapshot === currentContent) ? polishCache[standard] : undefined;
                         setResultText(cached || "");
                         if (cached) setResultTitle(`逐栏打磨：${standard}`);
+                        else if (!cached && polishCache[standard]) setResultTitle("");
                         setError("");
                       }}
                       className={`focus-ring rounded-md px-3 py-2 text-sm font-bold transition ${
@@ -984,11 +1024,11 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
               </div>
 
               {/* 该栏目的原文 */}
-              {extractSection(polishedDraft || draft, polishSection, detectedSections) && (
+              {extractSection(polishedDraft || draft, polishSection, detectedSections, !!(polishedDraft && polishedDraft !== draft)) && (
                 <div className="mb-5 rounded-md bg-[#FAF9F6] p-4">
                   <p className="text-xs font-bold text-[#9CA3AF]">当前栏目原文</p>
                   <p className="mt-1 text-sm leading-7 whitespace-pre-wrap text-[#6B7280]">
-                    {extractSection(polishedDraft || draft, polishSection, detectedSections)}
+                    {extractSection(polishedDraft || draft, polishSection, detectedSections, !!(polishedDraft && polishedDraft !== draft))}
                   </p>
                 </div>
               )}
@@ -1024,10 +1064,10 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                       ta.setSelectionRange(idx, idx + polishSection.length + 1);
                     }
                   }}
-                  className="group relative cursor-pointer rounded-md bg-[#FAF9F6] p-4 text-sm leading-8 whitespace-pre-wrap text-[#141413] transition hover:bg-[#F3F2EF]"
+                  className="group relative cursor-pointer rounded-md bg-[#FAF9F6] p-4 pb-8 text-sm leading-8 whitespace-pre-wrap text-[#141413] transition hover:bg-[#F3F2EF]"
                 >
                   {resultText}
-                  <span className="absolute right-2 bottom-2 text-[11px] text-[#D1D5DB] transition group-hover:text-[#9CA3AF]">↗ 点击定位到编辑器</span>
+                  <span className="absolute right-3 bottom-2 text-[11px] text-[#D1D5DB] transition group-hover:text-[#9CA3AF] select-none">↗ 点击定位到编辑器</span>
                 </div>
               )}
 

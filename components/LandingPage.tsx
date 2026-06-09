@@ -180,17 +180,6 @@ export function LandingPage({ onSelectPath, onStartGuidance, onRestore }: Props)
         </button>
       </div>
 
-      {/* Topic guidance entry */}
-      <div className="mt-6 text-center">
-        <button
-          type="button"
-          onClick={onStartGuidance}
-          className="text-sm text-slate-500 underline underline-offset-4 transition hover:text-slate-700"
-        >
-          不确定选题方向？先看看选题建议
-        </button>
-      </div>
-
       {/* Restore saved work */}
       <div className="mt-6 border-t border-[#E8E6E1] pt-6">
         {!showRestore ? (

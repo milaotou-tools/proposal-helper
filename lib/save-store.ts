@@ -34,6 +34,7 @@ export type SaveSnapshot = {
   draftCurrentStep?: number | string;
   resultTitle?: string;
   resultText?: string;
+  livePageResult?: string;
   // Metadata
   createdAt: string;
   expiresAt: string;
