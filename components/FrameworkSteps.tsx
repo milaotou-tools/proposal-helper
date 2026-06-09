@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { StepNavigation } from "@/components/StepNavigation";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
+import { DailyQuota } from "@/components/DailyQuota";
 import { usePersistedState } from "@/lib/use-persisted-state";
 import { postAiStream, stripMarkdown, copyToClipboard } from "@/lib/utils";
 import type { SaveSnapshot } from "@/lib/save-store";
@@ -118,6 +119,8 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
   const [allowCollection, setAllowCollection] = useState(true);
   const [copied, setCopied] = useState(false);
   const [saveCode, setSaveCode] = usePersistedState<string | null>("ph-save-code", null);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveCopied, setSaveCopied] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const restoredRef = useRef(false);
@@ -247,6 +250,7 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
       const data = await res.json() as { ok?: boolean; code?: string; error?: string };
       if (data.ok && data.code) {
         setSaveCode(data.code);
+        setShowSaveModal(true);
       } else {
         setSaveError(data.error || "保存失败，请稍后重试。");
       }
@@ -298,7 +302,7 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
   return (
     <main className="bg-[#FAF9F6] px-4 py-6 text-[#141413] sm:px-6 lg:px-8">
       <section className="mx-auto flex max-w-4xl flex-col gap-6">
-        {/* 返回按钮 + 保存 */}
+        {/* 返回按钮 */}
         <div className="flex items-center justify-between">
           <button
             type="button"
@@ -310,26 +314,31 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
             </svg>
             返回首页
           </button>
+        </div>
+
+        <header className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-[-0.01em] text-[#141413]">
+              从想法生成申报书框架
+            </h1>
+            <p className="mt-1 text-sm text-[#6B7280]">
+              一步步填写，帮你把零散想法整理成结构化申报书。
+            </p>
+          </div>
           <button
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="inline-flex w-fit items-center gap-1.5 rounded-md border border-[#E8E6E1] bg-white px-3 py-1.5 text-xs font-bold text-[#6B7280] transition hover:border-[#D1D5DB] hover:text-[#141413] disabled:opacity-50"
+            className="inline-flex items-center gap-1 text-xs text-[#9CA3AF] transition hover:text-[#141413] disabled:opacity-40"
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              <path d="M7 3V10M7 10L4 7M7 10L10 7" />
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9.5 10.5V2.5C9.5 2.22 9.28 2 9 2H7L6 3.5L5 2H3C2.72 2 2.5 2.22 2.5 2.5V10.5C2.5 10.78 2.72 11 3 11H9C9.28 11 9.5 10.78 9.5 10.5Z" />
+              <path d="M7.5 2V4.5H4.5V2" />
+              <path d="M4 7.5H8" />
+              <path d="M4 9H8" />
             </svg>
             {saving ? "保存中..." : "保存进度"}
           </button>
-        </div>
-
-        <header>
-          <h1 className="text-2xl font-extrabold tracking-[-0.01em] text-[#141413]">
-            从想法生成申报书框架
-          </h1>
-          <p className="mt-1 text-sm text-[#6B7280]">
-            一步步填写，帮你把零散想法整理成结构化申报书。
-          </p>
         </header>
 
         <StepNavigation
@@ -378,29 +387,30 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
         )}
 
         {/* Save code modal */}
-        {saveCode && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35" onClick={() => setSaveCode(null)}>
+        {showSaveModal && saveCode && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35" onClick={() => setShowSaveModal(false)}>
             <div
               className="mx-4 w-full max-w-sm rounded-lg bg-white p-6 shadow-lg"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="text-lg font-bold text-[#141413]">进度已保存</h3>
-              <p className="mt-2 text-sm text-[#6B7280]">你的保存码：</p>
-              <p className="mt-1 text-center text-3xl font-extrabold tracking-[0.15em] text-[#141413] select-all">{saveCode}</p>
-              <p className="mt-3 text-xs text-[#9CA3AF]">请复制并保存此码，30天内可恢复进度。</p>
+              <p className="text-xs text-[#9CA3AF]">进度已保存</p>
+              <p className="mt-3 text-center text-3xl font-extrabold tracking-[0.15em] text-[#141413] select-all">{saveCode}</p>
+              <p className="mt-3 text-xs text-[#9CA3AF]">记住保存码，换台电脑接着做，保质期30天。</p>
               <div className="mt-4 flex gap-2">
                 <button
                   type="button"
                   onClick={async () => {
                     await copyToClipboard(saveCode);
+                    setSaveCopied(true);
+                    setTimeout(() => setSaveCopied(false), 1800);
                   }}
                   className="flex-1 rounded-md border border-[#D1D5DB] bg-white px-4 py-2 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
                 >
-                  复制保存码
+                  {saveCopied ? "已复制 ✓" : "复制保存码"}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSaveCode(null)}
+                  onClick={() => setShowSaveModal(false)}
                   className="flex-1 rounded-md bg-[#141413] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#2A2A28]"
                 >
                   知道了
@@ -749,6 +759,7 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
                 <p className="text-sm font-bold text-[#6B7280]">操作提示</p>
                 <p className="text-sm leading-6 text-[#9CA3AF]">补充研究对象、已有实践基础和预期成果。这些信息能让申报书更完整。选填项也可以留空。</p>
               </div>
+              <DailyQuota />
               <button
                 type="button"
                 onClick={() => {

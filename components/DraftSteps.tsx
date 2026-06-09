@@ -3,9 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import { StepNavigation } from "@/components/StepNavigation";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
-import { PaymentModal } from "@/components/PaymentModal";
+import { DailyQuota } from "@/components/DailyQuota";
 import { usePersistedState } from "@/lib/use-persisted-state";
-import { postAiStream, stripMarkdown, copyToClipboard, PAID_PRICE } from "@/lib/utils";
+import { postAiStream, stripMarkdown, copyToClipboard } from "@/lib/utils";
 import type { SaveSnapshot } from "@/lib/save-store";
 
 const DRAFT_STEPS = [
@@ -383,15 +383,13 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
   const [loadingStepIndex, setLoadingStepIndex] = useState(0);
   const [error, setError] = useState("");
   const [allowCollection, setAllowCollection] = useState(true);
-  const [isUnlocked, setIsUnlocked] = usePersistedState("ph-unlocked", false);
-  const [polishCount, setPolishCount] = usePersistedState("ph-polish-usage", 0);
-  const [reviewCount, setReviewCount] = usePersistedState("ph-review-usage", 0);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [detectedSections, setDetectedSections] = usePersistedState<DetectedSection[]>(
     "ph-detected-sections",
     polishSections.map(s => ({ standard: s, heading: null, content: null }))
   );
   const [saveCode, setSaveCode] = usePersistedState<string | null>("ph-save-code", null);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveCopied, setSaveCopied] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const lastReviewedDraft = useRef("");
@@ -452,6 +450,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
       const data = await res.json() as { ok?: boolean; code?: string; error?: string };
       if (data.ok && data.code) {
         setSaveCode(data.code);
+        setShowSaveModal(true);
       } else {
         setSaveError(data.error || "保存失败，请稍后重试。");
       }
@@ -679,18 +678,10 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
       setError("请先粘贴申报书草稿。");
       return;
     }
-    // TODO: re-enable limit before production
-    // if (!isUnlocked && polishCount >= 3) {
-    //   setShowPaymentModal(true);
-    //   return;
-    // }
     setLoadingPolishSection(polishSection);
     const heading = detectedSections.find(s => s.standard === polishSection)?.heading;
     runStreamingAction(`逐栏打磨：${polishSection}`, "/api/polish-section", { draft: content, section: polishSection, heading, allowCollection });
     setCompletedPolish(true);
-    if (!isUnlocked) {
-      setPolishCount((c) => c + 1);
-    }
   }
 
   function handleExpertReview() {
@@ -699,15 +690,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
       setError("请先粘贴申报书草稿。");
       return;
     }
-    // TODO: re-enable limit before production
-    // if (!isUnlocked && reviewCount >= 1) {
-    //   setShowPaymentModal(true);
-    //   return;
-    // }
     runStreamingAction("模拟专家预审意见", "/api/expert-review", { draft: content, allowCollection });
-    if (!isUnlocked) {
-      setReviewCount((c) => c + 1);
-    }
   }
 
   function runPostToolStream(
@@ -746,7 +729,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
   return (
     <main className="bg-[#FAF9F6] px-4 py-6 text-[#141413] sm:px-6 lg:px-8">
       <section className={`mx-auto flex flex-col gap-6 ${currentStep === 2 ? "max-w-6xl" : "max-w-4xl"}`}>
-        {/* 返回按钮 + 保存 */}
+        {/* 返回按钮 */}
         <div className="flex items-center justify-between">
           <button
             type="button"
@@ -758,26 +741,31 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
             </svg>
             返回首页
           </button>
+        </div>
+
+        <header className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-[-0.01em] text-[#141413]">
+              申报书打磨
+            </h1>
+            <p className="mt-1 text-sm text-[#6B7280]">
+              按顺序完成诊断、打磨、预审，逐步完善申报书。
+            </p>
+          </div>
           <button
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="inline-flex w-fit items-center gap-1.5 rounded-md border border-[#E8E6E1] bg-white px-3 py-1.5 text-xs font-bold text-[#6B7280] transition hover:border-[#D1D5DB] hover:text-[#141413] disabled:opacity-50"
+            className="inline-flex items-center gap-1 text-xs text-[#9CA3AF] transition hover:text-[#141413] disabled:opacity-40"
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              <path d="M7 3V10M7 10L4 7M7 10L10 7" />
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9.5 10.5V2.5C9.5 2.22 9.28 2 9 2H7L6 3.5L5 2H3C2.72 2 2.5 2.22 2.5 2.5V10.5C2.5 10.78 2.72 11 3 11H9C9.28 11 9.5 10.78 9.5 10.5Z" />
+              <path d="M7.5 2V4.5H4.5V2" />
+              <path d="M4 7.5H8" />
+              <path d="M4 9H8" />
             </svg>
             {saving ? "保存中..." : "保存进度"}
           </button>
-        </div>
-
-        <header>
-          <h1 className="text-2xl font-extrabold tracking-[-0.01em] text-[#141413]">
-            申报书打磨
-          </h1>
-          <p className="mt-1 text-sm text-[#6B7280]">
-            按顺序完成诊断、打磨、预审，逐步完善申报书。
-          </p>
         </header>
 
         <StepNavigation
@@ -962,23 +950,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
           <div className="flex flex-col gap-5 lg:flex-row">
             {/* 左侧：步骤内容 */}
             <div className="flex flex-1 flex-col rounded-md border border-[#E8E6E1] bg-white p-6">
-              {!isUnlocked ? (
-                <p className="mb-3 text-[11px] text-[#9CA3AF]">
-                  免费额度：已打磨 {polishCount}/3 次，已预审 {reviewCount}/1 次
-                  <span className="text-[#9CA3AF]"> · </span>
-                  <button
-                    type="button"
-                    onClick={() => setShowPaymentModal(true)}
-                    className="text-[#9CA3AF] transition hover:text-[#141413]"
-                  >
-                    升级
-                  </button>
-                </p>
-              ) : (
-                <p className="mb-3 text-[11px] font-bold text-[#141413]">
-                  已升级Plus版
-                </p>
-              )}
+              <DailyQuota />
 
               <div className="mb-4">
                 <p className="text-sm font-bold text-[#6B7280]">操作提示</p>
@@ -1199,37 +1171,8 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                         导出
                       </button>
                     </div>
-                    {/* 盲审检查 · 反馈 */}
                     <div className="mt-6 border-t border-[#E8E6E1] pt-5">
-                      <button
-                        type="button"
-                        onClick={() => setShowPostTools(!showPostTools)}
-                        className="flex items-center gap-1.5 text-sm font-bold text-[#6B7280] transition hover:text-[#141413]"
-                      >
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition ${showPostTools ? "rotate-90" : ""}`}>
-                          <path d="M4 2L8 6L4 10" />
-                        </svg>
-                        盲审检查 · 反馈
-                      </button>
-                      {showPostTools && (
-                        <div className="mt-4 space-y-4">
-                          <div className="flex items-center justify-between gap-4">
-                            <p className="text-xs text-[#9CA3AF]">扫描申报书中的个人信息，标出位置和修改建议。</p>
-                            {!isLivePageLoading && !livePageResult && (
-                              <button type="button" onClick={handleGenerateLivePage} className="shrink-0 rounded-md border border-[#D1D5DB] bg-white px-3 py-1.5 text-xs font-bold text-[#141413] transition hover:bg-[#F3F2EF]">开始检查</button>
-                            )}
-                          </div>
-                          {isLivePageLoading && (
-                            <div className="rounded-md bg-[#FAF9F6] px-4 py-3 text-xs text-[#6B7280]">
-                              {livePageResult ? <span className="animate-pulse">▊</span> : "正在扫描个人信息..."}
-                            </div>
-                          )}
-                          {livePageResult && !isLivePageLoading && (
-                            <div className="max-h-80 overflow-y-auto rounded-md bg-[#FAF9F6] p-4 text-sm leading-7 whitespace-pre-wrap text-[#141413]">{livePageResult}</div>
-                          )}
-                          <FeedbackWidget />
-                        </div>
-                      )}
+                      <FeedbackWidget />
                     </div>
                   </>
                 );
@@ -1262,6 +1205,40 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
             {completedExpert && !(lastReviewedDraft.current && (polishedDraft || draft) === lastReviewedDraft.current) && (
               <div className="mt-6 border-t border-[#E8E6E1] pt-5">
                 <FeedbackWidget />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 个人信息检查（独立卡片） */}
+        {currentStep === 3 && completedExpert && lastReviewedDraft.current && (polishedDraft || draft) === lastReviewedDraft.current && resultText && resultTitle === "模拟专家预审意见" && (
+          <div className="rounded-md border border-[#E8E6E1] bg-white p-5">
+            <button
+              type="button"
+              onClick={() => setShowPostTools(!showPostTools)}
+              className="flex items-center gap-1.5 text-sm font-bold text-[#6B7280] transition hover:text-[#141413]"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition ${showPostTools ? "rotate-90" : ""}`}>
+                <path d="M4 2L8 6L4 10" />
+              </svg>
+              个人信息检查（用于盲审版）
+            </button>
+            {showPostTools && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-xs text-[#9CA3AF]">扫描申报书中的个人信息，标出位置和修改建议。</p>
+                  {!isLivePageLoading && !livePageResult && (
+                    <button type="button" onClick={handleGenerateLivePage} className="shrink-0 rounded-md border border-[#D1D5DB] bg-white px-3 py-1.5 text-xs font-bold text-[#141413] transition hover:bg-[#F3F2EF]">开始检查</button>
+                  )}
+                </div>
+                {isLivePageLoading && (
+                  <div className="mt-3 rounded-md bg-[#FAF9F6] px-4 py-3 text-xs text-[#6B7280]">
+                    {livePageResult ? <span className="animate-pulse">▊</span> : "正在扫描个人信息..."}
+                  </div>
+                )}
+                {livePageResult && !isLivePageLoading && (
+                  <div className="mt-3 max-h-80 overflow-y-auto rounded-md bg-[#FAF9F6] p-4 text-sm leading-7 whitespace-pre-wrap text-[#141413]">{livePageResult}</div>
+                )}
               </div>
             )}
           </div>
@@ -1401,39 +1378,31 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
         )}
       </section>
 
-      <PaymentModal
-        isOpen={showPaymentModal}
-        onClose={() => setShowPaymentModal(false)}
-        onSuccess={() => {
-          setIsUnlocked(true);
-          setShowPaymentModal(false);
-        }}
-      />
-
       {/* Save code modal */}
-      {saveCode && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35" onClick={() => setSaveCode(null)}>
+      {showSaveModal && saveCode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35" onClick={() => setShowSaveModal(false)}>
           <div
             className="mx-4 w-full max-w-sm rounded-lg bg-white p-6 shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-lg font-bold text-[#141413]">进度已保存</h3>
-            <p className="mt-2 text-sm text-[#6B7280]">你的保存码：</p>
-            <p className="mt-1 text-center text-3xl font-extrabold tracking-[0.15em] text-[#141413] select-all">{saveCode}</p>
-            <p className="mt-3 text-xs text-[#9CA3AF]">请复制并保存此码，30天内可恢复进度。</p>
+            <p className="text-xs text-[#9CA3AF]">进度已保存</p>
+            <p className="mt-3 text-center text-3xl font-extrabold tracking-[0.15em] text-[#141413] select-all">{saveCode}</p>
+            <p className="mt-3 text-xs text-[#9CA3AF]">记住保存码，换台电脑接着做，保质期30天。</p>
             <div className="mt-4 flex gap-2">
               <button
                 type="button"
                 onClick={async () => {
                   await copyToClipboard(saveCode);
+                  setSaveCopied(true);
+                  setTimeout(() => setSaveCopied(false), 1800);
                 }}
                 className="flex-1 rounded-md border border-[#D1D5DB] bg-white px-4 py-2 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
               >
-                复制保存码
+                {saveCopied ? "已复制 ✓" : "复制保存码"}
               </button>
               <button
                 type="button"
-                onClick={() => setSaveCode(null)}
+                onClick={() => setShowSaveModal(false)}
                 className="flex-1 rounded-md bg-[#141413] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#2A2A28]"
               >
                 知道了

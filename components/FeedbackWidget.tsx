@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 export function FeedbackWidget() {
+  const [showForm, setShowForm] = useState(false);
   const [type, setType] = useState<"praise" | "suggestion" | null>(null);
   const [school, setSchool] = useState("");
   const [message, setMessage] = useState("");
@@ -33,67 +34,67 @@ export function FeedbackWidget() {
   }
 
   if (submitted) {
+    return <p className="text-xs text-[#9CA3AF]">感谢反馈。</p>;
+  }
+
+  if (!showForm) {
     return (
-      <div className="surface px-5 py-4 text-center text-sm text-slate-700">
-        感谢你的反馈！
-      </div>
+      <button type="button" onClick={() => setShowForm(true)} className="text-xs text-[#9CA3AF] transition hover:text-[#141413]">
+        反馈
+      </button>
     );
   }
 
   return (
-    <div className="surface p-5">
-      <h3 className="mb-3 text-sm font-semibold text-slate-900">这个工具对你有帮助吗？</h3>
-      <div className="mb-4 flex gap-3">
+    <div className="space-y-2 text-xs text-[#9CA3AF]">
+      {error && <p className="text-[#DC2626]">{error}</p>}
+      <div className="flex items-center gap-2">
+        <span>类型：</span>
         <button
           type="button"
-          onClick={() => setType("praise")}
-          className={`focus-ring btn h-10 px-4 text-sm ${
-            type === "praise"
-              ? "btn-primary"
-              : "btn-secondary"
-          }`}
+          onClick={() => setType(type === "praise" ? null : "praise")}
+          className={`rounded border px-2 py-0.5 transition ${type === "praise" ? "border-[#141413] bg-[#141413] text-white" : "border-[#D1D5DB] bg-white text-[#141413] hover:bg-[#F3F2EF]"}`}
         >
           好用
         </button>
         <button
           type="button"
-          onClick={() => setType("suggestion")}
-          className={`focus-ring btn h-10 px-4 text-sm ${
-            type === "suggestion"
-              ? "btn-primary"
-              : "btn-secondary"
-          }`}
+          onClick={() => setType(type === "suggestion" ? null : "suggestion")}
+          className={`rounded border px-2 py-0.5 transition ${type === "suggestion" ? "border-[#141413] bg-[#141413] text-white" : "border-[#D1D5DB] bg-white text-[#141413] hover:bg-[#F3F2EF]"}`}
         >
           提建议
         </button>
       </div>
-
-      {type && (
-        <>
-          <input
-            value={school}
-            onChange={(e) => setSchool(e.target.value)}
-            placeholder="您所在学校（选填）"
-            className="focus-ring control mb-3"
-          />
-          <textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder={type === "suggestion" ? "你的建议（选填）" : "你的评价（选填）"}
-            rows={3}
-            className="focus-ring control-area mb-3"
-          />
-          {error && <p className="mb-3 text-xs text-rose-500">{error}</p>}
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="focus-ring btn btn-primary h-10 px-5"
-          >
-            {submitting ? "提交中..." : "提交反馈"}
-          </button>
-        </>
-      )}
+      <input
+        value={school}
+        onChange={(e) => setSchool(e.target.value)}
+        placeholder="学校（选填）"
+        className="w-full rounded border border-[#E8E6E1] bg-white px-2 py-1 text-xs text-[#141413] placeholder:text-[#D1D5DB]"
+      />
+      <textarea
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        placeholder={type === "suggestion" ? "建议（选填）" : "评价（选填）"}
+        rows={2}
+        className="w-full rounded border border-[#E8E6E1] bg-white px-2 py-1 text-xs text-[#141413] placeholder:text-[#D1D5DB] resize-none"
+      />
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={submitting}
+          className="rounded border border-[#D1D5DB] bg-white px-2 py-0.5 text-xs text-[#141413] transition hover:bg-[#F3F2EF] disabled:opacity-50"
+        >
+          {submitting ? "提交中..." : "提交"}
+        </button>
+        <button
+          type="button"
+          onClick={() => { setShowForm(false); setType(null); setError(""); }}
+          className="text-[#D1D5DB] hover:text-[#9CA3AF]"
+        >
+          取消
+        </button>
+      </div>
     </div>
   );
 }

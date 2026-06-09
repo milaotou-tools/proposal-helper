@@ -9,6 +9,36 @@ import type { SaveSnapshot } from "@/lib/save-store";
 
 type PageState = "landing" | "guidance" | "framework" | "draft";
 
+function writeLocal(key: string, value: unknown) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify({ value, timestamp: Date.now() }));
+  } catch { /* ignore */ }
+}
+
+function restoreAllToLocalStorage(snapshot: SaveSnapshot) {
+  // Framework data
+  if (snapshot.frameworkForm) {
+    writeLocal("ph-framework-form", snapshot.frameworkForm);
+  }
+  if (snapshot.frameworkResult !== undefined) {
+    writeLocal("ph-framework-result", snapshot.frameworkResult);
+  }
+  // Draft data
+  if (snapshot.draft !== undefined) {
+    writeLocal("ph-draft", snapshot.draft);
+  }
+  if (snapshot.polishedDraft !== undefined) {
+    writeLocal("ph-polished", snapshot.polishedDraft);
+  }
+  if (snapshot.polishCache) {
+    writeLocal("ph-polish-cache", snapshot.polishCache);
+  }
+  if (snapshot.detectedSections && snapshot.detectedSections.length > 0) {
+    writeLocal("ph-detected-sections", snapshot.detectedSections);
+  }
+}
+
 export function AppShell() {
   const [page, setPage] = useState<PageState>("landing");
   const [restoredSnapshot, setRestoredSnapshot] = useState<SaveSnapshot | null>(null);
@@ -28,6 +58,7 @@ export function AppShell() {
         }}
         onStartGuidance={() => setPage("guidance")}
         onRestore={(snapshot) => {
+          restoreAllToLocalStorage(snapshot);
           setRestoredSnapshot(snapshot);
           setPage(snapshot.type);
         }}

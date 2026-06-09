@@ -1,4 +1,3 @@
-export const PAID_PRICE = 149;
 
 export async function copyToClipboard(text: string): Promise<boolean> {
   // Try modern Clipboard API first (requires HTTPS or localhost)

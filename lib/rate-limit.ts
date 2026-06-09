@@ -1,3 +1,6 @@
+export const DAILY_LIMIT = 30;
+export const MINUTE_LIMIT = 5;
+
 type RateLimitEntry = {
   minuteWindow: { count: number; resetAt: number };
   dayWindow: { count: number; resetAt: number };
@@ -19,8 +22,8 @@ if (typeof setInterval !== "undefined") {
 
 export function checkRateLimit(
   hashedIp: string,
-  maxPerMinute = 5,
-  maxPerDay = 50
+  maxPerMinute = MINUTE_LIMIT,
+  maxPerDay = DAILY_LIMIT
 ): { allowed: boolean; retryAfterSeconds?: number } {
   const now = Date.now();
   let entry = store.get(hashedIp);
@@ -57,6 +60,21 @@ export function checkRateLimit(
   entry.minuteWindow.count++;
   entry.dayWindow.count++;
   return { allowed: true };
+}
+
+export function getQuota(hashedIp: string): { remaining: number; dailyLimit: number; resetAt: number } {
+  const now = Date.now();
+  const entry = store.get(hashedIp);
+
+  if (!entry || entry.dayWindow.resetAt < now) {
+    return { remaining: DAILY_LIMIT, dailyLimit: DAILY_LIMIT, resetAt: now + 86400000 };
+  }
+
+  return {
+    remaining: Math.max(0, DAILY_LIMIT - entry.dayWindow.count),
+    dailyLimit: DAILY_LIMIT,
+    resetAt: entry.dayWindow.resetAt
+  };
 }
 
 export async function hashIp(ip: string): Promise<string> {
