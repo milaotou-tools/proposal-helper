@@ -117,7 +117,7 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
   const [error, setError] = useState("");
   const [allowCollection, setAllowCollection] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [saveCode, setSaveCode] = useState<string | null>(null);
+  const [saveCode, setSaveCode] = usePersistedState<string | null>("ph-framework-save-code", null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const restoredRef = useRef(false);
@@ -238,6 +238,7 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: "framework",
+          code: saveCode,
           ...form,
           frameworkResult: resultText,
           frameworkCurrentStep: currentStep,

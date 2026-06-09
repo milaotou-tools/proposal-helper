@@ -58,16 +58,9 @@ async function codeExists(code: string): Promise<boolean> {
 
 export async function saveWork(
   snapshot: Omit<SaveSnapshot, "createdAt" | "expiresAt">,
+  existingCode?: string,
 ): Promise<string> {
   await fs.mkdir(SAVE_DIR, { recursive: true });
-
-  let code: string;
-  let attempts = 0;
-  do {
-    code = generateCode();
-    attempts++;
-    if (attempts > 10) throw new Error("无法生成唯一保存码，请稍后重试。");
-  } while (await codeExists(code));
 
   const now = Date.now();
   const record: SaveSnapshot = {
@@ -75,6 +68,31 @@ export async function saveWork(
     createdAt: new Date().toISOString(),
     expiresAt: new Date(now + EXPIRY_DAYS * 24 * 60 * 60 * 1000).toISOString(),
   };
+
+  // If an existing code is provided and still valid, update it
+  if (existingCode) {
+    const sanitized = existingCode.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (sanitized.length === CODE_LENGTH) {
+      const existing = await loadWork(sanitized);
+      if (existing) {
+        await fs.writeFile(
+          path.join(SAVE_DIR, `${sanitized}.json`),
+          JSON.stringify(record, null, 2),
+          "utf-8",
+        );
+        return sanitized;
+      }
+    }
+  }
+
+  // Otherwise generate a new code
+  let code: string;
+  let attempts = 0;
+  do {
+    code = generateCode();
+    attempts++;
+    if (attempts > 10) throw new Error("无法生成唯一保存码，请稍后重试。");
+  } while (await codeExists(code));
 
   await fs.writeFile(
     path.join(SAVE_DIR, `${code}.json`),

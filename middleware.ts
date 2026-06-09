@@ -8,6 +8,7 @@ const API_PATTERNS = [
   "/api/expert-review",
   "/api/topic-guidance",
   "/api/suggest-outputs",
+  "/api/generate-livepage",
 ];
 
 export async function middleware(request: NextRequest) {

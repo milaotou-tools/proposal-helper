@@ -391,12 +391,17 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
     "ph-detected-sections",
     polishSections.map(s => ({ standard: s, heading: null, content: null }))
   );
-  const [saveCode, setSaveCode] = useState<string | null>(null);
+  const [saveCode, setSaveCode] = usePersistedState<string | null>("ph-draft-save-code", null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const lastReviewedDraft = useRef("");
   const restoredRef = useRef(false);
   const retryRef = useRef<(() => void) | null>(null);
+
+  // Post-polish tool state
+  const [livePageResult, setLivePageResult] = useState("");
+  const [isLivePageLoading, setIsLivePageLoading] = useState(false);
+  const [showPostTools, setShowPostTools] = useState(false);
 
   // Cache AI polish results per section
   const [polishCache, setPolishCache] = usePersistedState<Record<string, string>>("ph-polish-cache", {});
@@ -434,6 +439,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: "draft",
+          code: saveCode,
           draft,
           polishedDraft,
           polishCache,
@@ -704,6 +710,34 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
     }
   }
 
+  function runPostToolStream(
+    url: string,
+    payload: Record<string, unknown>,
+    setResult: (v: string) => void,
+    setIsLoading: (v: boolean) => void,
+  ) {
+    setResult("");
+    setIsLoading(true);
+    setError("");
+
+    let fullText = "";
+    postAiStream(url, payload, (chunk) => {
+      fullText += chunk;
+      setResult(stripMarkdown(fullText));
+    }, allowCollection)
+      .then(() => { setResult(stripMarkdown(fullText)); })
+      .catch((caught) => {
+        setError(caught instanceof Error ? caught.message : "处理失败，请稍后重试。");
+      })
+      .finally(() => { setIsLoading(false); });
+  }
+
+  function handleGenerateLivePage() {
+    const content = polishedDraft || draft;
+    if (!content.trim()) { setError("请先完成申报书草稿。"); return; }
+    runPostToolStream("/api/generate-livepage", { draft: content, allowCollection }, setLivePageResult, setIsLivePageLoading);
+  }
+
   function getStepNumber(step: Step): number {
     if (step === "free") return 4;
     return step;
@@ -971,7 +1005,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                           : "border border-[#E8E6E1] bg-white text-[#141413] hover:bg-[#F3F2EF]"
                       }`}
                     >
-                      {standard}{heading === null ? " ?" : ""}
+                      {standard}
                     </button>
                   ))}
                 </div>
@@ -1165,6 +1199,38 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                         导出
                       </button>
                     </div>
+                    {/* 盲审检查 · 反馈 */}
+                    <div className="mt-6 border-t border-[#E8E6E1] pt-5">
+                      <button
+                        type="button"
+                        onClick={() => setShowPostTools(!showPostTools)}
+                        className="flex items-center gap-1.5 text-sm font-bold text-[#6B7280] transition hover:text-[#141413]"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className={`transition ${showPostTools ? "rotate-90" : ""}`}>
+                          <path d="M4 2L8 6L4 10" />
+                        </svg>
+                        盲审检查 · 反馈
+                      </button>
+                      {showPostTools && (
+                        <div className="mt-4 space-y-4">
+                          <div className="flex items-center justify-between gap-4">
+                            <p className="text-xs text-[#9CA3AF]">扫描申报书中的个人信息，标出位置和修改建议。</p>
+                            {!isLivePageLoading && !livePageResult && (
+                              <button type="button" onClick={handleGenerateLivePage} className="shrink-0 rounded-md border border-[#D1D5DB] bg-white px-3 py-1.5 text-xs font-bold text-[#141413] transition hover:bg-[#F3F2EF]">开始检查</button>
+                            )}
+                          </div>
+                          {isLivePageLoading && (
+                            <div className="rounded-md bg-[#FAF9F6] px-4 py-3 text-xs text-[#6B7280]">
+                              {livePageResult ? <span className="animate-pulse">▊</span> : "正在扫描个人信息..."}
+                            </div>
+                          )}
+                          {livePageResult && !isLivePageLoading && (
+                            <div className="max-h-80 overflow-y-auto rounded-md bg-[#FAF9F6] p-4 text-sm leading-7 whitespace-pre-wrap text-[#141413]">{livePageResult}</div>
+                          )}
+                          <FeedbackWidget />
+                        </div>
+                      )}
+                    </div>
                   </>
                 );
               }
@@ -1193,7 +1259,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
               );
             })()}
 
-            {completedExpert && (
+            {completedExpert && !(lastReviewedDraft.current && (polishedDraft || draft) === lastReviewedDraft.current) && (
               <div className="mt-6 border-t border-[#E8E6E1] pt-5">
                 <FeedbackWidget />
               </div>

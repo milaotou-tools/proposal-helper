@@ -38,7 +38,8 @@ export async function POST(request: Request) {
       snapshot.resultText = validateDraft(body.resultText);
     }
 
-    const code = await saveWork(snapshot as Parameters<typeof saveWork>[0]);
+    const existingCode = typeof body.code === "string" ? (body.code as string).trim().toUpperCase() : undefined;
+    const code = await saveWork(snapshot as Parameters<typeof saveWork>[0], existingCode);
     return NextResponse.json({ ok: true, code });
   } catch (caught) {
     if (caught instanceof Error && caught.name === "InputTooLargeError") {
