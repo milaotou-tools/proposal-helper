@@ -17,35 +17,21 @@ jobs:
         run: |
           SSH_PORT="${ALIYUN_PORT:-22}"
           ssh -p "$SSH_PORT" -o StrictHostKeyChecking=accept-new "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" '
-            # Create the nginx proxy config for 8085
-            mkdir -p /www/server/panel/vhost/nginx/proxy
-
-            cat > /www/server/panel/vhost/nginx/proxy/116.62.220.255_8085.conf << NGINXEOF
-            server {
-                listen 8085;
-                server_name 116.62.220.255;
-                access_log /www/wwwlogs/116.62.220.255_8085.log;
-                error_log /www/wwwlogs/116.62.220.255_8085.error.log;
-
-                location / {
-                    proxy_pass http://127.0.0.1:3006;
-                    proxy_set_header Host \$host;
-                    proxy_set_header X-Real-IP \$remote_addr;
-                    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Proto \$scheme;
-                    proxy_http_version 1.1;
-                    proxy_set_header Upgrade \$http_upgrade;
-                    proxy_set_header Connection "upgrade";
-                    proxy_buffering off;
-                    proxy_read_timeout 300s;
-                    proxy_send_timeout 300s;
-                }
-            }
-            NGINXEOF
-
-            echo "Config created:"
-            cat /www/server/panel/vhost/nginx/proxy/116.62.220.255_8085.conf
-
-            # Test and reload
-            nginx -t && nginx -s reload && echo "Nginx reloaded OK" || echo "Nginx test failed"
+            echo "=== Checking existing 8083 config ==="
+            find /www/server -name "*8083*" -path "*/nginx/*" -type f 2>/dev/null | head -5
+            echo ""
+            echo "=== Checking nginx include structure ==="
+            grep -r "include" /www/server/nginx/conf/nginx.conf 2>/dev/null | head -10
+            echo ""
+            echo "=== Checking BT panel vhost includes ==="
+            grep -r "include" /www/server/panel/vhost/nginx/ 2>/dev/null | head -10
+            echo ""
+            echo "=== Checking 8085 config files ==="
+            find /www/server -name "*8085*" -type f 2>/dev/null | head -10
+            echo ""
+            echo "=== Is PM2 running on 3006? ==="
+            pm2 list 2>/dev/null || echo "pm2 not available"
+            echo ""
+            echo "=== Check port 3006 ==="
+            curl -s -o /dev/null -w "3006: HTTP %{http_code}" http://127.0.0.1:3006/ 2>/dev/null || echo "3006 not responding"
           '
