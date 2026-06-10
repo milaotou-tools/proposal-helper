@@ -400,11 +400,9 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
   const [currentStep, setCurrentStep] = useState<Step>(0);
   const [draft, setDraft] = usePersistedState("ph-draft", "");
   const [polishedDraft, setPolishedDraft] = usePersistedState("ph-polished", "");
-  const [polishSection, setPolishSection] = useState("课题名称");
   const [resultTitle, setResultTitle] = useState("");
   const [resultText, setResultText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingPolishSection, setLoadingPolishSection] = useState<string | null>(null);
   const [loadingStepIndex, setLoadingStepIndex] = useState(0);
   const [error, setError] = useState("");
   const [allowCollection, setAllowCollection] = useState(true);
@@ -427,9 +425,6 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
   const [isLivePageLoading, setIsLivePageLoading] = useState(false);
   const [showPostTools, setShowPostTools] = useState(false);
 
-  // Cache AI polish results per section
-  const [polishCache, setPolishCache] = usePersistedState<Record<string, string>>("ph-polish-cache", {});
-
   // Restore from snapshot on mount
   useEffect(() => {
     if (restoredRef.current) return;
@@ -439,7 +434,6 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
       const s = restoredSnapshot;
       if (s.draft) setDraft(s.draft);
       if (s.polishedDraft) setPolishedDraft(s.polishedDraft);
-      if (s.polishCache) setPolishCache(s.polishCache);
       if (s.detectedSections && s.detectedSections.length > 0) {
         setDetectedSections(s.detectedSections);
       }
@@ -453,7 +447,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
         lastReviewedDraft.current = "";
       }
     }
-  }, [restoredSnapshot, setDraft, setPolishedDraft, setPolishCache, setDetectedSections]);
+  }, [restoredSnapshot, setDraft, setPolishedDraft, setDetectedSections]);
 
   async function handleSave() {
     setSaving(true);
@@ -467,7 +461,6 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
           code: saveCode,
           draft,
           polishedDraft,
-          polishCache,
           detectedSections,
           draftCurrentStep: currentStep,
           resultTitle,
@@ -616,25 +609,35 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
 
     let fullText = "";
     let sectionsMarkerSeen = false;
+    let fullDraftMarkerSeen = false;
     retryRef.current = () => runStreamingAction(title, url, payload);
 
     function findSectionsSplit(text: string): number {
       const markerIdx = text.indexOf("---SECTIONS---");
       if (markerIdx !== -1) return markerIdx;
-      // Fallback: try to find {"sections": at the end
       const jsonIdx = text.lastIndexOf('{"sections":');
       if (jsonIdx !== -1 && jsonIdx > text.length * 0.5) return jsonIdx;
       return -1;
     }
 
+    function findFullDraftSplit(text: string): number {
+      return text.indexOf("---FULL-DRAFT---");
+    }
+
     postAiStream(url, payload, (chunk) => {
       if (!fullText) clearInterval(interval);
       fullText += chunk;
-      if (sectionsMarkerSeen) return;
-      const splitIdx = findSectionsSplit(fullText);
-      if (splitIdx !== -1) {
+      if (sectionsMarkerSeen || fullDraftMarkerSeen) return;
+      const sectionsSplit = findSectionsSplit(fullText);
+      if (sectionsSplit !== -1) {
         sectionsMarkerSeen = true;
-        setResultText(stripMarkdown(fullText.slice(0, splitIdx)));
+        setResultText(stripMarkdown(fullText.slice(0, sectionsSplit)));
+        return;
+      }
+      const fullDraftSplit = findFullDraftSplit(fullText);
+      if (fullDraftSplit !== -1) {
+        fullDraftMarkerSeen = true;
+        setResultText(stripMarkdown(fullText.slice(0, fullDraftSplit)));
         return;
       }
       setResultText(stripMarkdown(fullText));
@@ -644,9 +647,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
         const splitIdx = findSectionsSplit(fullText);
         if (splitIdx !== -1 && title === "整体诊断结果") {
           let jsonPart = fullText.slice(splitIdx);
-          // Remove the marker if present
           jsonPart = jsonPart.replace(/^---SECTIONS---\s*/, "");
-          // Strip markdown code fences if present
           const cleanJson = jsonPart.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
           try {
             const parsed = JSON.parse(cleanJson);
@@ -659,14 +660,19 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
             }
           } catch { /* ignore parse errors, keep defaults */ }
         }
-        const cleaned = stripMarkdown(fullText.slice(0, splitIdx !== -1 ? splitIdx : undefined));
+        // Parse ---FULL-DRAFT--- for polish-all output
+        const fullDraftIdx = findFullDraftSplit(fullText);
+        const displayText = fullDraftIdx !== -1 ? fullText.slice(0, fullDraftIdx) : fullText;
+        const polishedFullDraft = fullDraftIdx !== -1 ? fullText.slice(fullDraftIdx + "---FULL-DRAFT---".length).trim() : "";
+
+        const cleaned = stripMarkdown(displayText);
         setResultText(cleaned);
         if (title === "整体诊断结果") {
           setCompletedDiagnosis(true);
           lastDiagnosedDraft.current = polishedDraft || draft;
         }
-        if (title.startsWith("逐栏打磨")) {
-          setPolishCache((prev) => ({ ...prev, [polishSection]: cleaned }));
+        if (title === "逐栏打磨" && polishedFullDraft) {
+          setPolishedDraft(polishedFullDraft);
         }
         if (title === "模拟专家预审意见") {
           setCompletedExpert(true);
@@ -689,7 +695,6 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
       })
       .finally(() => {
         setIsLoading(false);
-        setLoadingPolishSection(null);
         clearInterval(interval);
       });
   }
@@ -709,9 +714,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
       setError("请先粘贴申报书草稿。");
       return;
     }
-    setLoadingPolishSection(polishSection);
-    const heading = detectedSections.find(s => s.standard === polishSection)?.heading;
-    runStreamingAction(`逐栏打磨：${polishSection}`, "/api/polish-section", { draft: content, section: polishSection, heading, allowCollection });
+    runStreamingAction("逐栏打磨", "/api/polish-all", { draft: content, allowCollection });
     setCompletedPolish(true);
   }
 
@@ -874,7 +877,6 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                     setCompletedDiagnosis(false);
                     setCompletedPolish(false);
                     setCompletedExpert(false);
-                    setPolishCache({});
                   }
                 }}
                 className="rounded-md border border-[#D1D5DB] bg-white px-2.5 py-1 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280]"
@@ -896,7 +898,6 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                 type="button"
                 onClick={() => {
                   setCurrentStep(1);
-                  setPolishCache({});
                   setError("");
                 }}
                 className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
@@ -998,47 +999,18 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
 
               <div className="mb-4">
                 <p className="text-sm font-bold text-[#6B7280]">操作提示</p>
-                <p className="text-sm leading-6 text-[#9CA3AF]">选择栏目查看原文，点击"开始打磨"获取 AI 建议。复制修改内容后在原文编辑器中替换。编辑好后进入下一步：模拟预审。</p>
+                <p className="text-sm leading-6 text-[#9CA3AF]">AI 会按照申报书标准框架，逐栏诊断你的草稿并给出打磨建议，最后输出完整的打磨后全文。打磨结果会自动填入右侧编辑器。</p>
               </div>
 
-              <div className="mb-5">
-                <label className="mb-2 block text-sm font-bold text-[#141413]">选择要打磨的栏目</label>
-                <div className="flex flex-wrap gap-2">
-                  {detectedSections.map(({ standard, heading }) => (
-                    <button
-                      key={standard}
-                      type="button"
-                      onClick={() => {
-                        setPolishSection(standard);
-                        const cached = polishCache[standard];
-                        setResultText(cached || "");
-                        if (cached) setResultTitle(`逐栏打磨：${standard}`);
-                        setError("");
-                      }}
-                      className={`focus-ring rounded-md px-3 py-2 text-sm font-bold transition ${
-                        polishSection === standard
-                          ? "bg-[#141413] text-white"
-                          : "border border-[#E8E6E1] bg-white text-[#141413] hover:bg-[#F3F2EF]"
-                      }`}
-                    >
-                      {standard}
-                    </button>
-                  ))}
-                </div>
+              <div className="mb-5 rounded-md bg-[#FAF9F6] p-4">
+                <p className="text-xs font-bold text-[#9CA3AF]">当前草稿（{(polishedDraft || draft).length} 字）</p>
+                <p className="mt-1 text-sm leading-6 text-[#6B7280] line-clamp-3">
+                  {(polishedDraft || draft).slice(0, 200)}{(polishedDraft || draft).length > 200 ? "..." : ""}
+                </p>
               </div>
 
-              {/* 该栏目的原文 — 始终基于原始草稿，作为稳定参照 */}
-              {extractSection(draft, polishSection, detectedSections) && (
-                <div className="mb-5 rounded-md bg-[#FAF9F6] p-4">
-                  <p className="text-xs font-bold text-[#9CA3AF]">当前栏目原文</p>
-                  <p className="mt-1 text-sm leading-7 whitespace-pre-wrap text-[#6B7280]">
-                    {extractSection(draft, polishSection, detectedSections)}
-                  </p>
-                </div>
-              )}
-
-              {/* AI 打磨建议区 */}
-              {isLoading && loadingPolishSection === polishSection && (
+              {/* 打磨中 */}
+              {isLoading && (
                 resultText ? (
                   <div className="rounded-md bg-[#FAF9F6] p-4 text-sm leading-8 whitespace-pre-wrap text-[#141413]">
                     {resultText}<span className="animate-pulse">▊</span>
@@ -1050,28 +1022,10 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                 )
               )}
 
-              {resultText && resultTitle.startsWith("逐栏打磨") && !(isLoading && loadingPolishSection === polishSection) && (
-                <div
-                  onClick={() => {
-                    // Don't hijack if user is selecting text to copy
-                    const sel = window.getSelection();
-                    if (sel && sel.toString().length > 0) return;
-
-                    const ta = document.getElementById("polish-editor-textarea") as HTMLTextAreaElement | null;
-                    if (!ta) return;
-                    const heading = detectedSections.find(s => s.standard === polishSection)?.heading || polishSection;
-                    const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-                    const pattern = new RegExp(`${escaped}[：:]`, "i");
-                    const idx = ta.value.search(pattern);
-                    if (idx !== -1) {
-                      ta.focus({ preventScroll: true });
-                      ta.setSelectionRange(idx, idx + polishSection.length + 1);
-                    }
-                  }}
-                  className="group relative cursor-pointer rounded-md bg-[#FAF9F6] p-4 pb-8 text-sm leading-8 whitespace-pre-wrap text-[#141413] transition hover:bg-[#F3F2EF]"
-                >
+              {/* 打磨结果 */}
+              {resultText && resultTitle === "逐栏打磨" && !isLoading && (
+                <div className="rounded-md bg-[#FAF9F6] p-4 text-sm leading-8 whitespace-pre-wrap text-[#141413] max-h-[55vh] overflow-y-auto">
                   {resultText}
-                  <span className="absolute right-3 bottom-2 text-[11px] text-[#D1D5DB] transition group-hover:text-[#9CA3AF] select-none">↗ 点击定位到编辑器</span>
                 </div>
               )}
 
@@ -1087,13 +1041,13 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                 >
                   上一步
                 </button>
-                {!(isLoading && loadingPolishSection === polishSection) && (
+                {!isLoading && (
                   <button
                     type="button"
                     onClick={handlePolish}
                     className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
                   >
-                    {polishCache[polishSection] ? "重新打磨" : "开始打磨"}
+                    {polishedDraft && polishedDraft !== draft ? "重新打磨" : "开始打磨"}
                   </button>
                 )}
               </div>
@@ -1388,7 +1342,6 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                   setResultText("");
                   setResultTitle("");
                   setError("");
-                  setPolishCache({});
                 }}
                 className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
               >
