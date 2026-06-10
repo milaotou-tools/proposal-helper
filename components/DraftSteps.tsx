@@ -1303,7 +1303,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                       undo();
                     }
                   }}
-                  className="w-full resize-none rounded-md border border-[#E8E6E1] bg-white px-3 py-3 text-sm leading-8 text-[#141413] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#141413]/10 min-h-[40vh]"
+                  className="w-full resize-none rounded-md border border-[#E8E6E1] bg-white px-6 py-3 text-sm leading-8 text-[#141413] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#141413]/10 min-h-[40vh]"
                   placeholder="暂无草稿内容"
                 />
               </>
