@@ -63,7 +63,7 @@ jobs:
           pm2 delete proposal-helper-paid 2>/dev/null || true
           pm2 save --force
           sleep 2
-          fuser -k 3006/tcp 2>/dev/null || true
+          fuser -k 3007/tcp 2>/dev/null || true
           sleep 2
 
           # Ensure target directory exists
@@ -104,25 +104,25 @@ jobs:
           npm install
           npm run build
 
-          # Start fresh on port 3006
-          pm2 start npx --name proposal-helper-paid -- next start -p 3006
+          # Start fresh on port 3007
+          pm2 start npx --name proposal-helper-paid -- next start -p 3007
           pm2 save
 
           echo "=== PM2 status ==="
           pm2 list
 
-          # Fix Nginx proxy for port 8085 -> 3006
+          # Fix Nginx proxy for port 8085 -> 3007
           echo "=== fixing nginx proxy for 8085 ==="
           find /www/server/panel/vhost/nginx/proxy -path "*8085*" -type f 2>/dev/null | while read f; do
             if grep -q "proxy_pass" "$f" 2>/dev/null; then
               echo "fixing $f"
-              sed -i "s|proxy_pass http://127.0.0.1:[0-9][0-9]*;|proxy_pass http://127.0.0.1:3006;|g" "$f"
+              sed -i "s|proxy_pass http://127.0.0.1:[0-9][0-9]*;|proxy_pass http://127.0.0.1:3007;|g" "$f"
             fi
           done
           find /www/server/nginx -path "*8085*" -type f 2>/dev/null | while read f; do
             if grep -q "proxy_pass" "$f" 2>/dev/null; then
               echo "fixing $f"
-              sed -i "s|proxy_pass http://127.0.0.1:[0-9][0-9]*;|proxy_pass http://127.0.0.1:3006;|g" "$f"
+              sed -i "s|proxy_pass http://127.0.0.1:[0-9][0-9]*;|proxy_pass http://127.0.0.1:3007;|g" "$f"
             fi
           done
 
