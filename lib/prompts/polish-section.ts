@@ -15,8 +15,8 @@ const FALLBACK_USER =
 const ALL_SECTIONS = [
   "课题名称", "摘要", "关键词", "选题依据", "核心概念界定", "文献综述",
   "研究目标", "研究内容", "研究方法", "技术路线",
-  "实施步骤", "人员分工", "可行性分析",
-  "预期成果", "研究条件", "创新点", "参考文献", "经费预算"
+  "实施步骤", "人员分工", "研究条件", "可行性分析",
+  "预期成果", "创新点", "经费预算", "参考文献"
 ];
 
 export function buildPolishSectionPrompt(input: PolishSectionInput) {

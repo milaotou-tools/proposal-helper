@@ -5,7 +5,6 @@ const API_PATTERNS = [
   "/api/generate-framework",
   "/api/review-draft",
   "/api/polish-section",
-  "/api/polish-all",
   "/api/expert-review",
   "/api/topic-guidance",
   "/api/suggest-outputs",

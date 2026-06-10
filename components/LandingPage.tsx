@@ -66,9 +66,6 @@ export function LandingPage({ onSelectPath, onStartGuidance, onRestore }: Props)
           <h1 className="text-[40px] font-semibold tracking-[-0.04em] text-slate-900 sm:text-[52px]">
             课题申报小助手
           </h1>
-          <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-700">
-            轻 · 稳 · 清 · 准
-          </p>
           <p className="mx-auto mt-4 max-w-2xl text-[17px] leading-relaxed tracking-[-0.01em] text-slate-700">
             “把专家的申报思路拆成步骤，陪你把想法变成申报书。”
           </p>
@@ -146,9 +143,9 @@ export function LandingPage({ onSelectPath, onStartGuidance, onRestore }: Props)
   }
 
   return (
-    <main className="relative isolate mx-auto max-w-4xl overflow-hidden px-6 pb-12 pt-20">
+    <main className="relative isolate mx-auto max-w-4xl overflow-hidden px-6 pb-12 pt-28">
       <div className="text-center">
-        <p className="section-label">Choose Your Path</p>
+        <p className="section-label mt-16">Choose Your Path</p>
         <h2 className="mt-2 text-[28px] font-semibold tracking-[-0.04em] text-slate-900 sm:text-[34px]">
           选择你的起点
         </h2>
@@ -236,6 +233,7 @@ export function LandingPage({ onSelectPath, onStartGuidance, onRestore }: Props)
           </div>
         )}
       </div>
+
     </main>
   );
 }

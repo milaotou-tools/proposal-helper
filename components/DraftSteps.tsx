@@ -70,12 +70,20 @@ const polishSections = [
   "技术路线",
   "实施步骤",
   "人员分工",
+  "研究条件",
   "可行性分析",
   "预期成果",
-  "研究条件",
   "创新点",
-  "参考文献",
-  "经费预算"
+  "经费预算",
+  "参考文献"
+];
+
+const SECTION_GROUPS = [
+  { name: "基础信息", sections: ["课题名称", "摘要", "关键词"] },
+  { name: "选题论证", sections: ["选题依据", "核心概念界定", "文献综述"] },
+  { name: "研究设计", sections: ["研究目标", "研究内容", "研究方法", "技术路线"] },
+  { name: "实施保障", sections: ["实施步骤", "人员分工", "研究条件", "可行性分析"] },
+  { name: "产出与支撑", sections: ["预期成果", "创新点", "经费预算", "参考文献"] },
 ];
 
 const loadingSteps = ["正在分析中", "正在整理思路", "正在生成结果"];
@@ -86,7 +94,7 @@ type DetectedSection = { standard: string; heading: string | null; content: stri
 
 type PolishSectionState = {
   name: string;
-  status: "pending" | "streaming" | "done";
+  status: "pending" | "streaming" | "done" | "skipped";
   content: string;
 };
 
@@ -203,7 +211,11 @@ function extractSection(draft: string, section: string, detectedSections: Detect
 
   // Fallback to heading-based regex extraction
   const targetHeading = targetEntry?.heading || section;
-  const startPos = findHeadingPos(draft, targetHeading);
+  let startPos = findHeadingPos(draft, targetHeading);
+  // If original heading not found (e.g. polished draft uses simple section names), try the section name itself
+  if (startPos === -1 && targetHeading !== section) {
+    startPos = findHeadingPos(draft, section);
+  }
   if (startPos === -1) return "";
 
   // Find the colon on the heading line only
@@ -451,6 +463,11 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
   const [viewIdx, setViewIdx] = useState(0);
   const [polishStarted, setPolishStarted] = useState(false);
   const [showPolishModal, setShowPolishModal] = useState(false);
+  const [selectedSections, setSelectedSections] = useState<boolean[]>(
+    polishSections.map(() => true)
+  );
+  const [keepOriginalOrder, setKeepOriginalOrder] = useState(false);
+  const [showAuthorNote, setShowAuthorNote] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStepIndex, setLoadingStepIndex] = useState(0);
@@ -470,6 +487,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
   const restoredRef = useRef(false);
   const retryRef = useRef<(() => void) | null>(null);
   const polishContentRef = useRef<Map<number, string>>(new Map());
+  const polishInputDraft = useRef("");
 
   // Post-polish tool state
   const [livePageResult, setLivePageResult] = usePersistedState<string>("ph-livepage-result", "");
@@ -654,6 +672,8 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
       setPolishedDraft("");
       setPolishSectionsState(polishSections.map(name => ({ name, status: "pending" as const, content: "" })));
       setDetectedSections(polishSections.map(s => ({ standard: s, heading: null, content: null })));
+      setSelectedSections(polishSections.map(() => true));
+      setKeepOriginalOrder(false);
     }
     setDraft(value);
   }
@@ -774,16 +794,74 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
 
   function assembleFullDraft() {
     const contentMap = polishContentRef.current;
-    let fullDraft = "";
-    for (let i = 0; i < polishSections.length; i++) {
-      const content = contentMap.get(i) || "";
-      const parts = parseSectionParts(content);
-      const modifiedText = parts.find(p => p.heading === "修改后文本")?.body || "";
-      if (modifiedText.trim()) {
-        fullDraft += `${polishSections[i]}\n${ensureIndent(modifiedText)}\n\n`;
+    const srcDraft = polishInputDraft.current;
+
+    if (keepOriginalOrder) {
+      // Collect in-place replacements, then apply from bottom to top
+      const replacements: { start: number; end: number; replacement: string }[] = [];
+
+      for (let i = 0; i < polishSections.length; i++) {
+        if (!selectedSections[i]) continue;
+        const content = contentMap.get(i) || "";
+        const parts = parseSectionParts(content);
+        const modifiedText = parts.find(p => p.heading === "修改后文本")?.body || "";
+        const isPlaceholder = modifiedText.includes("需用户补充") && modifiedText.replace(/\s/g, "").length < 80;
+        if (!modifiedText.trim() || isPlaceholder) continue;
+
+        const sectionName = polishSections[i];
+        const heading = detectedSections.find(s => s.standard === sectionName)?.heading;
+        const searchHeading = heading || sectionName;
+        const startPos = findHeadingPos(srcDraft, searchHeading);
+        if (startPos === -1) continue;
+
+        // Preserve the original heading line from the draft
+        const headingLineEnd = srcDraft.indexOf("\n", startPos);
+        const draftHeadingLine = headingLineEnd !== -1 ? srcDraft.slice(startPos, headingLineEnd) : srcDraft.slice(startPos, Math.min(startPos + 200, srcDraft.length));
+
+        // Find end boundary: next detected heading after this one
+        const headingPositions = detectedSections
+          .filter(s => s.standard !== sectionName)
+          .map(s => ({ pos: findHeadingPos(srcDraft, s.heading || s.standard) }))
+          .filter(x => x.pos > startPos)
+          .sort((a, b) => a.pos - b.pos);
+        const contentEnd = headingPositions.length > 0 ? headingPositions[0].pos : srcDraft.length;
+
+        // Replace the entire section (from heading to next section) preserving the original heading
+        replacements.push({
+          start: startPos,
+          end: contentEnd,
+          replacement: `${draftHeadingLine}\n${ensureIndent(modifiedText)}\n\n`
+        });
       }
+
+      replacements.sort((a, b) => b.start - a.start);
+      let result = srcDraft;
+      for (const { start, end, replacement } of replacements) {
+        result = result.slice(0, start) + replacement + result.slice(end);
+      }
+      setPolishedDraft(result.trim());
+    } else {
+      // Standard 18-section framework order
+      let fullDraft = "";
+      for (let i = 0; i < polishSections.length; i++) {
+        const sectionName = polishSections[i];
+        if (selectedSections[i]) {
+          const content = contentMap.get(i) || "";
+          const parts = parseSectionParts(content);
+          const modifiedText = parts.find(p => p.heading === "修改后文本")?.body || "";
+          const isPlaceholder = modifiedText.includes("需用户补充") && modifiedText.replace(/\s/g, "").length < 80;
+          if (modifiedText.trim() && !isPlaceholder) {
+            fullDraft += `${sectionName}\n${ensureIndent(modifiedText)}\n\n`;
+          }
+        } else {
+          const originalText = extractSection(srcDraft, sectionName, detectedSections, true);
+          if (originalText.trim()) {
+            fullDraft += `${sectionName}\n${ensureIndent(originalText)}\n\n`;
+          }
+        }
+      }
+      setPolishedDraft(fullDraft.trim());
     }
-    setPolishedDraft(fullDraft.trim());
   }
 
   function handlePolishStream() {
@@ -793,22 +871,43 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
       return;
     }
 
+    const selectedCount = selectedSections.filter(Boolean).length;
+    if (selectedCount === 0) {
+      setError("请至少勾选一个需要打磨的栏目。");
+      return;
+    }
+
     setError("");
     setIsLoading(true);
     setShowPolishModal(true);
     setPolishStarted(true);
     setCompletedPolish(false);
+    polishInputDraft.current = draft;
 
-    const initial: PolishSectionState[] = polishSections.map(name => ({ name, status: "pending", content: "" }));
+    const initial: PolishSectionState[] = polishSections.map((name, i) => ({
+      name,
+      status: selectedSections[i] ? "pending" : "skipped",
+      content: ""
+    }));
     setPolishSectionsState(initial);
-    setViewIdx(0);
+    setViewIdx(Math.max(0, selectedSections.findIndex(Boolean)));
     polishContentRef.current.clear();
     retryRef.current = () => handlePolishStream();
 
-    const total = polishSections.length;
     let completedCount = 0;
 
     polishSections.forEach((sectionName, i) => {
+      // Skip unchecked sections
+      if (!selectedSections[i]) {
+        completedCount++;
+        if (completedCount === polishSections.length) {
+          setIsLoading(false);
+          setCompletedPolish(true);
+          assembleFullDraft();
+        }
+        return;
+      }
+
       const heading = detectedSections.find(s => s.standard === sectionName)?.heading || undefined;
 
       setPolishSectionsState(prev => {
@@ -841,7 +940,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
           });
           completedCount++;
           if (completedCount === 1) setViewIdx(i);
-          if (completedCount === total) {
+          if (completedCount === polishSections.length) {
             setIsLoading(false);
             setCompletedPolish(true);
             assembleFullDraft();
@@ -858,7 +957,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
           });
           completedCount++;
           if (completedCount === 1) setViewIdx(i);
-          if (completedCount === total) {
+          if (completedCount === polishSections.length) {
             setIsLoading(false);
             setCompletedPolish(true);
             assembleFullDraft();
@@ -1217,6 +1316,54 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
               </div>
             )}
 
+            {/* Section group selector */}
+            {!polishStarted && (
+              <div className="mb-5">
+                <p className="text-xs font-bold text-[#6B7280] mb-3">
+                  勾选需要打磨的栏目组（其余保持原样）
+                </p>
+                <div className="space-y-2">
+                  {SECTION_GROUPS.map((group, gi) => {
+                    const indices = group.sections.map(s => polishSections.indexOf(s));
+                    const allSelected = indices.every(i => selectedSections[i]);
+                    return (
+                      <button
+                        key={group.name}
+                        type="button"
+                        onClick={() => {
+                          const next = [...selectedSections];
+                          const setTo = !allSelected;
+                          indices.forEach(i => { next[i] = setTo; });
+                          setSelectedSections(next);
+                        }}
+                        className={`w-full rounded-md border p-3 text-center transition ${
+                          allSelected
+                            ? "border-sky-400 bg-sky-50"
+                            : "border-[#E8E6E1] bg-white hover:border-[#D1D5DB]"
+                        }`}
+                      >
+                        <span className={`text-sm font-bold ${allSelected ? "text-sky-700" : "text-[#141413]"}`}>
+                          {group.name}{allSelected ? " ✓" : ""}
+                        </span>
+                        <span className="ml-2.5 text-xs text-[#9CA3AF]">
+                          {group.sections.join(" · ")}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <label className="mt-3 flex items-center gap-1.5 text-xs text-[#6B7280] cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={keepOriginalOrder}
+                    onChange={(e) => setKeepOriginalOrder(e.target.checked)}
+                    className="accent-[#141413]"
+                  />
+                  保持原文顺序（不按标准框架重排）
+                </label>
+              </div>
+            )}
+
             {/* Bottom buttons */}
             <div className="mt-6 flex items-center justify-between">
               <button
@@ -1391,6 +1538,32 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
           </div>
         )}
 
+        {/* 作者的话 — 预审结束后显示 */}
+        {currentStep === 3 && completedExpert && (
+          <div className="mt-10 border-t border-[#E8E6E1] pt-8 text-center">
+            <button
+              type="button"
+              onClick={() => setShowAuthorNote(!showAuthorNote)}
+              className="inline-flex items-center gap-1.5 text-xs font-bold tracking-[0.15em] text-[#9CA3AF] uppercase hover:text-[#6B7280] transition"
+            >
+              作者的话
+              <span className={`text-[10px] transition ${showAuthorNote ? "rotate-180" : ""}`}>▼</span>
+            </button>
+            {showAuthorNote && (
+              <div className="mt-4 text-sm leading-7 text-[#6B7280] space-y-4 text-center max-w-2xl mx-auto" style={{ fontFamily: '"KaiTi", "STKaiti", "楷体", "Ma Shan Zheng", cursive' }}>
+                <p>你好，奋斗在路上的同行者。</p>
+                <p>希望我做的这个小工具能够帮助你在"写课题申请书"上少走一些弯路，节约一些时间。</p>
+                <p>谢谢你使用我做的小工具。如果好用的话，欢迎推荐给你的朋友。</p>
+                <p>这个小工具，是我对世界伸出的触角，当我知道我帮助到了更多的教师，我会很开心，欢迎留言！</p>
+                <p>如果你有什么有意思的想法，可以联系我，让我们看看能不能把它变成现实。</p>
+                <p>
+                  我的邮箱：<a href="mailto:mr.lou@zjnu.edu.cn" className="underline underline-offset-2 hover:text-[#141413] transition">mr.lou@zjnu.edu.cn</a>
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Free mode: after completing the 4-step linear flow */}
         {currentStep === "free" && (
           <div className="rounded-md border border-[#E8E6E1] bg-white p-6">
@@ -1509,7 +1682,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
           </div>
         )}
 
-        {currentStep !== "free" && currentStep !== 0 && resultText && resultTitle && !isLoading && (
+        {currentStep !== "free" && currentStep !== 0 && currentStep !== 3 && resultText && resultTitle && !isLoading && (
           <div className="mt-2">
             <label className="mb-4 flex cursor-pointer items-center gap-2 text-xs text-[#6B7280]">
               <input
@@ -1582,21 +1755,25 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                     key={s.name}
                     type="button"
                     onClick={() => { if (s.status === "done") setViewIdx(i); }}
-                    disabled={s.status === "pending"}
+                    disabled={s.status === "pending" || s.status === "skipped"}
                     className={`w-full text-left px-3 py-2 rounded text-xs flex items-center gap-2.5 transition
-                      ${viewIdx === i ? "bg-[#E8E6E1]" : ""}
+                      ${viewIdx === i && s.status !== "skipped" ? "bg-[#E8E6E1]" : ""}
                       ${s.status === "done" ? "cursor-pointer hover:bg-[#F3F2EF]" : "cursor-default"}
+                      ${s.status === "skipped" ? "border border-dashed border-[#E8E6E1]" : ""}
                     `}
                   >
                     <span className={`shrink-0 w-2 h-2 rounded-full
                       ${s.status === "done" ? "bg-emerald-500" : ""}
                       ${s.status === "streaming" ? "bg-sky-500 animate-pulse" : ""}
                       ${s.status === "pending" ? "bg-slate-300" : ""}
+                      ${s.status === "skipped" ? "bg-slate-200" : ""}
                     `} />
                     <span className={`truncate text-xs leading-tight
-                      ${s.status === "pending" ? "text-[#D1D5DB]" : "text-[#141413]"}
-                      ${s.status === "streaming" ? "font-bold" : ""}
-                    `}>{s.name}</span>
+                      ${s.status === "pending" ? "text-[#D1D5DB]" : ""}
+                      ${s.status === "skipped" ? "text-[#D1D5DB]" : ""}
+                      ${s.status === "streaming" ? "font-bold text-[#141413]" : ""}
+                      ${s.status === "done" ? "text-[#141413]" : ""}
+                    `}>{s.name}{s.status === "skipped" ? " · 跳过" : ""}</span>
                   </button>
                 ))}
               </div>
@@ -1606,6 +1783,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                   if (!sec) return null;
                   const parts = parseSectionParts(sec.content);
                   const isEmpty = !sec.content && sec.status === "streaming";
+                  const isSkipped = sec.status === "skipped";
                   return (
                     <div>
                       <h3 className="text-base font-bold text-[#141413] mb-6 flex items-center gap-2">
@@ -1616,8 +1794,13 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                         {sec.status === "done" && (
                           <span className="text-xs font-normal text-emerald-600">✓ 完成</span>
                         )}
+                        {isSkipped && (
+                          <span className="text-xs font-normal text-[#9CA3AF]">未打磨</span>
+                        )}
                       </h3>
-                      {isEmpty ? (
+                      {isSkipped ? (
+                        <p className="text-sm text-[#9CA3AF]">此栏目未选择打磨，原文已保留在最终文稿中。</p>
+                      ) : isEmpty ? (
                         <p className="text-sm text-[#9CA3AF]">正在分析中...</p>
                       ) : (
                         <div className="text-sm leading-7 text-[#141413]">
