@@ -1,0 +1,25 @@
+name: Fix 8085 Nginx Config
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ALIYUN_SSH_KEY }}
+
+      - name: Fix nginx 8085 proxy config
+        env:
+          ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
+        run: |
+          SSH_PORT="${ALIYUN_PORT:-22}"
+          ssh -p "$SSH_PORT" -o StrictHostKeyChecking=accept-new "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" '
+            find /www/server/panel/vhost/nginx/proxy -path "*8085*" -type f 2>/dev/null | while read f; do
+              echo "Fixing $f"
+              sed -i "s/\$proxy_add_forwarded_for/\$proxy_add_x_forwarded_for/g" "$f"
+            done
+            nginx -t && nginx -s reload && echo "Done!" || echo "Failed"
+          '
