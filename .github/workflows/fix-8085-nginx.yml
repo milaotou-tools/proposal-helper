@@ -11,41 +11,40 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.ALIYUN_SSH_KEY }}
 
-      - name: Global fix nginx typo and reload
+      - name: Diagnose 8085 nginx setup
         env:
           ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
         run: |
           SSH_PORT="${ALIYUN_PORT:-22}"
           ssh -p "$SSH_PORT" -o StrictHostKeyChecking=accept-new "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" '
-          echo "=== Finding all nginx conf files with the typo ==="
-          find /www/server -name "*.conf" -path "*/nginx/*" -exec grep -l "proxy_add_forwarded_for" {} \; 2>/dev/null || echo "No files with typo found"
+          echo "=== Any nginx config referencing 8085? ==="
+          find /www/server -name "*.conf" -path "*/nginx/*" -exec grep -l "8085" {} \; 2>/dev/null || echo "None found"
 
           echo ""
-          echo "=== Fixing typo globally ==="
-          find /www/server -name "*.conf" -path "*/nginx/*" -exec grep -l "proxy_add_forwarded_for" {} \; 2>/dev/null | while read f; do
-            echo "Fixing: $f"
-            sed -i 's/proxy_add_forwarded_for/proxy_add_x_forwarded_for/g' "$f"
-          done
+          echo "=== What listens on 8085? ==="
+          ss -tlnp | grep 8085 || echo "Nothing on 8085"
 
           echo ""
-          echo "=== Verify no remaining typo ==="
-          find /www/server -name "*.conf" -path "*/nginx/*" -exec grep -l "proxy_add_forwarded_for" {} \; 2>/dev/null && echo "STILL HAS TYPO!" || echo "All clean"
+          echo "=== Nginx main conf include structure ==="
+          grep -n "include" /www/server/nginx/conf/nginx.conf 2>/dev/null || echo "No main conf"
 
           echo ""
-          echo "=== Test nginx config ==="
-          /www/server/nginx/sbin/nginx -t 2>&1 && echo "nginx -t PASSED" || { echo "nginx -t FAILED"; exit 1; }
+          echo "=== Vhost dir listing ==="
+          ls -la /www/server/panel/vhost/nginx/ 2>/dev/null || echo "No vhost dir"
 
           echo ""
-          echo "=== Reload nginx ==="
-          /www/server/nginx/sbin/nginx -s reload 2>&1 && echo "nginx reloaded OK" || { echo "reload FAILED"; exit 1; }
-
-          sleep 2
+          echo "=== Proxy dir listing ==="
+          ls -la /www/server/panel/vhost/nginx/proxy/ 2>/dev/null || echo "No proxy dir"
 
           echo ""
-          echo "=== Test 8085 ==="
-          curl -s -o /dev/null -w "8085 local: HTTP %{http_code}\n" http://127.0.0.1:8085/
+          echo "=== Content of 8085 proxy config ==="
+          cat /www/server/panel/vhost/nginx/proxy/116.62.220.255_8085.conf 2>/dev/null || echo "8085 proxy conf not found"
 
           echo ""
-          echo "=== Test PM2 ==="
-          pm2 list
+          echo "=== PM2 paid process ==="
+          pm2 show proposal-helper-paid 2>/dev/null | head -15 || echo "PM2 process not found"
+
+          echo ""
+          echo "=== Curl direct to 3007 ==="
+          curl -s -o /dev/null -w "3007 direct: HTTP %{http_code}\n" http://127.0.0.1:3007/
           '
