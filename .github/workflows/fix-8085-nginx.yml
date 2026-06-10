@@ -24,7 +24,7 @@ jobs:
           echo "=== Fixing typo globally ==="
           find /www/server -name "*.conf" -path "*/nginx/*" -exec grep -l "proxy_add_forwarded_for" {} \; 2>/dev/null | while read f; do
             echo "Fixing: $f"
-            sed -i "s|\$proxy_add_forwarded_for|\$proxy_add_x_forwarded_for|g" "$f"
+            sed -i 's/proxy_add_forwarded_for/proxy_add_x_forwarded_for/g' "$f"
           done
 
           echo ""
