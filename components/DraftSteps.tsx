@@ -1336,16 +1336,17 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                           indices.forEach(i => { next[i] = setTo; });
                           setSelectedSections(next);
                         }}
-                        className={`w-full rounded-md border p-3 text-center transition ${
+                        className={`w-full rounded-md border p-3 pl-[328px] flex items-baseline transition ${
                           allSelected
                             ? "border-sky-400 bg-sky-50"
                             : "border-[#E8E6E1] bg-white hover:border-[#D1D5DB]"
                         }`}
                       >
-                        <span className={`text-sm font-bold ${allSelected ? "text-sky-700" : "text-[#141413]"}`}>
+                        <span className={`shrink-0 w-24 text-right text-sm font-bold ${allSelected ? "text-sky-700" : "text-[#141413]"}`}>
                           {group.name}{allSelected ? " ✓" : ""}
                         </span>
-                        <span className="ml-2.5 text-xs text-[#9CA3AF]">
+                        <span className="mx-2 text-[#D1D5DB] text-xs shrink-0">·</span>
+                        <span className="text-xs text-[#9CA3AF]">
                           {group.sections.join(" · ")}
                         </span>
                       </button>
