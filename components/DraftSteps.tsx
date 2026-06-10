@@ -227,213 +227,19 @@ function extractSection(draft: string, section: string, detectedSections: Detect
   // Boundary: find all heading positions in the draft, sorted by actual position
   const headingPositions = detectedSections
     .filter(s => s.standard !== section)
-    .map(s => ({ standard: s.standard, pos: findHeadingPos(draft, s.heading || s.standard) }))
+    .map(s => {
+      let pos = findHeadingPos(draft, s.heading || s.standard);
+      if (pos === -1 && s.heading && s.heading !== s.standard) {
+        pos = findHeadingPos(draft, s.standard);
+      }
+      return { standard: s.standard, pos };
+    })
     .filter(x => x.pos > startPos)
     .sort((a, b) => a.pos - b.pos);
 
   const endPos = headingPositions.length > 0 ? headingPositions[0].pos : draft.length;
 
   return draft.slice(startContent, endPos).trim();
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-function formatCellText(value: string): string {
-  return escapeHtml(value || "（未检测到该栏目内容）").replace(/\n/g, "<br />");
-}
-
-function highlightChangedText(original: string, modified: string): string {
-  const oldText = original.trim();
-  const newText = modified.trim();
-
-  if (!newText || oldText === newText) return formatCellText(newText);
-  if (!oldText || oldText.length * newText.length > 180000) {
-    return `<span class="changed">${formatCellText(newText)}</span>`;
-  }
-
-  const rows = oldText.length + 1;
-  const cols = newText.length + 1;
-  const table = Array.from({ length: rows }, () => new Uint16Array(cols));
-
-  for (let i = oldText.length - 1; i >= 0; i--) {
-    for (let j = newText.length - 1; j >= 0; j--) {
-      table[i][j] = oldText[i] === newText[j]
-        ? table[i + 1][j + 1] + 1
-        : Math.max(table[i + 1][j], table[i][j + 1]);
-    }
-  }
-
-  const unchanged = new Set<number>();
-  let i = 0;
-  let j = 0;
-  while (i < oldText.length && j < newText.length) {
-    if (oldText[i] === newText[j]) {
-      unchanged.add(j);
-      i++;
-      j++;
-    } else if (table[i + 1][j] >= table[i][j + 1]) {
-      i++;
-    } else {
-      j++;
-    }
-  }
-
-  let html = "";
-  let changedBuffer = "";
-  const flushChanged = () => {
-    if (!changedBuffer) return;
-    html += `<span class="changed">${escapeHtml(changedBuffer).replace(/\n/g, "<br />")}</span>`;
-    changedBuffer = "";
-  };
-
-  for (let index = 0; index < newText.length; index++) {
-    const char = newText[index];
-    if (unchanged.has(index)) {
-      flushChanged();
-      html += char === "\n" ? "<br />" : escapeHtml(char);
-    } else {
-      changedBuffer += char;
-    }
-  }
-  flushChanged();
-  return html;
-}
-
-function describeSectionProgress(original: string, modified: string): string {
-  const oldText = original.trim();
-  const newText = modified.trim();
-
-  if (!oldText && !newText) return "原稿和修改后稿均未检测到该栏目。";
-  if (!oldText && newText) return "新增了该栏目内容，补齐申报书结构。";
-  if (oldText && !newText) return "修改后稿未保留该栏目内容，请确认是否需要补回。";
-  if (oldText === newText) return "暂无明显修改。";
-
-  const oldLength = oldText.length;
-  const newLength = newText.length;
-  const delta = newLength - oldLength;
-  const ratio = Math.abs(delta) / Math.max(oldLength, 1);
-
-  if (ratio < 0.08) return "在保留原意基础上调整了表述，使语言更顺畅。";
-  if (delta > 0) return "补充了相关内容，使论证和说明更充分。";
-  return "压缩了重复或冗余表达，使栏目更精炼。";
-}
-
-function buildComparisonExportHtml(originalDraft: string, modifiedDraft: string, detected: DetectedSection[]): string {
-  const generatedAt = new Date().toLocaleString("zh-CN");
-  const changedSections = detected.filter(({ standard }) => {
-    const original = extractSection(originalDraft, standard, detected);
-    const modified = extractSection(modifiedDraft, standard, detected, true);
-    return original.trim() !== modified.trim();
-  });
-  const rows = changedSections.map(({ standard }) => {
-    const original = extractSection(originalDraft, standard, detected);
-    const modified = extractSection(modifiedDraft, standard, detected, true);
-    return `
-      <tr>
-        <td class="section">${escapeHtml(standard)}</td>
-        <td>${formatCellText(original)}</td>
-        <td>${highlightChangedText(original, modified)}</td>
-        <td class="note">${escapeHtml(describeSectionProgress(original, modified))}</td>
-      </tr>
-    `;
-  }).join("");
-
-  return `<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>申报书逐栏修改对比表</title>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      padding: 40px 48px;
-      color: #111827;
-      background: #ffffff;
-      font-family: "Microsoft YaHei", "Noto Sans SC", sans-serif;
-    }
-    main { max-width: 1180px; margin: 0 auto; }
-    h1 {
-      margin: 0;
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-    }
-    .meta {
-      margin: 8px 0 24px;
-      color: #6b7280;
-      font-size: 12px;
-      line-height: 1.7;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      table-layout: fixed;
-      border-top: 2px solid #111827;
-      border-bottom: 2px solid #111827;
-    }
-    thead tr { border-bottom: 1px solid #111827; }
-    tbody tr + tr { border-top: 1px solid #e5e7eb; }
-    th, td {
-      padding: 12px 14px;
-      vertical-align: top;
-      font-size: 13px;
-      line-height: 1.8;
-      text-align: left;
-      word-break: break-word;
-    }
-    th {
-      color: #111827;
-      font-weight: 700;
-      background: #ffffff;
-    }
-    td { color: #1f2937; }
-    .section {
-      width: 108px;
-      color: #111827;
-      font-weight: 700;
-    }
-    .note { width: 18%; color: #4b5563; }
-    .changed {
-      border-radius: 2px;
-      background: #fff2b8;
-      color: #7c2d12;
-      box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.18);
-    }
-    @media print {
-      body { padding: 24px; }
-      table { page-break-inside: auto; }
-      tr { page-break-inside: avoid; page-break-after: auto; }
-    }
-  </style>
-</head>
-<body>
-  <main>
-    <h1>申报书逐栏修改对比表</h1>
-    <p class="meta">导出时间：${escapeHtml(generatedAt)}。优化之处已用浅黄色标记。</p>
-    <table>
-      <thead>
-        <tr>
-          <th>栏目</th>
-          <th>原稿</th>
-          <th>打磨后</th>
-          <th class="note">进步之处</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rows}
-      </tbody>
-    </table>
-  </main>
-</body>
-</html>`;
 }
 
 function downloadFile(content: string, filename: string, type: string) {
@@ -589,12 +395,10 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
 
   function handleExport() {
     const finalDraft = polishedDraft || draft;
-    const comparisonHtml = buildComparisonExportHtml(draft, finalDraft, detectedSections);
     const now = new Date();
     const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
 
     downloadFile(finalDraft, `申报书修改后稿_${dateStr}.txt`, "text/plain;charset=utf-8");
-    downloadFile(comparisonHtml, `申报书逐栏修改对比表_${dateStr}.html`, "text/html;charset=utf-8");
   }
 
   async function handleSaveAndExport() {
@@ -645,7 +449,13 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
     // Find all heading positions in draft order, pick the next one after startPos
     const headingPositions = detected
       .filter(s => s.standard !== section)
-      .map(s => ({ pos: findHeadingPos(current, s.heading || s.standard) }))
+      .map(s => {
+        let pos = findHeadingPos(current, s.heading || s.standard);
+        if (pos === -1 && s.heading && s.heading !== s.standard) {
+          pos = findHeadingPos(current, s.standard);
+        }
+        return { pos };
+      })
       .filter(x => x.pos > startPos)
       .sort((a, b) => a.pos - b.pos);
 
@@ -821,7 +631,13 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
         // Find end boundary: next detected heading after this one
         const headingPositions = detectedSections
           .filter(s => s.standard !== sectionName)
-          .map(s => ({ pos: findHeadingPos(srcDraft, s.heading || s.standard) }))
+          .map(s => {
+            let pos = findHeadingPos(srcDraft, s.heading || s.standard);
+            if (pos === -1 && s.heading && s.heading !== s.standard) {
+              pos = findHeadingPos(srcDraft, s.standard);
+            }
+            return { pos };
+          })
           .filter(x => x.pos > startPos)
           .sort((a, b) => a.pos - b.pos);
         const contentEnd = headingPositions.length > 0 ? headingPositions[0].pos : srcDraft.length;
