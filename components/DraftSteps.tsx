@@ -926,7 +926,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                   setResultText("");
                   setError("");
                 }}
-                className="ml-3 shrink-0 rounded-md border border-[#E8E6E1] bg-white px-2.5 py-1 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280]"
+                className="ml-3 shrink-0 rounded-md border border-[#E8E6E1] bg-white px-2.5 py-2 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280] min-h-[44px]"
               >
                 填入示例
               </button>
@@ -948,7 +948,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                     setCompletedExpert(false);
                   }
                 }}
-                className="rounded-md border border-[#D1D5DB] bg-white px-2.5 py-1 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280]"
+                className="rounded-md border border-[#D1D5DB] bg-white px-2.5 py-2 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280] min-h-[44px]"
               >
                 清空草稿
               </button>
@@ -1152,17 +1152,17 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                           indices.forEach(i => { next[i] = setTo; });
                           setSelectedSections(next);
                         }}
-                        className={`w-full rounded-md border p-3 pl-[328px] flex items-baseline transition ${
+                        className={`w-full rounded-md border p-3 flex flex-col md:flex-row md:items-baseline md:pl-[328px] transition ${
                           allSelected
                             ? "border-sky-400 bg-sky-50"
                             : "border-[#E8E6E1] bg-white hover:border-[#D1D5DB]"
                         }`}
                       >
-                        <span className={`shrink-0 w-24 text-right text-sm font-bold ${allSelected ? "text-sky-700" : "text-[#141413]"}`}>
+                        <span className={`shrink-0 text-sm font-bold ${allSelected ? "text-sky-700" : "text-[#141413]"}`}>
                           {group.name}{allSelected ? " ✓" : ""}
                         </span>
-                        <span className="mx-2 text-[#D1D5DB] text-xs shrink-0">·</span>
-                        <span className="text-xs text-[#9CA3AF]">
+                        <span className="hidden md:inline mx-2 text-[#D1D5DB] text-xs shrink-0">·</span>
+                        <span className="text-xs text-[#9CA3AF] mt-0.5 md:mt-0">
                           {group.sections.join(" · ")}
                         </span>
                       </button>
@@ -1190,7 +1190,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
               >
                 上一步
               </button>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2">
                 {!isLoading && !polishStarted && (
                   <button
                     type="button"
@@ -1551,7 +1551,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
       {showPolishModal && (
         <>
           <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setShowPolishModal(false)} />
-          <div className="fixed inset-4 md:inset-8 bg-white rounded-lg shadow-2xl z-50 flex flex-col max-w-[1400px] mx-auto">
+          <div className="fixed inset-2 md:inset-8 bg-white rounded-lg shadow-2xl z-50 flex flex-col max-w-[1400px] mx-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-[#E8E6E1] shrink-0">
               <h2 className="text-base font-bold text-[#141413]">逐栏打磨</h2>
               <div className="flex items-center gap-3">
@@ -1565,8 +1565,27 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                 </button>
               </div>
             </div>
-            <div className="flex flex-1 min-h-0">
-              <div className="w-48 shrink-0 border-r border-[#E8E6E1] p-4 space-y-0.5 overflow-y-auto">
+            <div className="flex flex-col md:flex-row flex-1 min-h-0">
+              {/* Mobile section selector */}
+              <div className="md:hidden px-4 pt-4 pb-2 shrink-0">
+                <select
+                  value={viewIdx}
+                  onChange={(e) => setViewIdx(Number(e.target.value))}
+                  className="w-full rounded-md border border-[#D1D5DB] px-3 py-2 text-sm text-[#141413] bg-white focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+                >
+                  {polishSectionsState.map((s, i) => (
+                    <option
+                      key={s.name}
+                      value={i}
+                      disabled={s.status === "pending"}
+                    >
+                      {s.status === "done" ? "✓ " : s.status === "streaming" ? "⋯ " : s.status === "skipped" ? "— " : "○ "}
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="hidden md:block w-48 shrink-0 border-r border-[#E8E6E1] p-4 space-y-0.5 overflow-y-auto">
                 {polishSectionsState.map((s, i) => (
                   <button
                     key={s.name}
@@ -1594,7 +1613,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                   </button>
                 ))}
               </div>
-              <div className="flex-1 p-6 overflow-y-auto">
+              <div className="flex-1 p-4 md:p-6 overflow-y-auto">
                 {(() => {
                   const sec = polishSectionsState[viewIdx];
                   if (!sec) return null;

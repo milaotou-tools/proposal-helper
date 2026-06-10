@@ -63,10 +63,10 @@ export function LandingPage({ onSelectPath, onStartGuidance, onRestore }: Props)
         <div aria-hidden className="pointer-events-none absolute right-10 top-24 h-48 w-48 rounded-full bg-white/70 blur-3xl" />
 
         <div className="text-center">
-          <h1 className="text-[40px] font-semibold tracking-[-0.04em] text-slate-900 sm:text-[52px]">
+          <h1 className="text-[32px] font-semibold tracking-[-0.04em] text-slate-900 sm:text-[40px] md:text-[52px]">
             课题申报小助手
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-[17px] leading-relaxed tracking-[-0.01em] text-slate-700">
+          <p className="mx-auto mt-4 max-w-2xl text-[15px] sm:text-[17px] leading-relaxed tracking-[-0.01em] text-slate-700">
             “把专家的申报思路拆成步骤，陪你把想法变成申报书。”
           </p>
         </div>
@@ -209,7 +209,7 @@ export function LandingPage({ onSelectPath, onStartGuidance, onRestore }: Props)
                 type="button"
                 onClick={handleRestore}
                 disabled={restoring}
-                className="rounded-md bg-[#141413] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#2A2A28] disabled:opacity-50"
+                className="rounded-md bg-[#141413] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#2A2A28] disabled:opacity-50 min-h-[44px]"
               >
                 {restoring ? "恢复中..." : "恢复"}
               </button>

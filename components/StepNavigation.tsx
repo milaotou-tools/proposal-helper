@@ -30,7 +30,8 @@ export function StepNavigation({
                 type="button"
                 disabled={!isClickable}
                 onClick={() => onGoToStep(i)}
-                className={`group flex items-center gap-2 rounded-lg px-1.5 py-1 transition ${
+                aria-label={step.label}
+                className={`group flex items-center gap-2 rounded-lg px-1.5 py-1.5 transition ${
                   isClickable ? "cursor-pointer hover:bg-white/55" : "cursor-default"
                 }`}
               >

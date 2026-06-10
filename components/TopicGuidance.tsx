@@ -238,7 +238,7 @@ export function TopicGuidance({ onBack, onUseTopic }: Props) {
                     ? "我教高一政治，学生对抽象概念理解困难，课堂参与度不高。我尝试过引入社会热点议题组织讨论，学生反馈不错，但不知道怎么把这种课堂实践提升为规范的课题研究。"
                     : "我教五年级语文，这学期发现学生写作时结构比较混乱，段落之间缺少逻辑衔接。我想到过用思维导图辅助写作教学，也试过几次，但不知道具体怎么系统化操作，也不确定这个方法到底有没有效果。"
                 )}
-                className="ml-3 shrink-0 rounded-md border border-[#E8E6E1] bg-white px-2.5 py-1 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280]"
+                className="ml-3 shrink-0 rounded-md border border-[#E8E6E1] bg-white px-2.5 py-2 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280] min-h-[44px]"
               >
                 填入示例
               </button>

@@ -50,20 +50,20 @@ export function FeedbackWidget() {
         value={school}
         onChange={(e) => setSchool(e.target.value)}
         placeholder="学校（选填）"
-        className="w-full rounded border border-[#E8E6E1] bg-white px-3 py-1.5 text-sm text-[#141413] placeholder:text-[#9CA3AF]"
+        className="w-full rounded border border-[#E8E6E1] bg-white px-3 py-2.5 text-sm text-[#141413] placeholder:text-[#9CA3AF]"
       />
       <textarea
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         placeholder="建议或评价..."
         rows={2}
-        className="w-full rounded border border-[#E8E6E1] bg-white px-3 py-1.5 text-sm text-[#141413] placeholder:text-[#9CA3AF] resize-none"
+        className="w-full rounded border border-[#E8E6E1] bg-white px-3 py-2.5 text-sm text-[#141413] placeholder:text-[#9CA3AF] resize-none"
       />
       <div className="flex items-center justify-between">
         <button
           type="button"
           onClick={() => { setShowForm(false); setError(""); }}
-          className="rounded border border-[#E8E6E1] bg-white px-5 py-1.5 text-sm text-[#9CA3AF] transition hover:text-[#6B7280]"
+          className="rounded border border-[#E8E6E1] bg-white px-5 py-2.5 text-sm text-[#9CA3AF] transition hover:text-[#6B7280]"
         >
           取消
         </button>
@@ -71,7 +71,7 @@ export function FeedbackWidget() {
           type="button"
           onClick={handleSubmit}
           disabled={submitting}
-          className="rounded border border-[#D1D5DB] bg-white px-5 py-1.5 text-sm text-[#141413] transition hover:bg-[#F3F2EF] disabled:opacity-40"
+          className="rounded border border-[#D1D5DB] bg-white px-5 py-2.5 text-sm text-[#141413] transition hover:bg-[#F3F2EF] disabled:opacity-40"
         >
           {submitting ? "提交中..." : "提交"}
         </button>

@@ -815,7 +815,7 @@ function CopyResultButton({ text }: { text: string }) {
       type="button"
       onClick={handleCopy}
       disabled={!text}
-      className="focus-ring h-10 rounded-md border border-[#D1D5DB] bg-white px-4 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF] disabled:cursor-not-allowed disabled:border-[#E8E6E1] disabled:text-[#9CA3AF]"
+      className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-4 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF] disabled:cursor-not-allowed disabled:border-[#E8E6E1] disabled:text-[#9CA3AF]"
     >
       {copied ? "已复制" : "复制结果"}
     </button>
@@ -835,7 +835,7 @@ function CopySectionButton({ text }: { text: string }) {
     <button
       type="button"
       onClick={handleCopy}
-      className="focus-ring rounded-md border border-[#E8E6E1] bg-white px-2 py-1 text-xs font-bold text-[#141413] hover:bg-[#F3F2EF]"
+      className="focus-ring rounded-md border border-[#E8E6E1] bg-white px-2 py-2 text-xs font-bold text-[#141413] hover:bg-[#F3F2EF] min-h-[44px]"
     >
       {copied ? "已复制" : "复制本栏"}
     </button>

@@ -435,7 +435,7 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
                   updateField("stage", form.stage || "小学");
                   updateField("stageSubject", eg.stageSubject);
                 }}
-                className="ml-3 shrink-0 rounded-md border border-[#E8E6E1] bg-white px-2.5 py-1 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280]"
+                className="ml-3 shrink-0 rounded-md border border-[#E8E6E1] bg-white px-2.5 py-2 text-[11px] font-bold text-[#9CA3AF] transition hover:border-[#D1D5DB] hover:text-[#6B7280] min-h-[44px]"
               >
                 填入示例
               </button>
@@ -467,7 +467,7 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
                   setResultText("");
                   setError("");
                 }}
-                className="focus-ring rounded-md border border-[#D1D5DB] bg-white px-3 py-2 text-sm font-bold text-[#6B7280] hover:bg-[#F3F2EF]"
+                className="focus-ring rounded-md border border-[#D1D5DB] bg-white px-3 py-2 text-sm font-bold text-[#6B7280] hover:bg-[#F3F2EF] min-h-[44px]"
               >
                 清空重填
               </button>
