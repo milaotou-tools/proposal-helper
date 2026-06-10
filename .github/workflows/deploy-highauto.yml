@@ -1,0 +1,161 @@
+name: Deploy highauto (paid version)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Inject sensitive files from private repo
+        env:
+          SECRETS_PAT: ${{ secrets.SECRETS_REPO_PAT }}
+        run: |
+          git clone --depth 1 "https://oauth2:${SECRETS_PAT}@github.com/milaotou-tools/secrets.git" /tmp/secrets-inject
+          if [ -d /tmp/secrets-inject/proposal-helper-mvp/lib/prompts/data ]; then
+            mkdir -p lib/prompts/data
+            cp -v /tmp/secrets-inject/proposal-helper-mvp/lib/prompts/data/*.txt lib/prompts/data/
+          else
+            echo "No prompt data in secrets repo, using fallback prompts"
+          fi
+          rm -rf /tmp/secrets-inject
+
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ALIYUN_SSH_KEY }}
+
+      - name: Trust server host key
+        env:
+          ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
+        run: |
+          SSH_PORT="${ALIYUN_PORT:-22}"
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "$SSH_PORT" -H "${{ secrets.ALIYUN_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Tar and SCP source
+        env:
+          ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
+        run: |
+          SSH_PORT="${ALIYUN_PORT:-22}"
+          USER_HOST="${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}"
+
+          tar --exclude='.git' --exclude='node_modules' --exclude='.next' --exclude='.env' \
+            -czf /tmp/deploy.tar.gz .
+
+          scp -P "$SSH_PORT" /tmp/deploy.tar.gz "$USER_HOST:/tmp/deploy.tar.gz"
+
+      - name: Clean rebuild and restart
+        env:
+          ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
+          DEEPSEEK_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: |
+          SSH_PORT="${ALIYUN_PORT:-22}"
+          ssh -p "$SSH_PORT" "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" '
+          set -e
+
+          # Kill old PM2 process first
+          pm2 delete proposal-helper-paid 2>/dev/null || true
+          pm2 save --force
+          sleep 2
+          fuser -k 3006/tcp 2>/dev/null || true
+          sleep 2
+
+          # Ensure target directory exists
+          mkdir -p /www/wwwroot/proposal-helper-paid
+          cd /www/wwwroot/proposal-helper-paid
+
+          # Clean old build completely
+          rm -rf .next
+          if [ -d ".next" ]; then
+            echo "ERROR: .next still exists after rm -rf"
+            ls -la .next/
+            exit 1
+          fi
+          echo ".next cleaned OK"
+
+          # Extract new source
+          tar -xzf /tmp/deploy.tar.gz
+          rm /tmp/deploy.tar.gz
+
+          # Write .env.local with paid-version config
+          cat > .env.local << ENVEOF
+          DEEPSEEK_API_KEY='"$DEEPSEEK_KEY"'
+          DEEPSEEK_BASE_URL=https://api.deepseek.com
+          DEEPSEEK_MODEL=deepseek-v4-pro
+          ADMIN_PASSWORD=ktsb2026
+          COLLECTION_DIR=/www/wwwdata/proposal-helper-paid/collection
+          FEEDBACK_DIR=/www/wwwdata/proposal-helper-paid/feedback
+          ENVEOF
+
+          # Ensure data directories exist
+          mkdir -p /www/wwwdata/proposal-helper-paid/collection
+          mkdir -p /www/wwwdata/proposal-helper-paid/feedback
+
+          # Build
+          export NPM_CACHE_DIR="$HOME/.npm-cache"
+          mkdir -p "$NPM_CACHE_DIR"
+          export npm_config_cache="$NPM_CACHE_DIR"
+          npm run build
+
+          # Start fresh on port 3006
+          pm2 start npx --name proposal-helper-paid -- next start -p 3006
+          pm2 save
+
+          echo "=== PM2 status ==="
+          pm2 list
+
+          # Fix Nginx proxy for port 8085 -> 3006
+          echo "=== fixing nginx proxy for 8085 ==="
+          find /www/server/panel/vhost/nginx/proxy -path "*8085*" -type f 2>/dev/null | while read f; do
+            if grep -q "proxy_pass" "$f" 2>/dev/null; then
+              echo "fixing $f"
+              sed -i "s|proxy_pass http://127.0.0.1:[0-9][0-9]*;|proxy_pass http://127.0.0.1:3006;|g" "$f"
+            fi
+          done
+          find /www/server/nginx -path "*8085*" -type f 2>/dev/null | while read f; do
+            if grep -q "proxy_pass" "$f" 2>/dev/null; then
+              echo "fixing $f"
+              sed -i "s|proxy_pass http://127.0.0.1:[0-9][0-9]*;|proxy_pass http://127.0.0.1:3006;|g" "$f"
+            fi
+          done
+
+          # Clear Nginx proxy cache and reload
+          if [ -d /www/server/nginx/proxy_cache_dir ]; then
+            find /www/server/nginx/proxy_cache_dir -type f -delete 2>/dev/null && echo "Nginx cache cleared"
+          fi
+          nginx -s reload 2>/dev/null && echo "Nginx reloaded OK" || echo "Nginx reload skipped"
+
+          echo "Deploy done"
+          '
+
+      - name: Sync sensitive files to private backup
+        if: success()
+        env:
+          SECRETS_PAT: ${{ secrets.SECRETS_REPO_PAT }}
+        run: |
+          mkdir -p lib/prompts/data
+          if [ -z "$(ls lib/prompts/data/*.txt 2>/dev/null)" ]; then
+            echo "No prompt data to sync"
+            exit 0
+          fi
+          git clone --depth 1 "https://oauth2:${SECRETS_PAT}@github.com/milaotou-tools/secrets.git" /tmp/secrets-backup
+          mkdir -p /tmp/secrets-backup/proposal-helper-mvp/lib/prompts/data
+          cp -v lib/prompts/data/*.txt /tmp/secrets-backup/proposal-helper-mvp/lib/prompts/data/ 2>/dev/null || true
+          cd /tmp/secrets-backup
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to sync"
+          else
+            git commit -m "auto-sync proposal-helper-mvp prompt files"
+            git push origin main
+            echo "Synced to secrets repo"
+          fi
+          rm -rf /tmp/secrets-backup
