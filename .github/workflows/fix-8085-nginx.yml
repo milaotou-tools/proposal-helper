@@ -11,21 +11,42 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.ALIYUN_SSH_KEY }}
 
-      - name: Fix 8085 nginx include path
+      - name: Write clean 8085 nginx config
+        env:
+          ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
+        run: |
+          SSH_PORT="${ALIYUN_PORT:-22}"
+          USER_HOST="${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}"
+
+          cat <<'NGINXEOF' | ssh -p "$SSH_PORT" -o StrictHostKeyChecking=accept-new "$USER_HOST" "cat > /www/server/panel/vhost/nginx/116.62.220.255_8085.conf"
+          server {
+              listen 8085;
+              server_name 116.62.220.255;
+              access_log /www/wwwlogs/116.62.220.255_8085.log;
+
+              location / {
+                  proxy_pass http://127.0.0.1:3007;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection "upgrade";
+                  proxy_buffering off;
+                  proxy_read_timeout 300s;
+                  proxy_send_timeout 300s;
+              }
+          }
+          NGINXEOF
+
+      - name: Test and reload nginx
         env:
           ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
         run: |
           SSH_PORT="${ALIYUN_PORT:-22}"
           ssh -p "$SSH_PORT" -o StrictHostKeyChecking=accept-new "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" '
-          echo "=== Copy proxy config to vhost dir ==="
-          # The nginx include is: include /www/server/panel/vhost/nginx/*.conf
-          # It only matches *.conf directly in the vhost dir, NOT in proxy/ subdir
-          # So copy the server block up to the vhost directory
-          cp -v /www/server/panel/vhost/nginx/proxy/116.62.220.255_8085.conf /www/server/panel/vhost/nginx/116.62.220.255_8085.conf
-
-          echo ""
-          echo "=== Delete old proxy file to avoid confusion ==="
-          rm -f /www/server/panel/vhost/nginx/proxy/116.62.220.255_8085.conf
+          echo "=== Config written ==="
+          cat -n /www/server/panel/vhost/nginx/116.62.220.255_8085.conf
 
           echo ""
           echo "=== Test nginx config ==="
@@ -38,6 +59,10 @@ jobs:
           sleep 2
 
           echo ""
-          echo "=== Test 8085 ==="
-          curl -s -o /dev/null -w "8085: HTTP %{http_code}\n" http://127.0.0.1:8085/
+          echo "=== Test 8085 local ==="
+          curl -s -o /dev/null -w "8085 local: HTTP %{http_code}\n" http://127.0.0.1:8085/
+
+          echo ""
+          echo "=== Test 8085 external ==="
+          curl -s -o /dev/null -w "8085 external: HTTP %{http_code}\n" http://116.62.220.255:8085/
           '
