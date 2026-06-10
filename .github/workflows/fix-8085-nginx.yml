@@ -11,7 +11,7 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.ALIYUN_SSH_KEY }}
 
-      - name: Fix port conflict and deploy paid version
+      - name: Redeploy paid version on port 3007 + fix nginx
         env:
           ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
           DEEPSEEK_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
@@ -20,37 +20,64 @@ jobs:
           ssh -p "$SSH_PORT" -o StrictHostKeyChecking=accept-new "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" '
             set -e
 
-            echo "=== What is using port 3006? ==="
-            ss -tlnp | grep 3006 || echo "Nothing on 3006"
-            echo ""
-            echo "=== What is using port 3005? ==="
-            ss -tlnp | grep 3005 || echo "Nothing on 3005"
+            echo "=== Check port 3007 ==="
+            ss -tlnp | grep 3007 && echo "3007 in use!" || echo "3007 is free"
+            fuser -k 3007/tcp 2>/dev/null || true
+            sleep 1
 
-            echo ""
-            echo "=== Kill anything on 3006 ==="
-            fuser -k 3006/tcp 2>/dev/null && echo "Killed process on 3006" || echo "Nothing to kill on 3006"
-            sleep 2
-
-            echo "=== Delete PM2 paid process ==="
+            echo "=== Kill old paid PM2 ==="
             pm2 delete proposal-helper-paid 2>/dev/null || true
             pm2 save --force
             sleep 2
 
-            echo "=== Verify 3006 is free ==="
-            ss -tlnp | grep 3006 && echo "STILL IN USE!" || echo "3006 is free"
-
-            echo "=== Restart paid version ==="
+            echo "=== Rewrite .env.local ==="
             cd /www/wwwroot/proposal-helper-paid
-            pm2 start npx --name proposal-helper-paid -- next start -p 3006
+            cat > .env.local << ENVEOF
+            DEEPSEEK_API_KEY='"$DEEPSEEK_KEY"'
+            DEEPSEEK_BASE_URL=https://api.deepseek.com
+            DEEPSEEK_MODEL=deepseek-v4-pro
+            ADMIN_PASSWORD=ktsb2026
+            COLLECTION_DIR=/www/wwwdata/proposal-helper-paid/collection
+            FEEDBACK_DIR=/www/wwwdata/proposal-helper-paid/feedback
+            ENVEOF
+
+            mkdir -p /www/wwwdata/proposal-helper-paid/collection
+            mkdir -p /www/wwwdata/proposal-helper-paid/feedback
+
+            echo "=== Start on port 3007 ==="
+            pm2 start npx --name proposal-helper-paid -- next start -p 3007
             pm2 save
 
-            echo "=== PM2 list ==="
-            pm2 list
-
             sleep 5
-            echo "=== Test 3006 ==="
-            curl -s -o /dev/null -w "3006: HTTP %{http_code}\n" http://127.0.0.1:3006/
+            echo "=== Test 3007 ==="
+            curl -s -o /dev/null -w "3007: HTTP %{http_code}\n" http://127.0.0.1:3007/
 
-            echo "=== Test 8085 via nginx ==="
+            echo "=== Update nginx proxy 8085 -> 3007 ==="
+            cat > /www/server/panel/vhost/nginx/proxy/116.62.220.255_8085.conf << NGINXEOF
+            server {
+                listen 8085;
+                server_name 116.62.220.255;
+                access_log /www/wwwlogs/116.62.220.255_8085.log;
+                error_log /www/wwwlogs/116.62.220.255_8085.error.log;
+
+                location / {
+                    proxy_pass http://127.0.0.1:3007;
+                    proxy_set_header Host \$host;
+                    proxy_set_header X-Real-IP \$remote_addr;
+                    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto \$scheme;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade \$http_upgrade;
+                    proxy_set_header Connection "upgrade";
+                    proxy_buffering off;
+                    proxy_read_timeout 300s;
+                    proxy_send_timeout 300s;
+                }
+            }
+            NGINXEOF
+
+            nginx -t && nginx -s reload && echo "Nginx OK"
+
+            echo "=== Final test 8085 ==="
             curl -s -o /dev/null -w "8085: HTTP %{http_code}\n" http://127.0.0.1:8085/
           '
