@@ -11,21 +11,41 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.ALIYUN_SSH_KEY }}
 
-      - name: Reload nginx to apply 8085 proxy
+      - name: Global fix nginx typo and reload
         env:
           ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
         run: |
           SSH_PORT="${ALIYUN_PORT:-22}"
           ssh -p "$SSH_PORT" -o StrictHostKeyChecking=accept-new "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" '
-            echo "=== Check nginx config ==="
-            cat /www/server/panel/vhost/nginx/proxy/116.62.220.255_8085.conf 2>/dev/null || echo "Config not found!"
-            echo ""
-            echo "=== Test nginx config ==="
-            /www/server/nginx/sbin/nginx -t 2>&1 || nginx -t 2>&1 || echo "nginx -t failed"
-            echo ""
-            echo "=== Reload nginx ==="
-            /www/server/nginx/sbin/nginx -s reload 2>&1 || nginx -s reload 2>&1 || echo "reload failed"
-            echo ""
-            echo "=== Test 8085 ==="
-            curl -s -o /dev/null -w "8085 local: HTTP %{http_code}\n" http://127.0.0.1:8085/
+          echo "=== Finding all nginx conf files with the typo ==="
+          find /www/server -name "*.conf" -path "*/nginx/*" -exec grep -l "proxy_add_forwarded_for" {} \; 2>/dev/null || echo "No files with typo found"
+
+          echo ""
+          echo "=== Fixing typo globally ==="
+          find /www/server -name "*.conf" -path "*/nginx/*" -exec grep -l "proxy_add_forwarded_for" {} \; 2>/dev/null | while read f; do
+            echo "Fixing: $f"
+            sed -i "s|\$proxy_add_forwarded_for|\$proxy_add_x_forwarded_for|g" "$f"
+          done
+
+          echo ""
+          echo "=== Verify no remaining typo ==="
+          find /www/server -name "*.conf" -path "*/nginx/*" -exec grep -l "proxy_add_forwarded_for" {} \; 2>/dev/null && echo "STILL HAS TYPO!" || echo "All clean"
+
+          echo ""
+          echo "=== Test nginx config ==="
+          /www/server/nginx/sbin/nginx -t 2>&1 && echo "nginx -t PASSED" || { echo "nginx -t FAILED"; exit 1; }
+
+          echo ""
+          echo "=== Reload nginx ==="
+          /www/server/nginx/sbin/nginx -s reload 2>&1 && echo "nginx reloaded OK" || { echo "reload FAILED"; exit 1; }
+
+          sleep 2
+
+          echo ""
+          echo "=== Test 8085 ==="
+          curl -s -o /dev/null -w "8085 local: HTTP %{http_code}\n" http://127.0.0.1:8085/
+
+          echo ""
+          echo "=== Test PM2 ==="
+          pm2 list
           '
