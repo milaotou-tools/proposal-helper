@@ -110,7 +110,8 @@ function parseSectionParts(content: string) {
     const after = remaining.slice(startIdx + startTag.length);
     const nextTag = i + 1 < labels.length ? `**${labels[i + 1]}**` : null;
     const endIdx = nextTag ? after.indexOf(nextTag) : -1;
-    result.push({ heading: labels[i], body: (endIdx === -1 ? after : after.slice(0, endIdx)).trim() });
+    const rawBody = (endIdx === -1 ? after : after.slice(0, endIdx)).trim();
+    result.push({ heading: labels[i], body: rawBody.replace(/\*\*(.+?)\*\*/g, "$1") });
     remaining = endIdx === -1 ? "" : after.slice(endIdx);
   }
   return result;
