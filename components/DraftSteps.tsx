@@ -77,6 +77,29 @@ type Step = 0 | 1 | 2 | 3 | "free";
 
 type DetectedSection = { standard: string; heading: string | null; content: string | null };
 
+type PolishSectionState = {
+  name: string;
+  status: "pending" | "streaming" | "done";
+  content: string;
+};
+
+function parseSectionParts(content: string) {
+  const labels = ["识别到的原文", "原栏目问题", "修改建议", "修改后文本"];
+  const result: { heading: string; body: string }[] = [];
+  let remaining = content;
+  for (let i = 0; i < labels.length; i++) {
+    const startTag = `**${labels[i]}**`;
+    const startIdx = remaining.indexOf(startTag);
+    if (startIdx === -1) { result.push({ heading: labels[i], body: "" }); continue; }
+    const after = remaining.slice(startIdx + startTag.length);
+    const nextTag = i + 1 < labels.length ? `**${labels[i + 1]}**` : null;
+    const endIdx = nextTag ? after.indexOf(nextTag) : -1;
+    result.push({ heading: labels[i], body: (endIdx === -1 ? after : after.slice(0, endIdx)).trim() });
+    remaining = endIdx === -1 ? "" : after.slice(endIdx);
+  }
+  return result;
+}
+
 type DraftStepsProps = {
   onBack: () => void;
   restoredSnapshot?: SaveSnapshot | null;
@@ -402,6 +425,16 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
   const [polishedDraft, setPolishedDraft] = usePersistedState("ph-polished", "");
   const [resultTitle, setResultTitle] = useState("");
   const [resultText, setResultText] = useState("");
+
+  // Polish-all streaming: per-section cards + progress bar
+  const [polishSectionsState, setPolishSectionsState] = useState<PolishSectionState[]>(
+    polishSections.map(name => ({ name, status: "pending", content: "" }))
+  );
+  const [currentStreamIdx, setCurrentStreamIdx] = useState(0);
+  const [viewIdx, setViewIdx] = useState(0);
+  const [polishStarted, setPolishStarted] = useState(false);
+  const [showPolishModal, setShowPolishModal] = useState(false);
+
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStepIndex, setLoadingStepIndex] = useState(0);
   const [error, setError] = useState("");
@@ -662,7 +695,10 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
         }
         // Parse ---FULL-DRAFT--- for polish-all output
         const fullDraftIdx = findFullDraftSplit(fullText);
-        const displayText = fullDraftIdx !== -1 ? fullText.slice(0, fullDraftIdx) : fullText;
+        // For diagnosis, also exclude ---SECTIONS--- and JSON from display
+        const sectionsIdx = (title === "整体诊断结果") ? findSectionsSplit(fullText) : -1;
+        const displayEnd = fullDraftIdx !== -1 ? fullDraftIdx : (sectionsIdx !== -1 ? sectionsIdx : fullText.length);
+        const displayText = fullText.slice(0, displayEnd);
         const polishedFullDraft = fullDraftIdx !== -1 ? fullText.slice(fullDraftIdx + "---FULL-DRAFT---".length).trim() : "";
 
         const cleaned = stripMarkdown(displayText);
@@ -708,14 +744,108 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
     runStreamingAction("整体诊断结果", "/api/review-draft", { draft: content, scope: "整体诊断", allowCollection });
   }
 
-  function handlePolish() {
+  function handlePolishStream() {
     const content = polishedDraft || draft;
     if (!content.trim()) {
       setError("请先粘贴申报书草稿。");
       return;
     }
-    runStreamingAction("逐栏打磨", "/api/polish-all", { draft: content, allowCollection });
-    setCompletedPolish(true);
+
+    setError("");
+    setIsLoading(true);
+    setShowPolishModal(true);
+    setPolishStarted(true);
+    setCompletedPolish(false);
+
+    const initial: PolishSectionState[] = polishSections.map(name => ({ name, status: "pending", content: "" }));
+    initial[0] = { ...initial[0], status: "streaming" };
+    setPolishSectionsState(initial);
+    setCurrentStreamIdx(0);
+    setViewIdx(0);
+
+    const interval = window.setInterval(() => {
+      setLoadingStepIndex((prev) => (prev + 1) % loadingSteps.length);
+    }, 1600);
+
+    let buffer = "";
+    let sectionIdx = 0;
+    retryRef.current = () => handlePolishStream();
+
+    const SECTION = "---SECTION---";
+    const FULL_DRAFT = "---FULL-DRAFT---";
+
+    postAiStream("/api/polish-all", { draft: content, allowCollection }, (chunk) => {
+      if (!buffer) clearInterval(interval);
+      buffer += chunk;
+
+      let processed = false;
+      while (!processed) {
+        const sIdx = buffer.indexOf(SECTION);
+        const fIdx = buffer.indexOf(FULL_DRAFT);
+        const hasSection = sIdx !== -1 && (fIdx === -1 || sIdx < fIdx);
+        const hasFullDraft = fIdx !== -1 && (sIdx === -1 || fIdx < sIdx);
+
+        if (hasSection) {
+          const secContent = buffer.slice(0, sIdx).trim();
+          buffer = buffer.slice(sIdx + SECTION.length);
+          setPolishSectionsState(prev => {
+            const next = [...prev];
+            if (next[sectionIdx]) next[sectionIdx] = { name: next[sectionIdx].name, status: "done", content: secContent };
+            return next;
+          });
+          sectionIdx++;
+          if (sectionIdx < polishSections.length) {
+            setCurrentStreamIdx(sectionIdx);
+            setViewIdx(sectionIdx);
+            setPolishSectionsState(prev => {
+              const next = [...prev];
+              if (next[sectionIdx]) next[sectionIdx] = { ...next[sectionIdx], status: "streaming" };
+              return next;
+            });
+          }
+        } else if (hasFullDraft) {
+          const secContent = buffer.slice(0, fIdx).trim();
+          buffer = buffer.slice(fIdx);
+          setPolishSectionsState(prev => {
+            const next = [...prev];
+            if (next[sectionIdx]) next[sectionIdx] = { name: next[sectionIdx].name, status: "done", content: secContent };
+            return next;
+          });
+          processed = true;
+        } else {
+          setPolishSectionsState(prev => {
+            const next = [...prev];
+            if (next[sectionIdx]) next[sectionIdx] = { ...next[sectionIdx], content: buffer };
+            return next;
+          });
+          processed = true;
+        }
+      }
+    }, allowCollection)
+      .then(() => {
+        clearInterval(interval);
+        const fIdx = buffer.indexOf(FULL_DRAFT);
+        const polishedFullDraft = fIdx !== -1
+          ? buffer.slice(fIdx + FULL_DRAFT.length).trim()
+          : "";
+        setPolishSectionsState(prev => prev.map(s =>
+          s.status === "done" ? s : { ...s, status: "done" as const }
+        ));
+        if (polishedFullDraft) {
+          setPolishedDraft(polishedFullDraft);
+        }
+        setCompletedPolish(true);
+        setIsLoading(false);
+      })
+      .catch((caught) => {
+        setError(caught instanceof Error ? caught.message : "处理失败，请稍后重试。");
+        setIsLoading(false);
+      });
+  }
+
+  function openPolishModal() {
+    setViewIdx(currentStreamIdx);
+    setShowPolishModal(true);
   }
 
   function handleExpertReview() {
@@ -990,80 +1120,38 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
           </div>
         )}
 
-        {/* Step 2: 逐栏打磨 — 左右分栏 */}
+        {/* Step 2: 逐栏打磨 — 单栏布局 */}
         {currentStep === 2 && (
-          <div className="flex flex-col gap-5 lg:flex-row">
-            {/* 左侧：步骤内容 */}
-            <div className="flex flex-1 flex-col rounded-md border border-[#E8E6E1] bg-white p-6">
-              <DailyQuota />
+          <div className="rounded-md border border-[#E8E6E1] bg-white p-6">
+            <DailyQuota />
 
-              <div className="mb-4">
-                <p className="text-sm font-bold text-[#6B7280]">操作提示</p>
-                <p className="text-sm leading-6 text-[#9CA3AF]">AI 会按照申报书标准框架，逐栏诊断你的草稿并给出打磨建议，最后输出完整的打磨后全文。打磨结果会自动填入右侧编辑器。</p>
-              </div>
-
-              <div className="mb-5 rounded-md bg-[#FAF9F6] p-4">
-                <p className="text-xs font-bold text-[#9CA3AF]">当前草稿（{(polishedDraft || draft).length} 字）</p>
-                <p className="mt-1 text-sm leading-6 text-[#6B7280] line-clamp-3">
-                  {(polishedDraft || draft).slice(0, 200)}{(polishedDraft || draft).length > 200 ? "..." : ""}
-                </p>
-              </div>
-
-              {/* 打磨中 */}
-              {isLoading && (
-                resultText ? (
-                  <div className="rounded-md bg-[#FAF9F6] p-4 text-sm leading-8 whitespace-pre-wrap text-[#141413]">
-                    {resultText}<span className="animate-pulse">▊</span>
-                  </div>
-                ) : (
-                  <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-12 text-center text-sm text-[#6B7280]">
-                    {loadingSteps[loadingStepIndex]}，请稍候...
-                  </div>
-                )
-              )}
-
-              {/* 打磨结果 */}
-              {resultText && resultTitle === "逐栏打磨" && !isLoading && (
-                <div className="rounded-md bg-[#FAF9F6] p-4 text-sm leading-8 whitespace-pre-wrap text-[#141413] max-h-[55vh] overflow-y-auto">
-                  {resultText}
-                </div>
-              )}
-
-              {/* 底部按钮 */}
-              <div className="mt-auto flex justify-between pt-6">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCurrentStep(1);
-                    setError("");
-                  }}
-                  className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
-                >
-                  上一步
-                </button>
-                {!isLoading && (
-                  <button
-                    type="button"
-                    onClick={handlePolish}
-                    className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
-                  >
-                    {polishedDraft && polishedDraft !== draft ? "重新打磨" : "开始打磨"}
-                  </button>
-                )}
-              </div>
+            <div className="mb-4">
+              <p className="text-sm font-bold text-[#6B7280]">操作提示</p>
+              <p className="text-sm leading-6 text-[#9CA3AF]">
+                {polishStarted
+                  ? "打磨结果已填入下方编辑器，可手动微调后进入模拟预审，或点击「打磨」回顾过程。"
+                  : "AI 会按照申报书标准框架，逐栏诊断草稿并给出打磨建议，最后输出完整的打磨后全文。"}
+              </p>
             </div>
 
-            {/* 右侧：全文编辑面板 */}
-            <div className="flex flex-1 flex-col rounded-md border border-[#E8E6E1] bg-white p-6">
-              <div className="mb-4">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold text-[#6B7280]">原文编辑</p>
-                    {polishedDraft !== draft && (
-                      <span className="rounded-sm bg-[#FEF3E2] px-1.5 py-0.5 text-[11px] font-bold text-[#D97706]">已编辑</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
+            <div className="mb-5 rounded-md bg-[#FAF9F6] p-4">
+              <p className="text-xs font-bold text-[#9CA3AF]">当前草稿（{(polishedDraft || draft).length} 字）</p>
+              <p className="mt-1 text-sm leading-6 text-[#6B7280] line-clamp-3">
+                {(polishedDraft || draft).slice(0, 200)}{(polishedDraft || draft).length > 200 ? "..." : ""}
+              </p>
+            </div>
+
+            {/* Editor — shown after polish completes and modal is closed */}
+            {polishStarted && !showPolishModal && (
+              <>
+                <div className="mb-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-bold text-[#6B7280]">全文微调</p>
+                      {polishedDraft !== draft && (
+                        <span className="rounded-sm bg-[#FEF3E2] px-1.5 py-0.5 text-[11px] font-bold text-[#D97706]">已编辑</span>
+                      )}
+                    </div>
                     <button
                       type="button"
                       onClick={undo}
@@ -1074,36 +1162,78 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                       撤销
                     </button>
                   </div>
+                  <p className="text-sm leading-6 text-[#9CA3AF]">
+                    在此将原文修改成预审文本。
+                    {polishedDraft !== draft && " 编辑后的版本将用于模拟预审。"}
+                  </p>
                 </div>
-                <p className="text-sm leading-6 text-[#9CA3AF]">
-                  在此将原文修改成预审文本。
-                  {polishedDraft !== draft && "编辑后的版本将用于模拟预审。"}
-                </p>
-              </div>
-              <textarea
-                id="polish-editor-textarea"
-                value={polishedDraft || draft}
-                onChange={(e) => updatePolishedDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
-                    e.preventDefault();
-                    undo();
-                  }
-                }}
-                className="flex-1 w-full resize-none rounded-md border border-[#E8E6E1] bg-white px-3 py-3 text-sm leading-8 text-[#141413] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#141413]/10 min-h-[60vh] lg:min-h-0"
-                placeholder="暂无草稿内容"
-              />
-              <div className="mt-4 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCurrentStep(3);
-                    setError("");
+                <textarea
+                  id="polish-editor-textarea"
+                  value={polishedDraft || draft}
+                  onChange={(e) => updatePolishedDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+                      e.preventDefault();
+                      undo();
+                    }
                   }}
-                  className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
-                >
-                  下一步：模拟预审
-                </button>
+                  className="w-full resize-none rounded-md border border-[#E8E6E1] bg-white px-3 py-3 text-sm leading-8 text-[#141413] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#141413]/10 min-h-[40vh]"
+                  placeholder="暂无草稿内容"
+                />
+              </>
+            )}
+
+            {/* Loading spinner — only before first polish */}
+            {isLoading && !polishStarted && (
+              <div className="mb-5 rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-12 text-center text-sm text-[#6B7280]">
+                {loadingSteps[loadingStepIndex]}，请稍候...
+              </div>
+            )}
+
+            {/* Bottom buttons */}
+            <div className="mt-6 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => { setCurrentStep(1); setError(""); }}
+                className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
+              >
+                上一步
+              </button>
+              <div className="flex items-center gap-3">
+                {!isLoading && !polishStarted && (
+                  <button
+                    type="button"
+                    onClick={handlePolishStream}
+                    className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
+                  >
+                    开始打磨
+                  </button>
+                )}
+                {!isLoading && polishStarted && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={openPolishModal}
+                      className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
+                    >
+                      打磨
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handlePolishStream}
+                      className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
+                    >
+                      再次打磨
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setCurrentStep(3); setError(""); }}
+                      className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
+                    >
+                      下一步：模拟预审
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -1406,6 +1536,115 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
             </div>
           </div>
         </div>
+      )}
+      {/* 全屏打磨弹窗 */}
+      {showPolishModal && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setShowPolishModal(false)} />
+          <div className="fixed inset-4 md:inset-8 bg-white rounded-lg shadow-2xl z-50 flex flex-col max-w-[1400px] mx-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#E8E6E1] shrink-0">
+              <h2 className="text-base font-bold text-[#141413]">逐栏打磨</h2>
+              <div className="flex items-center gap-3">
+                {!isLoading && (
+                  <button
+                    type="button"
+                    onClick={handlePolishStream}
+                    className="text-xs font-bold text-[#6B7280] hover:text-[#141413] transition"
+                  >
+                    再次打磨
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowPolishModal(false)}
+                  className="text-[#9CA3AF] hover:text-[#141413] transition text-lg leading-none"
+                  aria-label="关闭"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-1 min-h-0">
+              <div className="w-48 shrink-0 border-r border-[#E8E6E1] p-4 space-y-0.5 overflow-y-auto">
+                {polishSectionsState.map((s, i) => (
+                  <button
+                    key={s.name}
+                    type="button"
+                    onClick={() => { if (s.status === "done") setViewIdx(i); }}
+                    disabled={s.status === "pending"}
+                    className={`w-full text-left px-3 py-2 rounded text-xs flex items-center gap-2.5 transition
+                      ${viewIdx === i ? "bg-[#E8E6E1]" : ""}
+                      ${s.status === "done" ? "cursor-pointer hover:bg-[#F3F2EF]" : "cursor-default"}
+                    `}
+                  >
+                    <span className={`shrink-0 w-2 h-2 rounded-full
+                      ${s.status === "done" ? "bg-emerald-500" : ""}
+                      ${s.status === "streaming" ? "bg-sky-500 animate-pulse" : ""}
+                      ${s.status === "pending" ? "bg-slate-300" : ""}
+                    `} />
+                    <span className={`truncate text-xs leading-tight
+                      ${s.status === "pending" ? "text-[#D1D5DB]" : "text-[#141413]"}
+                      ${s.status === "streaming" ? "font-bold" : ""}
+                    `}>{s.name}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="flex-1 p-6 overflow-y-auto">
+                {(() => {
+                  const sec = polishSectionsState[viewIdx];
+                  if (!sec) return null;
+                  const parts = parseSectionParts(sec.content);
+                  const isEmpty = !sec.content && sec.status === "streaming";
+                  return (
+                    <div>
+                      <h3 className="text-base font-bold text-[#141413] mb-6 flex items-center gap-2">
+                        {sec.name}
+                        {sec.status === "streaming" && (
+                          <span className="text-xs font-normal text-sky-600 animate-pulse">打磨中</span>
+                        )}
+                        {sec.status === "done" && (
+                          <span className="text-xs font-normal text-emerald-600">✓ 完成</span>
+                        )}
+                      </h3>
+                      {isEmpty ? (
+                        <p className="text-sm text-[#9CA3AF]">正在分析中...</p>
+                      ) : (
+                        <div className="text-sm leading-7 text-[#141413]">
+                          {parts.map((part, j) => (
+                            <div key={j} className={j > 0 ? "mt-5" : ""}>
+                              <p className="text-xs font-bold text-[#6B7280] mb-2">{part.heading}</p>
+                              <div className={
+                                part.heading === "识别到的原文"
+                                  ? "border-l-2 border-[#E8E6E1] bg-[#FAF9F6] px-4 py-3 text-[13px] leading-7 text-[#6B7280]"
+                                  : part.heading === "修改后文本"
+                                    ? "font-semibold"
+                                    : ""
+                              }>
+                                <span className="whitespace-pre-wrap">{part.body}</span>
+                              </div>
+                            </div>
+                          ))}
+                          {sec.status === "streaming" && (
+                            <span className="animate-pulse text-sky-500">▊</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+            <div className="flex justify-center px-6 py-4 border-t border-[#E8E6E1] shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowPolishModal(false)}
+                className="focus-ring h-11 rounded-md bg-[#141413] px-8 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
+              >
+                关闭，进入全文微调
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </main>
   );
