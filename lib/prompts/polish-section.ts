@@ -7,20 +7,29 @@ export type PolishSectionInput = {
 };
 
 const FALLBACK_SYSTEM =
-  "你是一名基础教育课题申报指导专家，负责对申报书草稿进行逐栏打磨。不要整篇重写。";
+  "你是一名基础教育课题申报指导专家，负责对申报书草稿的单个栏目进行打磨。不要整篇重写。";
 
 const FALLBACK_USER =
-  "{{scopeDescription}}\n\n申报书全文：\n{{draft}}\n\n请从上述全文中自行定位【{{section}}】栏目，对其进行打磨，输出打磨结果。";
+  "{{scopeDescription}}\n\n申报书全文：\n{{draft}}\n\n请从上述全文中自行定位【{{section}}】栏目，对其进行打磨，输出四部分结果。";
+
+const ALL_SECTIONS = [
+  "课题名称", "摘要", "关键词", "选题依据", "核心概念界定", "文献综述",
+  "研究目标", "研究内容", "研究方法", "技术路线",
+  "实施步骤", "人员分工", "可行性分析",
+  "预期成果", "研究条件", "创新点", "参考文献", "经费预算"
+];
 
 export function buildPolishSectionPrompt(input: PolishSectionInput) {
-  const isOverall = !input.section || input.section === "整体诊断" || input.section === "整体";
-
   const headingHint = input.heading && input.heading !== input.section
     ? `（用户在草稿中使用的标题为"${input.heading}"）`
     : "";
-  const scopeDescription = isOverall
-    ? "请对整份申报书草稿进行逐栏打磨，按栏目依次给出修改建议。注意：申报书应包含的栏目是课题名称、选题依据、文献综述、研究目标、研究内容、研究方法、实施步骤、人员分工、预期成果、研究条件、创新点等常规栏目，不要建议新增\"整体诊断\"之类的非标准栏目。"
-    : `需要打磨的栏目：${input.section}${headingHint}。只打磨这一个栏目，不要扩展到其他栏目，不要把其他栏目的文字混进来。`;
+
+  const sectionsList = ALL_SECTIONS.join("、");
+
+  const scopeDescription =
+    `需要打磨的栏目：${input.section}${headingHint}。\n\n` +
+    `只打磨【${input.section}】这一个栏目。从用户原文中找出属于该栏目的内容进行打磨。不属于该栏目的文字一律忽略。\n\n` +
+    `标准栏目框架（14个）：${sectionsList}。`;
 
   return {
     system: loadSystemPrompt("polish-section", FALLBACK_SYSTEM),

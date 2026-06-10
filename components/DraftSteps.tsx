@@ -59,16 +59,23 @@ const draftExamples: Array<{ label: string; value: string }> = [
 
 const polishSections = [
   "课题名称",
+  "摘要",
+  "关键词",
   "选题依据",
+  "核心概念界定",
   "文献综述",
   "研究目标",
   "研究内容",
   "研究方法",
+  "技术路线",
   "实施步骤",
   "人员分工",
+  "可行性分析",
   "预期成果",
   "研究条件",
-  "创新点"
+  "创新点",
+  "参考文献",
+  "经费预算"
 ];
 
 const loadingSteps = ["正在分析中", "正在整理思路", "正在生成结果"];
@@ -82,6 +89,15 @@ type PolishSectionState = {
   status: "pending" | "streaming" | "done";
   content: string;
 };
+
+function ensureIndent(text: string): string {
+  if (!text) return text;
+  return text.split("\n").map(line => {
+    if (!line.trim()) return line;
+    if (line.startsWith("　　")) return line;
+    return "　　" + line.replace(/^\s*/, "");
+  }).join("\n");
+}
 
 function parseSectionParts(content: string) {
   const labels = ["识别到的原文", "原栏目问题", "修改建议", "修改后文本"];
@@ -452,6 +468,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
   const lastDiagnosedDraft = useRef("");
   const restoredRef = useRef(false);
   const retryRef = useRef<(() => void) | null>(null);
+  const polishContentRef = useRef<Map<number, string>>(new Map());
 
   // Post-polish tool state
   const [livePageResult, setLivePageResult] = usePersistedState<string>("ph-livepage-result", "");
@@ -627,6 +644,16 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
   }
 
   function setDraftOnly(value: string) {
+    if (value !== draft) {
+      setCompletedDiagnosis(false);
+      setCompletedPolish(false);
+      setPolishStarted(false);
+      setResultText("");
+      setResultTitle("");
+      setPolishedDraft("");
+      setPolishSectionsState(polishSections.map(name => ({ name, status: "pending" as const, content: "" })));
+      setDetectedSections(polishSections.map(s => ({ standard: s, heading: null, content: null })));
+    }
     setDraft(value);
   }
 
@@ -744,6 +771,20 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
     runStreamingAction("整体诊断结果", "/api/review-draft", { draft: content, scope: "整体诊断", allowCollection });
   }
 
+  function assembleFullDraft() {
+    const contentMap = polishContentRef.current;
+    let fullDraft = "";
+    for (let i = 0; i < polishSections.length; i++) {
+      const content = contentMap.get(i) || "";
+      const parts = parseSectionParts(content);
+      const modifiedText = parts.find(p => p.heading === "修改后文本")?.body || "";
+      if (modifiedText.trim()) {
+        fullDraft += `${polishSections[i]}\n${ensureIndent(modifiedText)}\n\n`;
+      }
+    }
+    setPolishedDraft(fullDraft.trim());
+  }
+
   function handlePolishStream() {
     const content = polishedDraft || draft;
     if (!content.trim()) {
@@ -758,89 +799,71 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
     setCompletedPolish(false);
 
     const initial: PolishSectionState[] = polishSections.map(name => ({ name, status: "pending", content: "" }));
-    initial[0] = { ...initial[0], status: "streaming" };
     setPolishSectionsState(initial);
-    setCurrentStreamIdx(0);
     setViewIdx(0);
-
-    const interval = window.setInterval(() => {
-      setLoadingStepIndex((prev) => (prev + 1) % loadingSteps.length);
-    }, 1600);
-
-    let buffer = "";
-    let sectionIdx = 0;
+    polishContentRef.current.clear();
     retryRef.current = () => handlePolishStream();
 
-    const SECTION = "---SECTION---";
-    const FULL_DRAFT = "---FULL-DRAFT---";
+    const total = polishSections.length;
+    let completedCount = 0;
 
-    postAiStream("/api/polish-all", { draft: content, allowCollection }, (chunk) => {
-      if (!buffer) clearInterval(interval);
-      buffer += chunk;
+    polishSections.forEach((sectionName, i) => {
+      const heading = detectedSections.find(s => s.standard === sectionName)?.heading || undefined;
 
-      let processed = false;
-      while (!processed) {
-        const sIdx = buffer.indexOf(SECTION);
-        const fIdx = buffer.indexOf(FULL_DRAFT);
-        const hasSection = sIdx !== -1 && (fIdx === -1 || sIdx < fIdx);
-        const hasFullDraft = fIdx !== -1 && (sIdx === -1 || fIdx < sIdx);
-
-        if (hasSection) {
-          const secContent = buffer.slice(0, sIdx).trim();
-          buffer = buffer.slice(sIdx + SECTION.length);
-          setPolishSectionsState(prev => {
-            const next = [...prev];
-            if (next[sectionIdx]) next[sectionIdx] = { name: next[sectionIdx].name, status: "done", content: secContent };
-            return next;
-          });
-          sectionIdx++;
-          if (sectionIdx < polishSections.length) {
-            setCurrentStreamIdx(sectionIdx);
-            setViewIdx(sectionIdx);
-            setPolishSectionsState(prev => {
-              const next = [...prev];
-              if (next[sectionIdx]) next[sectionIdx] = { ...next[sectionIdx], status: "streaming" };
-              return next;
-            });
-          }
-        } else if (hasFullDraft) {
-          const secContent = buffer.slice(0, fIdx).trim();
-          buffer = buffer.slice(fIdx);
-          setPolishSectionsState(prev => {
-            const next = [...prev];
-            if (next[sectionIdx]) next[sectionIdx] = { name: next[sectionIdx].name, status: "done", content: secContent };
-            return next;
-          });
-          processed = true;
-        } else {
-          setPolishSectionsState(prev => {
-            const next = [...prev];
-            if (next[sectionIdx]) next[sectionIdx] = { ...next[sectionIdx], content: buffer };
-            return next;
-          });
-          processed = true;
-        }
-      }
-    }, allowCollection)
-      .then(() => {
-        clearInterval(interval);
-        const fIdx = buffer.indexOf(FULL_DRAFT);
-        const polishedFullDraft = fIdx !== -1
-          ? buffer.slice(fIdx + FULL_DRAFT.length).trim()
-          : "";
-        setPolishSectionsState(prev => prev.map(s =>
-          s.status === "done" ? s : { ...s, status: "done" as const }
-        ));
-        if (polishedFullDraft) {
-          setPolishedDraft(polishedFullDraft);
-        }
-        setCompletedPolish(true);
-        setIsLoading(false);
-      })
-      .catch((caught) => {
-        setError(caught instanceof Error ? caught.message : "处理失败，请稍后重试。");
-        setIsLoading(false);
+      setPolishSectionsState(prev => {
+        const next = [...prev];
+        next[i] = { ...next[i], status: "streaming" };
+        return next;
       });
+
+      let buffer = "";
+      postAiStream("/api/polish-section", {
+        draft: content,
+        section: sectionName,
+        heading,
+        allowCollection
+      }, (chunk) => {
+        buffer += chunk;
+        polishContentRef.current.set(i, buffer);
+        setPolishSectionsState(prev => {
+          const next = [...prev];
+          next[i] = { ...next[i], content: buffer };
+          return next;
+        });
+      })
+        .then(() => {
+          polishContentRef.current.set(i, buffer);
+          setPolishSectionsState(prev => {
+            const next = [...prev];
+            next[i] = { ...next[i], status: "done", content: buffer };
+            return next;
+          });
+          completedCount++;
+          if (completedCount === 1) setViewIdx(i);
+          if (completedCount === total) {
+            setIsLoading(false);
+            setCompletedPolish(true);
+            assembleFullDraft();
+          }
+        })
+        .catch((caught) => {
+          const errorMsg = caught instanceof Error ? caught.message : "打磨失败";
+          const errorContent = `**识别到的原文**\n\n**原栏目问题**\n${errorMsg}\n\n**修改建议**\n请重试。\n\n**修改后文本**\n打磨失败，请重试。`;
+          polishContentRef.current.set(i, errorContent);
+          setPolishSectionsState(prev => {
+            const next = [...prev];
+            next[i] = { ...next[i], status: "done", content: errorContent };
+            return next;
+          });
+          completedCount++;
+          if (completedCount === 1) setViewIdx(i);
+          if (completedCount === total) {
+            setIsLoading(false);
+            setCompletedPolish(true);
+            assembleFullDraft();
+          }
+        });
+    });
   }
 
   function openPolishModal() {
@@ -1061,8 +1084,11 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
 
             {isLoading ? (
               resultText ? (
-                <div className="rounded-md bg-[#FAF9F6] p-4 text-sm leading-8 whitespace-pre-wrap text-[#141413]">
-                  {resultText}<span className="animate-pulse">▊</span>
+                <div className="space-y-3 rounded-md bg-[#FAF9F6] p-5 text-sm leading-8 text-[#141413]">
+                  {resultText.split("---SECTIONS---")[0].split("\n\n").map((block, i) => (
+                    <p key={i} className="whitespace-pre-wrap">{block}</p>
+                  ))}
+                  <span className="animate-pulse">▊</span>
                 </div>
               ) : (
                 <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-8 text-center text-sm text-[#6B7280]">
@@ -1094,7 +1120,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
               <div className="mt-6">
                 <h3 className="mb-3 text-sm font-bold text-[#141413]">诊断结果</h3>
                 <div className="space-y-3 rounded-md bg-[#FAF9F6] p-5 text-sm leading-8 text-[#141413]">
-                  {resultText.split("\n\n").map((block, i) => (
+                  {resultText.split("---SECTIONS---")[0].split("\n\n").map((block, i) => (
                     <p key={i} className="whitespace-pre-wrap">
                       {block}
                     </p>
@@ -1216,14 +1242,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                       onClick={openPolishModal}
                       className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
                     >
-                      打磨
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handlePolishStream}
-                      className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
-                    >
-                      再次打磨
+                      查看打磨结果
                     </button>
                     <button
                       type="button"
@@ -1545,15 +1564,6 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
             <div className="flex items-center justify-between px-6 py-4 border-b border-[#E8E6E1] shrink-0">
               <h2 className="text-base font-bold text-[#141413]">逐栏打磨</h2>
               <div className="flex items-center gap-3">
-                {!isLoading && (
-                  <button
-                    type="button"
-                    onClick={handlePolishStream}
-                    className="text-xs font-bold text-[#6B7280] hover:text-[#141413] transition"
-                  >
-                    再次打磨
-                  </button>
-                )}
                 <button
                   type="button"
                   onClick={() => setShowPolishModal(false)}
@@ -1620,7 +1630,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                                     ? "font-semibold"
                                     : ""
                               }>
-                                <span className="whitespace-pre-wrap">{part.body}</span>
+                                <span className="whitespace-pre-wrap">{part.heading === "修改后文本" ? ensureIndent(part.body) : part.body}</span>
                               </div>
                             </div>
                           ))}
