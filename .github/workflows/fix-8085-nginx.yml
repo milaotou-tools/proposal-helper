@@ -11,26 +11,46 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.ALIYUN_SSH_KEY }}
 
-      - name: Fix pm2 and nginx for paid version
+      - name: Fix port conflict and deploy paid version
         env:
           ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
           DEEPSEEK_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: |
           SSH_PORT="${ALIYUN_PORT:-22}"
           ssh -p "$SSH_PORT" -o StrictHostKeyChecking=accept-new "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" '
-            echo "=== PM2 logs for proposal-helper-paid (last 30 lines) ==="
-            pm2 logs proposal-helper-paid --lines 30 --nostream 2>/dev/null || echo "No logs"
+            set -e
+
+            echo "=== What is using port 3006? ==="
+            ss -tlnp | grep 3006 || echo "Nothing on 3006"
             echo ""
-            echo "=== Checking .env.local ==="
-            cat /www/wwwroot/proposal-helper-paid/.env.local 2>/dev/null || echo "No .env.local"
+            echo "=== What is using port 3005? ==="
+            ss -tlnp | grep 3005 || echo "Nothing on 3005"
+
             echo ""
-            echo "=== Trying to start manually ==="
-            pm2 delete proposal-helper-paid 2>/dev/null || true
-            fuser -k 3006/tcp 2>/dev/null || true
+            echo "=== Kill anything on 3006 ==="
+            fuser -k 3006/tcp 2>/dev/null && echo "Killed process on 3006" || echo "Nothing to kill on 3006"
             sleep 2
+
+            echo "=== Delete PM2 paid process ==="
+            pm2 delete proposal-helper-paid 2>/dev/null || true
+            pm2 save --force
+            sleep 2
+
+            echo "=== Verify 3006 is free ==="
+            ss -tlnp | grep 3006 && echo "STILL IN USE!" || echo "3006 is free"
+
+            echo "=== Restart paid version ==="
             cd /www/wwwroot/proposal-helper-paid
-            PORT=3006 npx next start -p 3006 &
+            pm2 start npx --name proposal-helper-paid -- next start -p 3006
+            pm2 save
+
+            echo "=== PM2 list ==="
+            pm2 list
+
             sleep 5
-            curl -s -o /dev/null -w "Manual start: HTTP %{http_code}\n" http://127.0.0.1:3006/
-            pkill -f "next start -p 3006" 2>/dev/null || true
+            echo "=== Test 3006 ==="
+            curl -s -o /dev/null -w "3006: HTTP %{http_code}\n" http://127.0.0.1:3006/
+
+            echo "=== Test 8085 via nginx ==="
+            curl -s -o /dev/null -w "8085: HTTP %{http_code}\n" http://127.0.0.1:8085/
           '
