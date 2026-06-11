@@ -29,7 +29,8 @@ export function buildPolishSectionPrompt(input: PolishSectionInput) {
   const scopeDescription =
     `需要打磨的栏目：${input.section}${headingHint}。\n\n` +
     `只打磨【${input.section}】这一个栏目。从用户原文中找出属于该栏目的内容进行打磨。不属于该栏目的文字一律忽略。\n\n` +
-    `标准栏目框架（14个）：${sectionsList}。`;
+    `标准栏目框架（${ALL_SECTIONS.length}个）：${sectionsList}。\n\n` +
+    `⚠️ 输出铁律：以下四个标题必须原样照抄输出——**识别到的原文**、**原栏目问题**、**修改建议**、**修改后文本**。一个都不能少，不得修改标题文字，不得省略任何一个。`;
 
   return {
     system: loadSystemPrompt("polish-section", FALLBACK_SYSTEM),
