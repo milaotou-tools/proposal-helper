@@ -1,4 +1,5 @@
 import { fillTemplate, loadSystemPrompt, loadUserTemplate } from "./load-prompt";
+import { SHARED_FORMAT_RULES } from "./format-rules";
 
 export type SuggestOutputsInput = {
   discipline: string;
@@ -17,7 +18,7 @@ const FALLBACK_USER =
 
 export function buildSuggestOutputsPrompt(input: SuggestOutputsInput) {
   return {
-    system: loadSystemPrompt("suggest-outputs", FALLBACK_SYSTEM),
+    system: loadSystemPrompt("suggest-outputs", FALLBACK_SYSTEM) + "\n\n" + SHARED_FORMAT_RULES,
     user: fillTemplate(loadUserTemplate("suggest-outputs", FALLBACK_USER), {
       discipline: input.discipline,
       gradeSegment: input.gradeSegment,

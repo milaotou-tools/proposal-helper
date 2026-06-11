@@ -1,4 +1,5 @@
 import { fillTemplate, loadSystemPrompt, loadUserTemplate } from "./load-prompt";
+import { SHARED_FORMAT_RULES } from "./format-rules";
 
 export type GenerateFrameworkInput = {
   stageSubject: string;
@@ -17,7 +18,7 @@ const FALLBACK_USER =
 
 export function buildGenerateFrameworkPrompt(input: GenerateFrameworkInput) {
   return {
-    system: loadSystemPrompt("generate-framework", FALLBACK_SYSTEM),
+    system: loadSystemPrompt("generate-framework", FALLBACK_SYSTEM) + "\n\n" + SHARED_FORMAT_RULES,
     user: fillTemplate(loadUserTemplate("generate-framework", FALLBACK_USER), {
       stageSubject: input.stageSubject || "需用户补充",
       idea: input.idea || "需用户补充",

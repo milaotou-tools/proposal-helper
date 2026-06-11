@@ -1,4 +1,5 @@
 import { fillTemplate, loadSystemPrompt, loadUserTemplate } from "./load-prompt";
+import { SHARED_FORMAT_RULES } from "./format-rules";
 
 export type TopicGuidanceInput = {
   discipline: string;
@@ -15,7 +16,7 @@ const FALLBACK_USER =
 
 export function buildTopicGuidancePrompt(input: TopicGuidanceInput) {
   return {
-    system: loadSystemPrompt("topic-guidance", FALLBACK_SYSTEM),
+    system: loadSystemPrompt("topic-guidance", FALLBACK_SYSTEM) + "\n\n" + SHARED_FORMAT_RULES,
     user: fillTemplate(loadUserTemplate("topic-guidance", FALLBACK_USER), {
       discipline: input.discipline,
       gradeSegment: input.gradeSegment,

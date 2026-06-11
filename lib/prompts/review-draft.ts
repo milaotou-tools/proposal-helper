@@ -1,4 +1,5 @@
 import { fillTemplate, loadSystemPrompt, loadUserTemplate } from "./load-prompt";
+import { SHARED_FORMAT_RULES } from "./format-rules";
 
 export type ReviewDraftInput = {
   draft: string;
@@ -18,7 +19,7 @@ export function buildReviewDraftPrompt(input: ReviewDraftInput) {
       : "诊断范围：整份申报书（所有栏目）";
 
   return {
-    system: loadSystemPrompt("review-draft", FALLBACK_SYSTEM),
+    system: loadSystemPrompt("review-draft", FALLBACK_SYSTEM) + "\n\n" + SHARED_FORMAT_RULES,
     user: fillTemplate(loadUserTemplate("review-draft", FALLBACK_USER), {
       scopeInstruction,
       draft: input.draft,

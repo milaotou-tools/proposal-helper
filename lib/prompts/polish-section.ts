@@ -1,4 +1,5 @@
 import { fillTemplate, loadSystemPrompt, loadUserTemplate } from "./load-prompt";
+import { SHARED_FORMAT_RULES } from "./format-rules";
 
 export type PolishSectionInput = {
   draft: string;
@@ -34,7 +35,7 @@ export function buildPolishSectionPrompt(input: PolishSectionInput) {
     `⚠️ 编号格式：所有列举必须使用编号，禁止使用短横 - 或星号 * 作为列表符号。层级顺序：第一层用 一、二、三、 第二层用 1. 2. 3. 第三层用（1）（2）（3）。`;
 
   return {
-    system: loadSystemPrompt("polish-section", FALLBACK_SYSTEM),
+    system: loadSystemPrompt("polish-section", FALLBACK_SYSTEM) + "\n\n" + SHARED_FORMAT_RULES,
     user: fillTemplate(loadUserTemplate("polish-section", FALLBACK_USER), {
       scopeDescription,
       draft: input.draft,

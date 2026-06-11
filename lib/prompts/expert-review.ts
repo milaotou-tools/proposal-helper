@@ -1,4 +1,5 @@
 import { fillTemplate, loadSystemPrompt, loadUserTemplate } from "./load-prompt";
+import { SHARED_FORMAT_RULES } from "./format-rules";
 
 export type ExpertReviewInput = {
   draft: string;
@@ -12,7 +13,7 @@ const FALLBACK_USER =
 
 export function buildExpertReviewPrompt(input: ExpertReviewInput) {
   return {
-    system: loadSystemPrompt("expert-review", FALLBACK_SYSTEM),
+    system: loadSystemPrompt("expert-review", FALLBACK_SYSTEM) + "\n\n" + SHARED_FORMAT_RULES,
     user: fillTemplate(loadUserTemplate("expert-review", FALLBACK_USER), {
       draft: input.draft,
     }),
