@@ -11,58 +11,36 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.ALIYUN_SSH_KEY }}
 
-      - name: Write clean 8085 nginx config
-        env:
-          ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
-        run: |
-          SSH_PORT="${ALIYUN_PORT:-22}"
-          USER_HOST="${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}"
-
-          cat <<'NGINXEOF' | ssh -p "$SSH_PORT" -o StrictHostKeyChecking=accept-new "$USER_HOST" "cat > /www/server/panel/vhost/nginx/116.62.220.255_8085.conf"
-          server {
-              listen 8085;
-              server_name 116.62.220.255;
-              access_log /www/wwwlogs/116.62.220.255_8085.log;
-
-              location / {
-                  proxy_pass http://127.0.0.1:3007;
-                  proxy_set_header Host $host;
-                  proxy_set_header X-Real-IP $remote_addr;
-                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                  proxy_set_header X-Forwarded-Proto $scheme;
-                  proxy_set_header Upgrade $http_upgrade;
-                  proxy_set_header Connection "upgrade";
-                  proxy_buffering off;
-                  proxy_read_timeout 300s;
-                  proxy_send_timeout 300s;
-              }
-          }
-          NGINXEOF
-
-      - name: Test and reload nginx
+      - name: Open firewall and test 8085
         env:
           ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
         run: |
           SSH_PORT="${ALIYUN_PORT:-22}"
           ssh -p "$SSH_PORT" -o StrictHostKeyChecking=accept-new "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" '
-          echo "=== Config written ==="
-          cat -n /www/server/panel/vhost/nginx/116.62.220.255_8085.conf
+          echo "=== Open port 8085 via iptables ==="
+          iptables -I INPUT -p tcp --dport 8085 -j ACCEPT 2>&1 || true
+          service iptables save 2>/dev/null || true
+
+          # Also check if BT Panel has its own firewall
+          if [ -f /etc/init.d/bt ]; then
+            echo "BT Panel found, checking firewall panel"
+            bt 14 2>/dev/null || true
+          fi
 
           echo ""
-          echo "=== Test nginx config ==="
-          /www/server/nginx/sbin/nginx -t 2>&1 && echo "PASS" || { echo "FAIL"; exit 1; }
-
-          echo ""
-          echo "=== Reload nginx ==="
-          /www/server/nginx/sbin/nginx -s reload 2>&1 && echo "Reloaded OK" || { echo "Reload failed"; exit 1; }
-
-          sleep 2
+          echo "=== Check iptables rules for 8085 ==="
+          iptables -L INPUT -n 2>/dev/null | grep 8085 || echo "No iptables rule for 8085"
 
           echo ""
           echo "=== Test 8085 local ==="
           curl -s -o /dev/null -w "8085 local: HTTP %{http_code}\n" http://127.0.0.1:8085/
+          '
+
+      - name: Test 8085 from GitHub Actions runner
+        run: |
+          echo "=== Testing port 8085 from runner ==="
+          curl -s -o /dev/null -w "8085 from runner: HTTP %{http_code}\n" http://116.62.220.255:8085/ --connect-timeout 15 || echo "Connection failed from runner"
 
           echo ""
-          echo "=== Test 8085 external ==="
-          curl -s -o /dev/null -w "8085 external: HTTP %{http_code}\n" http://116.62.220.255:8085/
-          '
+          echo "=== Testing port 8083 for comparison ==="
+          curl -s -o /dev/null -w "8083 from runner: HTTP %{http_code}\n" http://116.62.220.255:8083/ --connect-timeout 15 || echo "Connection failed"
