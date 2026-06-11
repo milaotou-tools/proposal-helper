@@ -95,9 +95,11 @@ export function TopicGuidance({ onBack, onUseTopic }: Props) {
       true,
     )
       .then(() => {
+        const chNum = "[一二三四五六七八九十]+";
+        const separator = new RegExp(`\\n(?=(?:\\d+[.、\\)]|${chNum}[、])\\s)`);
         const topics = fullText
-          .split(/\n(?=\d+[\.\、\)]\s)/)
-          .map((t) => t.replace(/^\d+[\.\、\)]\s*/, "").trim())
+          .split(separator)
+          .map((t) => t.replace(new RegExp(`^(?:\\d+[.、\\)]|${chNum}[、])\\s*`), "").trim())
           .filter((t) => t.length > 5);
         setSuggestions(topics.length >= 3 ? topics : [fullText.trim()]);
       })
