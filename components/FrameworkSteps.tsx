@@ -6,6 +6,7 @@ import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { DailyQuota } from "@/components/DailyQuota";
 import { usePersistedState } from "@/lib/use-persisted-state";
 import { postAiStream, stripMarkdown, copyToClipboard } from "@/lib/utils";
+import { formatOutput } from "@/lib/format-output";
 import type { SaveSnapshot } from "@/lib/save-store";
 
 export type FrameworkForm = {
@@ -284,10 +285,10 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
     postAiStream("/api/generate-framework", form, (chunk) => {
       if (!fullText) clearInterval(interval);
       fullText += chunk;
-      setResultText(stripMarkdown(fullText));
+      setResultText(formatOutput(stripMarkdown(fullText)));
     }, allowCollection)
       .then(() => {
-        setResultText(stripMarkdown(fullText));
+        setResultText(formatOutput(stripMarkdown(fullText)));
         setCurrentStep(4);
       })
       .catch((caught) => {

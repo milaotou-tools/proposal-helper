@@ -6,6 +6,7 @@ import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { DailyQuota } from "@/components/DailyQuota";
 import { usePersistedState } from "@/lib/use-persisted-state";
 import { postAiStream, stripMarkdown, copyToClipboard } from "@/lib/utils";
+import { formatOutput } from "@/lib/format-output";
 import type { SaveSnapshot } from "@/lib/save-store";
 
 const DRAFT_STEPS = [
@@ -601,7 +602,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
         const displayText = fullText.slice(0, displayEnd);
         const polishedFullDraft = fullDraftIdx !== -1 ? fullText.slice(fullDraftIdx + "---FULL-DRAFT---".length).trim() : "";
 
-        const cleaned = stripMarkdown(displayText);
+        const cleaned = formatOutput(stripMarkdown(displayText));
         setResultText(cleaned);
         if (title === "整体诊断结果") {
           setCompletedDiagnosis(true);
@@ -793,7 +794,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
           polishContentRef.current.set(i, buffer);
           setPolishSectionsState(prev => {
             const next = [...prev];
-            next[i] = { ...next[i], status: "done", content: buffer };
+            next[i] = { ...next[i], status: "done", content: formatOutput(buffer) };
             return next;
           });
           completedCount++;
