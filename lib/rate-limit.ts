@@ -1,5 +1,5 @@
 export const DAILY_LIMIT = 30;
-export const MINUTE_LIMIT = 5;
+export const MINUTE_LIMIT = 20;
 
 type RateLimitEntry = {
   minuteWindow: { count: number; resetAt: number };

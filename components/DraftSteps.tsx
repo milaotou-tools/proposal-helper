@@ -753,20 +753,12 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
     polishContentRef.current.clear();
     retryRef.current = () => handlePolishStream();
 
+    const MAX_CONCURRENT = 4;
+    const MAX_RETRIES = 3;
     let completedCount = 0;
+    let nextIndex = 0;
 
-    polishSections.forEach((sectionName, i) => {
-      // Skip unchecked sections
-      if (!selectedSections[i]) {
-        completedCount++;
-        if (completedCount === polishSections.length) {
-          setIsLoading(false);
-          setCompletedPolish(true);
-          assembleFullDraft();
-        }
-        return;
-      }
-
+    async function polishOne(sectionName: string, i: number, attempt: number = 0): Promise<void> {
       const heading = detectedSections.find(s => s.standard === sectionName)?.heading || undefined;
 
       setPolishSectionsState(prev => {
@@ -776,53 +768,80 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
       });
 
       let buffer = "";
-      postAiStream("/api/polish-section", {
-        draft: content,
-        section: sectionName,
-        heading,
-        allowCollection
-      }, (chunk) => {
-        buffer += chunk;
-        polishContentRef.current.set(i, buffer);
-        setPolishSectionsState(prev => {
-          const next = [...prev];
-          next[i] = { ...next[i], content: buffer };
-          return next;
-        });
-      })
-        .then(() => {
+      try {
+        await postAiStream("/api/polish-section", {
+          draft: content,
+          section: sectionName,
+          heading,
+          allowCollection
+        }, (chunk) => {
+          buffer += chunk;
           polishContentRef.current.set(i, buffer);
           setPolishSectionsState(prev => {
             const next = [...prev];
-            next[i] = { ...next[i], status: "done", content: formatOutput(buffer) };
+            next[i] = { ...next[i], content: buffer };
             return next;
           });
-          completedCount++;
-          if (completedCount === 1) setViewIdx(i);
-          if (completedCount === polishSections.length) {
-            setIsLoading(false);
-            setCompletedPolish(true);
-            assembleFullDraft();
-          }
-        })
-        .catch((caught) => {
-          const errorMsg = caught instanceof Error ? caught.message : "打磨失败";
-          const errorContent = `**识别到的原文**\n\n**原栏目问题**\n${errorMsg}\n\n**修改建议**\n请重试。\n\n**修改后文本**\n打磨失败，请重试。`;
-          polishContentRef.current.set(i, errorContent);
-          setPolishSectionsState(prev => {
-            const next = [...prev];
-            next[i] = { ...next[i], status: "done", content: errorContent };
-            return next;
-          });
-          completedCount++;
-          if (completedCount === 1) setViewIdx(i);
-          if (completedCount === polishSections.length) {
-            setIsLoading(false);
-            setCompletedPolish(true);
-            assembleFullDraft();
-          }
         });
-    });
+
+        polishContentRef.current.set(i, buffer);
+        setPolishSectionsState(prev => {
+          const next = [...prev];
+          next[i] = { ...next[i], status: "done", content: formatOutput(buffer) };
+          return next;
+        });
+        completedCount++;
+        if (completedCount === 1) setViewIdx(i);
+        if (completedCount === polishSections.length) {
+          setIsLoading(false);
+          setCompletedPolish(true);
+          assembleFullDraft();
+        }
+      } catch (caught) {
+        const errorMsg = caught instanceof Error ? caught.message : "";
+        // Retry on rate limit
+        if (errorMsg.includes("429") && attempt < MAX_RETRIES) {
+          await new Promise(r => setTimeout(r, 3000 * (attempt + 1)));
+          return polishOne(sectionName, i, attempt + 1);
+        }
+        const displayMsg = errorMsg || "打磨失败";
+        const errorContent = `**识别到的原文**\n\n**原栏目问题**\n${displayMsg}\n\n**修改建议**\n请重试。\n\n**修改后文本**\n打磨失败，请重试。`;
+        polishContentRef.current.set(i, errorContent);
+        setPolishSectionsState(prev => {
+          const next = [...prev];
+          next[i] = { ...next[i], status: "done", content: errorContent };
+          return next;
+        });
+        completedCount++;
+        if (completedCount === 1) setViewIdx(i);
+        if (completedCount === polishSections.length) {
+          setIsLoading(false);
+          setCompletedPolish(true);
+          assembleFullDraft();
+        }
+      }
+    }
+
+    async function runNext(): Promise<void> {
+      while (nextIndex < polishSections.length) {
+        const idx = nextIndex++;
+        const name = polishSections[idx];
+        if (!selectedSections[idx]) {
+          completedCount++;
+          if (completedCount === polishSections.length) {
+            setIsLoading(false);
+            setCompletedPolish(true);
+            assembleFullDraft();
+          }
+          continue;
+        }
+        await polishOne(name, idx);
+      }
+    }
+
+    // Start MAX_CONCURRENT workers
+    const workers = Array.from({ length: Math.min(MAX_CONCURRENT, polishSections.length) }, () => runNext());
+    Promise.all(workers);
   }
 
   function openPolishModal() {
