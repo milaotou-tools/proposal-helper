@@ -71,9 +71,17 @@ export async function postAiStream(
   if (!reader) throw new Error("响应体不可读");
 
   const decoder = new TextDecoder();
+  let fullText = "";
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
-    onChunk(decoder.decode(value, { stream: true }));
+    const chunk = decoder.decode(value, { stream: true });
+    fullText += chunk;
+    onChunk(chunk);
+  }
+  // Detect server-side [ERROR] marker injected into stream body
+  const errorMatch = fullText.match(/\[ERROR\]\s*(.+?)(?:\n|$)/);
+  if (errorMatch) {
+    throw new Error(errorMatch[1] || "AI 服务异常，请重试。");
   }
 }

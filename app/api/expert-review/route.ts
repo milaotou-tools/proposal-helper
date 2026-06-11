@@ -1,10 +1,10 @@
 import { buildExpertReviewPrompt } from "@/lib/prompts/expert-review";
-import { jsonError, runPromptStream, validateDraft } from "@/lib/route-helpers";
+import { jsonError, runPromptStream, safeBody, validateDraft } from "@/lib/route-helpers";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as Record<string, unknown>;
+  const body = await safeBody(request);
   const input = {
     draft: validateDraft(body.draft)
   };

@@ -1,10 +1,10 @@
 import { buildSuggestOutputsPrompt } from "@/lib/prompts/suggest-outputs";
-import { jsonError, runPromptStream, validateField } from "@/lib/route-helpers";
+import { jsonError, runPromptStream, safeBody, validateField } from "@/lib/route-helpers";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as Record<string, unknown>;
+  const body = await safeBody(request);
   const discipline = validateField(body.discipline);
   const gradeSegment = validateField(body.gradeSegment);
   const idea = validateField(body.idea);

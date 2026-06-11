@@ -48,7 +48,7 @@ export async function* streamChatCompletion(messages: ChatMessage[]): AsyncGener
   const baseUrl = normalizeBaseUrl(process.env.DEEPSEEK_BASE_URL || process.env.OPENAI_BASE_URL || DEFAULT_BASE_URL);
   const model = process.env.DEEPSEEK_MODEL || process.env.OPENAI_MODEL || DEFAULT_MODEL;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 600000);
+  const timeout = setTimeout(() => controller.abort(), 120000);
 
   try {
     const response = await fetch(`${baseUrl}/chat/completions`, {
@@ -123,7 +123,7 @@ export async function createChatCompletion(messages: ChatMessage[]) {
   const baseUrl = normalizeBaseUrl(process.env.DEEPSEEK_BASE_URL || process.env.OPENAI_BASE_URL || DEFAULT_BASE_URL);
   const model = process.env.DEEPSEEK_MODEL || process.env.OPENAI_MODEL || DEFAULT_MODEL;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 600000);
+  const timeout = setTimeout(() => controller.abort(), 120000);
 
   try {
     const response = await fetch(`${baseUrl}/chat/completions`, {

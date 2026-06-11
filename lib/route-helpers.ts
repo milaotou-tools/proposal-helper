@@ -33,6 +33,14 @@ export class InputTooLargeError extends Error {
   }
 }
 
+export async function safeBody(request: Request) {
+  try {
+    return await request.json();
+  } catch {
+    throw new Error("请求体格式错误，请重试。");
+  }
+}
+
 export function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }

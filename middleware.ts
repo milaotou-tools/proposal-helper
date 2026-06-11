@@ -9,6 +9,9 @@ const API_PATTERNS = [
   "/api/topic-guidance",
   "/api/suggest-outputs",
   "/api/generate-livepage",
+  "/api/save-work",
+  "/api/load-work",
+  "/api/save-final",
 ];
 
 export async function middleware(request: NextRequest) {
@@ -37,9 +40,8 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  const response = NextResponse.next();
-  response.headers.set("x-hashed-ip", hashedIp);
-  return response;
+  request.headers.set("x-hashed-ip", hashedIp);
+  return NextResponse.next({ request });
 }
 
 export const config = {

@@ -95,7 +95,7 @@ type DetectedSection = { standard: string; heading: string | null; content: stri
 
 type PolishSectionState = {
   name: string;
-  status: "pending" | "streaming" | "done" | "skipped";
+  status: "pending" | "streaming" | "done" | "skipped" | "error";
   content: string;
 };
 
@@ -322,6 +322,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
   const [loadingStepIndex, setLoadingStepIndex] = useState(0);
   const [error, setError] = useState("");
   const [allowCollection, setAllowCollection] = useState(true);
+  const [quotaRefreshKey, setQuotaRefreshKey] = useState(0);
   const [detectedSections, setDetectedSections] = usePersistedState<DetectedSection[]>(
     "ph-detected-sections",
     polishSections.map(s => ({ standard: s, heading: null, content: null }))
@@ -577,6 +578,8 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
       setResultText(stripMarkdown(fullText));
     }, allowCollection)
       .then(() => {
+        if (!fullText.trim()) throw new Error("AI 未返回内容，请重试。");
+
         // Parse ---SECTIONS--- or bare JSON from end of stream
         const splitIdx = findSectionsSplit(fullText);
         if (splitIdx !== -1 && title === "整体诊断结果") {
@@ -632,6 +635,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
       })
       .finally(() => {
         setIsLoading(false);
+        setQuotaRefreshKey(k => k + 1);
         clearInterval(interval);
       });
   }
@@ -784,6 +788,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
           });
         });
 
+        if (!buffer.trim()) throw new Error("AI 未返回内容");
         polishContentRef.current.set(i, buffer);
         setPolishSectionsState(prev => {
           const next = [...prev];
@@ -793,6 +798,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
         completedCount++;
         if (completedCount === 1) setViewIdx(i);
         if (completedCount === polishSections.length) {
+          setQuotaRefreshKey(k => k + 1);
           setIsLoading(false);
           setCompletedPolish(true);
           assembleFullDraft();
@@ -809,12 +815,13 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
         polishContentRef.current.set(i, errorContent);
         setPolishSectionsState(prev => {
           const next = [...prev];
-          next[i] = { ...next[i], status: "done", content: errorContent };
+          next[i] = { ...next[i], status: "error", content: errorContent };
           return next;
         });
         completedCount++;
         if (completedCount === 1) setViewIdx(i);
         if (completedCount === polishSections.length) {
+          setQuotaRefreshKey(k => k + 1);
           setIsLoading(false);
           setCompletedPolish(true);
           assembleFullDraft();
@@ -840,8 +847,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
     }
 
     // Start MAX_CONCURRENT workers
-    const workers = Array.from({ length: Math.min(MAX_CONCURRENT, polishSections.length) }, () => runNext());
-    Promise.all(workers);
+    Array.from({ length: Math.min(MAX_CONCURRENT, polishSections.length) }, () => runNext());
   }
 
   function openPolishModal() {
@@ -1128,7 +1134,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
         {/* Step 2: 逐栏打磨 — 单栏布局 */}
         {currentStep === 2 && (
           <div className="rounded-md border border-[#E8E6E1] bg-white p-6">
-            <DailyQuota />
+            <DailyQuota refreshKey={quotaRefreshKey} />
 
             <div className="mb-4">
               <p className="text-sm font-bold text-[#6B7280]">操作提示</p>

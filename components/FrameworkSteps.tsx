@@ -118,6 +118,7 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
   const [loadingStepIndex, setLoadingStepIndex] = useState(0);
   const [error, setError] = useState("");
   const [allowCollection, setAllowCollection] = useState(true);
+  const [quotaRefreshKey, setQuotaRefreshKey] = useState(0);
   const [copied, setCopied] = useState(false);
   const [saveCode, setSaveCode] = usePersistedState<string | null>("ph-save-code", null);
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -183,6 +184,7 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
       })
       .finally(() => {
         setGuidanceLoading(false);
+        setQuotaRefreshKey(k => k + 1);
       });
   }
 
@@ -288,6 +290,7 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
       setResultText(formatOutput(stripMarkdown(fullText)));
     }, allowCollection)
       .then(() => {
+        if (!fullText.trim()) throw new Error("AI 未返回内容，请重试。");
         setResultText(formatOutput(stripMarkdown(fullText)));
         setCurrentStep(4);
       })
@@ -296,6 +299,7 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
       })
       .finally(() => {
         setIsLoading(false);
+        setQuotaRefreshKey(k => k + 1);
         clearInterval(interval);
       });
   }
@@ -761,7 +765,7 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
                 <p className="text-sm font-bold text-[#6B7280]">操作提示</p>
                 <p className="text-sm leading-6 text-[#9CA3AF]">补充研究对象、已有实践基础和预期成果。这些信息能让申报书更完整。选填项也可以留空。</p>
               </div>
-              <DailyQuota />
+              <DailyQuota refreshKey={quotaRefreshKey} />
               <button
                 type="button"
                 onClick={() => {

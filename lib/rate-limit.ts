@@ -1,4 +1,4 @@
-export const DAILY_LIMIT = 30;
+export const DAILY_LIMIT = 200;
 export const MINUTE_LIMIT = 20;
 
 type RateLimitEntry = {
