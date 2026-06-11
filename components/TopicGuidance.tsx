@@ -4,6 +4,50 @@ import { useState } from "react";
 import { StepNavigation } from "@/components/StepNavigation";
 import { postAiStream, stripMarkdown } from "@/lib/utils";
 
+function parseTopicCards(raw: string): string[] {
+  const text = raw.trim();
+  if (!text) return [];
+
+  const cn = "[一二三四五六七八九十]+";
+
+  // Strategy 1: split by "1. " / "2. " / "3、" etc.
+  const arabicSep = /\n(?=\d+[\.\、\)]\s)/;
+  const arabicParts = text.split(arabicSep).filter((p) => p.length > 5);
+  if (arabicParts.length >= 2) return arabicParts.map(trimTopic);
+
+  // Strategy 2: split by Chinese numerals 一、二、三、四、五、
+  const chineseSep = new RegExp(`\\n(?=${cn}[、])`);
+  const chineseParts = text.split(chineseSep).filter((p) => p.length > 5);
+  if (chineseParts.length >= 2) return chineseParts.map(trimTopic);
+
+  // Strategy 3: split by 《》 patterns (topic titles)
+  const titleParts = text.split(/\n(?=《.+》)/);
+  if (titleParts.length >= 2) return titleParts.map(trimTopic);
+
+  return [];
+}
+
+function trimTopic(t: string): string {
+  let cleaned = t
+    .replace(/^\d+[\.\、\)]\s*/, "")
+    .replace(/^[一二三四五六七八九十]+[、]\s*/, "")
+    .trim();
+
+  // If the topic is very long, extract just the title and first 2 sentences
+  if (cleaned.length > 300) {
+    const titleMatch = cleaned.match(/《(.+?)》/);
+    const sentences = cleaned
+      .replace(/\n+/g, " ")
+      .split(/[。；;]/)
+      .filter((s) => s.trim().length > 3);
+    const title = titleMatch ? `《${titleMatch[1]}》` : sentences[0] || "";
+    const brief = sentences.slice(titleMatch ? 0 : 1, titleMatch ? 2 : 3).join("；");
+    cleaned = title && brief ? `${title}\n${brief}。` : sentences.slice(0, 2).join("；") + "。";
+  }
+
+  return cleaned;
+}
+
 const GUIDANCE_STEPS = [
   { label: "学科年级", description: "你的教学领域" },
   { label: "教学情况", description: "补充背景" },
@@ -95,13 +139,10 @@ export function TopicGuidance({ onBack, onUseTopic }: Props) {
       true,
     )
       .then(() => {
-        const chNum = "[一二三四五六七八九十]+";
-        const separator = new RegExp(`\\n(?=(?:\\d+[.、\\)]|${chNum}[、])\\s)`);
-        const topics = fullText
-          .split(separator)
-          .map((t) => t.replace(new RegExp(`^(?:\\d+[.、\\)]|${chNum}[、])\\s*`), "").trim())
-          .filter((t) => t.length > 5);
-        setSuggestions(topics.length >= 3 ? topics : [fullText.trim()]);
+        const topics = parseTopicCards(fullText);
+        setSuggestions(
+          topics.length >= 2 ? topics : [trimTopic(fullText)],
+        );
       })
       .catch((caught) => {
         setError(caught instanceof Error ? caught.message : "生成失败，请稍后重试。");
