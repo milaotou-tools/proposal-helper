@@ -338,7 +338,8 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
               <path d="M4 7.5H8" />
               <path d="M4 9H8" />
             </svg>
-            {saving ? "保存中..." : "保存进度"}
+            <span className="hidden sm:inline">{saving ? "保存中..." : "保存进度"}</span>
+            <span className="sm:hidden">{saving ? "保存中" : "保存"}</span>
           </button>
         </header>
 
