@@ -17,20 +17,20 @@
 
 ### 本分支相比 main 的主要变化
 
-- 公网部署：独立端口 8085，`deploy-highauto.yml` 工作流
-- 独立数据目录 `/www/wwwdata/proposal-helper-paid/`
+- 独立部署：8085 端口，独立数据目录，`deploy-highauto.yml` 工作流
+- `app/globals.css` — Codex 柔和色系
 - `components/LandingPage.tsx` — 去个人化
-- `DraftSteps.tsx` — 逐栏打磨动态栏目映射，debug 模式多次打磨
-- `lib/format-output.ts` — AI 输出后处理：强制缩进、编号层级、禁短横
-- `lib/prompts/format-rules.ts` — 共享格式化规则，注入全部 6 个 prompt builder
-- `lib/prompts/polish-section.ts` — 打磨提示词微调
-- `public/export-demo.html` — 三线表导出样式预览
-- `app/globals.css` — 扩展 Codex 柔和色系
+- `components/DraftSteps.tsx` — 逐栏打磨动态栏目映射
+- `components/FrameworkSteps.tsx` — 框架生成优化
+- `components/TopicGuidance.tsx` — 新增选题指导
+- `lib/format-output.ts` — AI 输出后处理（缩进、编号、禁短横）
+- `lib/prompts/format-rules.ts` — 共享格式化规则
+- `app/api/save-work/` `load-work/` `quota/` — 进度保存/恢复、配额查询
+- `app/api/topic-guidance/` `suggest-outputs/` `generate-livepage/` — 新增 API
 
-### 待办（highauto 分支）
+### 待办
 
 - [ ] 文献综述等栏目输出格式调整
-- [ ] HTML 对比画面优化
 
 ---
 
@@ -72,12 +72,15 @@
 
 ### ✅ 辅助功能
 
+- **选题指导**：输入学段和学科，AI 结合热点提供选题方向建议。
 - **分学段预设示例**：幼儿园/小学/初中/高中各一套，新用户可快速体验。
 - **左右分栏打磨编辑器**：左侧 AI 建议，右侧可编辑原文，点击建议定位对应段落。
 - **用户反馈收集**：每步结束可提交赞美/建议，记录学校和留言。
 - **匿名数据采集**：勾选同意后按天写入 JSONL，用于后续分析。
 - **管理员仪表板**：密码保护，展示使用统计（含 7 天趋势图）和反馈汇总。
-- **IP 限流**：AI API 路由每分钟 5 次 / 每天 50 次，加盐哈希保护隐私。
+- **进度保存与恢复**：6 位保存码，30 天有效期。
+- **配额查询**：显示当日剩余 AI 调用次数。
+- **IP 限流**：AI API 路由每分钟 5 次 / 每天 30 次，加盐哈希保护隐私。
 
 ---
 
@@ -93,19 +96,23 @@ proposal-helper-mvp/
 ├── tailwind.config.ts
 ├── tsconfig.json
 ├── .env.example
-├── deploy.sh                       # 服务器端部署脚本
+├── .gitignore                       # 排除 node_modules, .next, lib/prompts/data/ 等
 ├── scripts/
 │   └── start-dev.cmd               # 本地开发快速启动
 ├── public/
 │   └── export-demo.html            # 三线表导出样式预览
 ├── .github/workflows/              # CI/CD 工作流
-│   ├── deploy-aliyun.yml
-│   ├── deploy-via-scp.yml
-│   ├── clear-nginx-cache.yml
-│   └── fix-nginx-timeout.yml
+│   ├── deploy-aliyun.yml           # Git 拉取部署
+│   ├── deploy-via-scp.yml          # SCP 旁路部署（服务器连不上 GitHub 时用）
+│   ├── deploy-highauto.yml         # 8085 端口独立部署
+│   ├── fix-8085-nginx.yml          # 修复 8085 Nginx 配置
+│   ├── clear-nginx-cache.yml       # 清 Nginx 缓存
+│   ├── fix-nginx-timeout.yml       # 修复 Nginx 超时配置
+│   ├── view-data.yml               # 查看采集数据
+│   └── view-stats.yml              # 查看使用统计
 ├── app/
 │   ├── layout.tsx                  # 根布局
-│   ├── page.tsx                    # 入口页
+│   ├── page.tsx                    # 入口页（加载 AppShell）
 │   ├── globals.css                 # Tailwind + 全局样式
 │   ├── admin/page.tsx              # 管理员仪表板
 │   └── api/                        # API 路由
@@ -113,34 +120,51 @@ proposal-helper-mvp/
 │       ├── review-draft/           # 诊断草稿问题
 │       ├── polish-section/         # 逐栏打磨
 │       ├── expert-review/          # 模拟专家预审
+│       ├── topic-guidance/         # 选题指导
+│       ├── suggest-outputs/        # 成果建议
+│       ├── generate-livepage/      # 生成个人主页
+│       ├── save-work/              # 保存进度（6位码）
+│       ├── load-work/              # 恢复进度
+│       ├── quota/                  # 查询剩余配额
 │       ├── feedback/               # 用户反馈提交
 │       ├── save-final/             # 保存最终结果
 │       ├── health/                 # 健康检查
-│       └── admin/                  # 管理员数据接口
+│       └── admin/
+│           ├── feedback/           # 反馈数据接口
+│           └── stats/              # 使用统计接口
 ├── components/
-│   ├── AppShell.tsx                # 顶层路由 + 付费墙
-│   ├── LandingPage.tsx             # 入职引导页（去个人化）
+│   ├── AppShell.tsx                # 顶层路由
+│   ├── LandingPage.tsx             # 双路径入口页（去个人化）
+│   ├── TopicGuidance.tsx           # 选题指导
 │   ├── FrameworkSteps.tsx          # 5 步框架向导
 │   ├── DraftSteps.tsx              # 4 步草稿向导（动态栏目映射）
 │   ├── PolishEditor.tsx            # 左右分栏打磨编辑器
 │   ├── StepNavigation.tsx          # 步骤指示器
-│   ├── PaymentModal.tsx            # 付费弹窗与解锁码验证
+│   ├── DailyQuota.tsx              # 当日剩余配额显示
 │   ├── DataCollectionCheckbox.tsx  # 数据采集同意勾选
-│   └── FeedbackWidget.tsx          # 用户反馈表单
+│   ├── FeedbackWidget.tsx          # 用户反馈表单
+│   └── ProposalHelperApp.tsx       # 旧版组件（未使用）
 └── lib/
-    ├── ai-client.ts                # DeepSeek V4 Pro 调用封装
+    ├── ai-client.ts                # DeepSeek V4 Pro API 调用封装
     ├── data-collection.ts          # 按天 JSONL 数据采集
     ├── feedback-store.ts           # 反馈存储与统计
+    ├── format-output.ts            # AI 输出前端后处理（缩进/编号/去短横）
     ├── rate-limit.ts               # 内存 IP 限流
     ├── route-helpers.ts            # API 共享工具
+    ├── save-store.ts               # 进度保存/恢复（文件存储+6位码）
     ├── use-persisted-state.ts      # localStorage 持久化 hook
+    ├── utils.ts                    # 剪贴板复制等工具函数
     └── prompts/
-        ├── load-prompt.ts          # Prompt 模板加载器
+        ├── format-rules.ts         # 共享格式化规则（注入所有 AI prompt）
+        ├── load-prompt.ts          # Prompt 模板加载器（含兜底）
         ├── generate-framework.ts   # 框架生成 Prompt
         ├── review-draft.ts         # 草稿诊断 Prompt
         ├── polish-section.ts       # 栏目打磨 Prompt
         ├── expert-review.ts        # 预审 Prompt
-        └── data/                   # Prompt 数据文件 (gitignored)
+        ├── topic-guidance.ts       # 选题指导 Prompt
+        ├── suggest-outputs.ts      # 成果建议 Prompt
+        ├── generate-livepage.ts    # 个人主页 Prompt
+        └── data/                   # Prompt 文本模板（gitignored）
 ```
 
 ---
@@ -162,6 +186,7 @@ proposal-helper-mvp/
 - 每个 AI 操作的 system prompt 和 user prompt 模板
 - 以 `.txt` 格式存储，通过 `{{variable}}` 占位符填充用户输入
 - 已从公开仓库中 gitignore，部署时从私有仓库注入
+- TypeScript builder 文件（`lib/prompts/*.ts`）内包含兜底 prompt，在 data 文件缺失时自动降级
 
 **适合：** 需要调整 AI 输出质量的维护者。
 
@@ -181,9 +206,15 @@ proposal-helper-mvp/
 
 ### 3. Prompt 外置且 gitignored
 
-核心方法论和专家规则属于项目 IP。将所有敏感 Prompt 从组件源码提取到 `lib/prompts/data/` 目录，通过 `.gitignore` 排除。部署时由 GitHub Actions 从私有仓库注入，确保公开仓库不暴露核心内容。
+核心方法论和专家规则属于项目 IP。将所有敏感 Prompt 从组件源码提取到 `lib/prompts/data/` 目录，通过 `.gitignore` 排除。部署时由 GitHub Actions 从私有仓库注入，确保公开仓库不暴露核心内容。TypeScript builder 中包含兜底 Prompt，即使 data 文件缺失也能正常运行。
 
-### 4. 数据采集的边界
+### 4. 两层格式化保障
+
+AI 输出格式一致性通过两层机制保障：
+- **Prompt 层**：`lib/prompts/format-rules.ts` 中的共享格式化规则注入所有 AI Prompt builder，约束模型输出。
+- **前端层**：`lib/format-output.ts` 对 AI 输出做后处理，强制转换编号层级、添加全角缩进、去除横杠列表和 AI 套话。
+
+### 5. 数据采集的边界
 
 - 勾选同意才写入，不同意则完全不记录。
 - 只采集配对型指标（inputSummary + outputSummary），不记录用户身份。
@@ -196,7 +227,7 @@ proposal-helper-mvp/
 ### 新手入门
 
 1. 访问 [proposal.we-teach.cn](https://proposal.we-teach.cn)，浏览入职引导页了解两条路径。
-2. 如果没有申报书 → 点击"从想法开始"，选择学段后点击"使用示例"快速体验。
+2. 如果没有申报书 → 点击"从想法开始"，可先用选题指导获取方向建议，再点击"使用示例"快速体验。
 3. 如果已有草稿 → 点击"上传已有文稿"，粘贴后开始诊断。
 
 ### 本地开发
@@ -231,6 +262,7 @@ npm run dev
 | `ADMIN_PASSWORD` | ✅ | 管理员页面密码 |
 | `COLLECTION_DIR` | - | 采集数据目录，默认 `/www/wwwdata/proposal-helper/collection/` |
 | `FEEDBACK_DIR` | - | 反馈数据目录，默认 `/www/wwwdata/proposal-helper/feedback/` |
+| `SAVE_DIR` | - | 进度保存目录，默认 `data/saves/` |
 
 ### 部署
 
@@ -240,7 +272,7 @@ npm run build
 
 # 启动
 npm run start
-# PM2: pm2 start npm --name "proposal-helper" -- start
+# PM2: pm2 start npm --name "proposal-helper-paid" -- start
 ```
 
 生产环境部署在阿里云 ECS，通过 BT Panel Nginx 反向代理，PM2 进程管理。详见 `CLAUDE.md` 部署章节。
@@ -302,22 +334,22 @@ MIT License.
 
 ### 2026-06-09 (`pay` → `highauto` 分支)
 
-- [x] 付费墙：新增 `PaymentModal` 解锁码验证，`AppShell` 集成未解锁拦截
 - [x] 去个人化：`LandingPage` 精简，移除个人信息
-- [x] 逐栏打磨动态栏目映射，debug 模式支持多次打磨
-- [x] 打磨提示词微调：文献综述等栏目格式优化
-- [x] UI 色系扩展：Codex 柔和风格
+- [x] 逐栏打磨动态栏目映射
+- [x] 新增选题指导、成果建议、个人主页生成功能
+- [x] 进度保存与恢复（6 位保存码，30 天有效期）
+- [x] 配额查询接口
+- [x] UI 色系扩展：Codex 柔和风
 - [x] 新增 `export-demo.html` 三线表导出预览
 - [x] 新增 `scripts/start-dev.cmd` 本地启动脚本
 - [x] 修复 `X-Accel-Buffering` 头防止 Nginx 响应缓冲
 - [x] 修复流式输出首 chunk 前 loading 文字不旋转
-- [x] 删除 `/paid` 原型页，付费逻辑整合到主流程
 
 ### 2026-06-07
 
 - [x] 提取核心 Prompt 到 gitignored 数据文件，兜底为通用 Prompt
 - [x] 新增 `Deploy via SCP (bypass git)` 工作流，解决服务器无法连接 GitHub 的问题
-- [x] AI API 路由统一限流（每分钟 5 次 / 每天 50 次）
+- [x] AI API 路由统一限流（每分钟 5 次 / 每天 30 次）
 - [x] 健康检查接口去敏感信息，加限流保护
 
 ### 2026-06-06
