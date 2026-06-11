@@ -122,19 +122,47 @@ function formatDiagnosticNumbering(text: string): string {
 function parseSectionParts(content: string) {
   const labels = ["识别到的原文", "原栏目问题", "修改建议", "修改后文本"];
   const result: { heading: string; body: string }[] = [];
+  let remaining = content;
+
+  function tryFind(label: string, from: string): { idx: number; after: string } {
+    // Try multiple marker formats
+    const patterns = [
+      `**${label}**`,
+      `**${label}：**`,
+      `**${label}:**`,
+      `### ${label}`,
+      `## ${label}`,
+      `**${label}：`,
+      `**${label}:`,
+    ];
+    for (const pat of patterns) {
+      const i = from.indexOf(pat);
+      if (i !== -1) return { idx: i, after: from.slice(i + pat.length) };
+    }
+    // Fuzzy: line that starts with or contains the label as a bold heading
+    const re = new RegExp(`(?:^|\\n)\\s*\\*{0,2}${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[：:]?\\*{0,2}\\s*\\n`, 'm');
+    const m = from.match(re);
+    if (m && m.index !== undefined) {
+      return { idx: m.index, after: from.slice(m.index + m[0].length) };
+    }
+    return { idx: -1, after: from };
+  }
 
   for (let i = 0; i < labels.length; i++) {
-    const re = new RegExp(`\\*\\*\\s*${labels[i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[：:]?\\s*\\*\\*`);
-    const m = content.match(re);
-    if (!m || m.index === undefined) { result.push({ heading: labels[i], body: "" }); continue; }
-    const after = content.slice(m.index + m[0].length);
-    const nextRe = i + 1 < labels.length
-      ? new RegExp(`\\*\\*\\s*${labels[i + 1].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[：:]?\\s*\\*\\*`)
-      : null;
-    const nextM = nextRe ? after.match(nextRe) : null;
-    const endIdx = nextM && nextM.index !== undefined ? nextM.index : -1;
-    const rawBody = (endIdx === -1 ? after : after.slice(0, endIdx)).trim();
+    const found = tryFind(labels[i], remaining);
+    if (found.idx === -1) { result.push({ heading: labels[i], body: "" }); continue; }
+    let endIdx = -1;
+    let endTagLen = 0;
+    if (i + 1 < labels.length) {
+      const next = tryFind(labels[i + 1], found.after);
+      if (next.idx !== -1) {
+        endIdx = next.idx;
+        endTagLen = 0;
+      }
+    }
+    const rawBody = (endIdx === -1 ? found.after : found.after.slice(0, endIdx)).trim();
     result.push({ heading: labels[i], body: rawBody.replace(/\*\*(.+?)\*\*/g, "$1") });
+    remaining = endIdx === -1 ? "" : found.after.slice(endIdx);
   }
   return result;
 }
@@ -1653,10 +1681,6 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                         <p className="text-sm text-[#9CA3AF]">此栏目未选择打磨，原文已保留在最终文稿中。</p>
                       ) : isEmpty ? (
                         <p className="text-sm text-[#9CA3AF]">正在分析中...</p>
-                      ) : parts.every(p => !p.body.trim()) && sec.content.trim() ? (
-                        <div className="text-sm leading-7 text-[#141413] whitespace-pre-wrap">
-                          {sec.content}
-                        </div>
                       ) : (
                         <div className="text-sm leading-7 text-[#141413]">
                           {parts.map((part, j) => (
