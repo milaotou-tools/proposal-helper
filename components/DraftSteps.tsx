@@ -107,20 +107,62 @@ function ensureIndent(text: string): string {
   }).join("\n");
 }
 
+const CHINESE_NUMS = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
+
+function formatDiagnosticNumbering(text: string): string {
+  return text.replace(/^(\d+)\.(\s*)(总体判断|问题诊断|优先修改建议|修改建议|改进建议|总体评价|优点|不足|风险提示|注意事项|总结建议)/gm,
+    (_, num, _sp, title) => {
+      const n = parseInt(num as string);
+      const cn = n <= 10 ? CHINESE_NUMS[n] : String(num);
+      return `${cn}、${title}`;
+    }
+  );
+}
+
 function parseSectionParts(content: string) {
   const labels = ["识别到的原文", "原栏目问题", "修改建议", "修改后文本"];
   const result: { heading: string; body: string }[] = [];
   let remaining = content;
+
+  function tryFind(label: string, from: string): { idx: number; after: string } {
+    // Try multiple marker formats
+    const patterns = [
+      `**${label}**`,
+      `**${label}：**`,
+      `**${label}:**`,
+      `### ${label}`,
+      `## ${label}`,
+      `**${label}：`,
+      `**${label}:`,
+    ];
+    for (const pat of patterns) {
+      const i = from.indexOf(pat);
+      if (i !== -1) return { idx: i, after: from.slice(i + pat.length) };
+    }
+    // Fuzzy: line that starts with or contains the label as a bold heading
+    const re = new RegExp(`(?:^|\\n)\\s*\\*{0,2}${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[：:]?\\*{0,2}\\s*\\n`, 'm');
+    const m = from.match(re);
+    if (m && m.index !== undefined) {
+      return { idx: m.index, after: from.slice(m.index + m[0].length) };
+    }
+    return { idx: -1, after: from };
+  }
+
   for (let i = 0; i < labels.length; i++) {
-    const startTag = `**${labels[i]}**`;
-    const startIdx = remaining.indexOf(startTag);
-    if (startIdx === -1) { result.push({ heading: labels[i], body: "" }); continue; }
-    const after = remaining.slice(startIdx + startTag.length);
-    const nextTag = i + 1 < labels.length ? `**${labels[i + 1]}**` : null;
-    const endIdx = nextTag ? after.indexOf(nextTag) : -1;
-    const rawBody = (endIdx === -1 ? after : after.slice(0, endIdx)).trim();
+    const found = tryFind(labels[i], remaining);
+    if (found.idx === -1) { result.push({ heading: labels[i], body: "" }); continue; }
+    let endIdx = -1;
+    let endTagLen = 0;
+    if (i + 1 < labels.length) {
+      const next = tryFind(labels[i + 1], found.after);
+      if (next.idx !== -1) {
+        endIdx = next.idx;
+        endTagLen = 0;
+      }
+    }
+    const rawBody = (endIdx === -1 ? found.after : found.after.slice(0, endIdx)).trim();
     result.push({ heading: labels[i], body: rawBody.replace(/\*\*(.+?)\*\*/g, "$1") });
-    remaining = endIdx === -1 ? "" : after.slice(endIdx);
+    remaining = endIdx === -1 ? "" : found.after.slice(endIdx);
   }
   return result;
 }
@@ -867,7 +909,8 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
               <path d="M4 7.5H8" />
               <path d="M4 9H8" />
             </svg>
-            {saving ? "保存中..." : "保存进度"}
+            <span className="hidden sm:inline">{saving ? "保存中..." : "保存进度"}</span>
+            <span className="sm:hidden">{saving ? "保存中" : "保存"}</span>
           </button>
         </header>
 
@@ -1001,7 +1044,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
             {isLoading ? (
               resultText ? (
                 <div className="space-y-3 rounded-md bg-[#FAF9F6] p-5 text-sm leading-8 text-[#141413]">
-                  {resultText.split("---SECTIONS---")[0].split("\n\n").map((block, i) => (
+                  {formatDiagnosticNumbering(resultText.split("---SECTIONS---")[0]).split("\n\n").map((block, i) => (
                     <p key={i} className="whitespace-pre-wrap">{block}</p>
                   ))}
                   <span className="animate-pulse">▊</span>
@@ -1036,7 +1079,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
               <div className="mt-6">
                 <h3 className="mb-3 text-sm font-bold text-[#141413]">诊断结果</h3>
                 <div className="space-y-3 rounded-md bg-[#FAF9F6] p-5 text-sm leading-8 text-[#141413]">
-                  {resultText.split("---SECTIONS---")[0].split("\n\n").map((block, i) => (
+                  {formatDiagnosticNumbering(resultText.split("---SECTIONS---")[0]).split("\n\n").map((block, i) => (
                     <p key={i} className="whitespace-pre-wrap">
                       {block}
                     </p>
@@ -1182,7 +1225,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
             )}
 
             {/* Bottom buttons */}
-            <div className="mt-6 flex items-center justify-between">
+            <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:justify-between">
               <button
                 type="button"
                 onClick={() => { setCurrentStep(1); setError(""); }}
@@ -1190,7 +1233,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
               >
                 上一步
               </button>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 {!isLoading && !polishStarted && (
                   <button
                     type="button"
@@ -1212,7 +1255,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                     <button
                       type="button"
                       onClick={() => { setCurrentStep(3); setError(""); }}
-                      className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
+                      className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF] sm:bg-[#141413] sm:text-white sm:font-extrabold sm:border-none sm:hover:bg-[#2A2A28]"
                     >
                       下一步：模拟预审
                     </button>

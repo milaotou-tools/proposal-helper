@@ -17,7 +17,7 @@
 }
 
 html {
-  background: var(--page-bg);
+  background: #FAF9F6;
 }
 
 body {
@@ -26,10 +26,10 @@ body {
   position: relative;
   isolation: isolate;
   background:
-    linear-gradient(180deg, rgba(250, 251, 253, 0.94) 0%, rgba(246, 244, 239, 0.98) 42%, rgba(243, 247, 252, 0.96) 100%),
-    radial-gradient(circle at 14% 14%, rgba(191, 219, 254, 0.34), transparent 26%),
-    radial-gradient(circle at 84% 16%, rgba(216, 180, 254, 0.22), transparent 24%),
-    radial-gradient(circle at 50% 96%, rgba(186, 230, 253, 0.15), transparent 28%);
+    linear-gradient(180deg, rgba(250, 249, 246, 0.98) 0%, rgba(248, 248, 246, 0.98) 42%, rgba(245, 247, 250, 0.96) 100%),
+    radial-gradient(circle at 14% 14%, rgba(200, 210, 240, 0.18), transparent 26%),
+    radial-gradient(circle at 84% 16%, rgba(210, 200, 235, 0.14), transparent 24%),
+    radial-gradient(circle at 50% 96%, rgba(190, 210, 240, 0.10), transparent 28%);
   color: var(--ink);
   font-family: Inter, "Noto Sans SC", sans-serif;
   overflow-x: hidden;
