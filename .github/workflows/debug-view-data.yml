@@ -1,0 +1,39 @@
+name: View polish-section data
+
+on:
+  workflow_dispatch:
+
+jobs:
+  view:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ALIYUN_SSH_KEY }}
+
+      - name: Trust host key
+        env:
+          ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
+        run: |
+          SSH_PORT="${ALIYUN_PORT:-22}"
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "$SSH_PORT" -H "${{ secrets.ALIYUN_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: View polish-section data
+        env:
+          ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
+        run: |
+          SSH_PORT="${ALIYUN_PORT:-22}"
+          ssh -p "$SSH_PORT" "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" '
+          echo "=== Looking for polish-section JSONL files ==="
+          find /www/wwwdata/proposal-helper-paid/ -name "*.jsonl" -o -name "*.json" 2>/dev/null | head -20
+          echo ""
+          echo "=== Latest polish-section entries ==="
+          for f in $(find /www/wwwdata/proposal-helper-paid/ -name "*.jsonl" -o -name "*.json" 2>/dev/null | head -5); do
+            echo "--- File: $f ---"
+            grep -l "polish-section" "$f" 2>/dev/null && tail -20 "$f" || echo "(skip)"
+          done
+          echo ""
+          echo "=== Grep for polish-section in all files ==="
+          grep -r "polish-section" /www/wwwdata/proposal-helper-paid/ 2>/dev/null | tail -30
+          '
