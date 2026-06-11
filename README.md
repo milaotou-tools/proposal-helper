@@ -4,6 +4,28 @@
 
 ---
 
+## ⚠️ 当前分支：`main`（内测版）
+
+**`highauto` 分支为 8085 公网版，本分支部署到 8083 端口，面向内测用户。**
+
+### 两个分支的定位
+
+| 分支 | 定位 | 端口 | 当前状态 |
+|------|------|------|---------|
+| `main` | 内测版 | 8083 | 线上运行 |
+| `highauto` | 公网版 | 8085 | 线上运行 |
+
+### 本分支特点
+
+- 8083 端口，PM2 进程 `proposal-helper`
+- 暖色系页面背景（`#f6f4ef`），保留个人信息
+- 6 步流程引导页（含"后续由教师完善"的 4-6 步）
+- 逐栏打磨覆盖 9 个核心栏目，非 18 栏全量
+- 无格式化后处理、无选题指导、无进度保存/恢复
+- 日限额 50 次
+
+---
+
 ## 📋 项目概述
 
 一线教师做课题申报时面临两难：**完全没有申报书**，不知道从何写起；**已有草稿**，但找不到专家预审、逐栏打磨。
@@ -49,6 +71,17 @@
 - **管理员仪表板**：密码保护，展示使用统计（含 7 天趋势图）和反馈汇总。
 - **IP 限流**：AI API 路由每分钟 5 次 / 每天 50 次，加盐哈希保护隐私。
 
+### ❌ 本分支不包含（与 `highauto` 的差异）
+
+- 选题指导（TopicGuidance）
+- 每日配额查询
+- 进度保存与恢复（6 位保存码）
+- AI 输出格式化后处理（format-output.ts）
+- 共享格式化规则（format-rules.ts）
+- 逐栏打磨 18 栏全量覆盖（本分支 9 栏）
+- 成果建议、个人主页生成
+- 本地 IP 不限流（本分支所有 IP 均受限制）
+
 ---
 
 ## 📁 项目结构
@@ -59,20 +92,24 @@ proposal-helper-mvp/
 ├── CLAUDE.md
 ├── package.json
 ├── next.config.ts
-├── middleware.ts                    # IP 限流中间件
+├── middleware.ts                    # IP 限流中间件（无本地豁免）
 ├── tailwind.config.ts
 ├── tsconfig.json
 ├── .env.example
-├── deploy.sh                       # 服务器端部署脚本
+├── .gitignore                       # 排除 node_modules, .next, lib/prompts/data/ 等
 ├── .github/workflows/              # CI/CD 工作流
-│   ├── deploy-aliyun.yml
-│   ├── deploy-via-scp.yml
-│   ├── clear-nginx-cache.yml
-│   └── fix-nginx-timeout.yml
+│   ├── deploy-aliyun.yml           # Git 拉取部署
+│   ├── deploy-via-scp.yml          # SCP 旁路部署
+│   ├── deploy-highauto.yml         # 8085 分支部署（main 不使用）
+│   ├── fix-8085-nginx.yml          # 8085 Nginx 修复
+│   ├── clear-nginx-cache.yml       # 清 Nginx 缓存
+│   ├── fix-nginx-timeout.yml       # 修复 Nginx 超时配置
+│   ├── view-data.yml               # 查看采集数据
+│   └── view-stats.yml              # 查看使用统计
 ├── app/
 │   ├── layout.tsx                  # 根布局
-│   ├── page.tsx                    # 入口页
-│   ├── globals.css                 # Tailwind + 全局样式
+│   ├── page.tsx                    # 入口页（加载 AppShell）
+│   ├── globals.css                 # Tailwind + 暖色系全局样式
 │   ├── admin/page.tsx              # 管理员仪表板
 │   └── api/                        # API 路由
 │       ├── generate-framework/     # 生成申报书框架
@@ -82,31 +119,34 @@ proposal-helper-mvp/
 │       ├── feedback/               # 用户反馈提交
 │       ├── save-final/             # 保存最终结果
 │       ├── health/                 # 健康检查
-│       └── admin/                  # 管理员数据接口
+│       └── admin/
+│           ├── feedback/           # 反馈数据接口
+│           └── stats/              # 使用统计接口
 ├── components/
-│   ├── AppShell.tsx                # 顶层路由
-│   ├── LandingPage.tsx             # 入职引导页
-│   ├── ProposalHelperApp.tsx       # 主应用布局
+│   ├── AppShell.tsx                # 顶层路由（仅三页切换）
+│   ├── LandingPage.tsx             # 6 步引导页（含个人信息）
 │   ├── FrameworkSteps.tsx          # 5 步框架向导
-│   ├── DraftSteps.tsx              # 4 步草稿向导
+│   ├── DraftSteps.tsx              # 4 步草稿向导（9 栏打磨）
 │   ├── PolishEditor.tsx            # 左右分栏打磨编辑器
 │   ├── StepNavigation.tsx          # 步骤指示器
 │   ├── DataCollectionCheckbox.tsx  # 数据采集同意勾选
-│   └── FeedbackWidget.tsx          # 用户反馈表单
+│   ├── FeedbackWidget.tsx          # 用户反馈表单
+│   └── ProposalHelperApp.tsx       # 旧版组件（未使用）
 └── lib/
-    ├── ai-client.ts                # DeepSeek V4 Pro 调用封装
+    ├── ai-client.ts                # DeepSeek V4 Pro API 调用封装
     ├── data-collection.ts          # 按天 JSONL 数据采集
     ├── feedback-store.ts           # 反馈存储与统计
-    ├── rate-limit.ts               # 内存 IP 限流
+    ├── rate-limit.ts               # 内存 IP 限流（5/min, 50/day）
     ├── route-helpers.ts            # API 共享工具
     ├── use-persisted-state.ts      # localStorage 持久化 hook
+    ├── utils.ts                    # 剪贴板复制、Markdown 剥离、流式请求
     └── prompts/
-        ├── load-prompt.ts          # Prompt 模板加载器
+        ├── load-prompt.ts          # Prompt 模板加载器（含兜底）
         ├── generate-framework.ts   # 框架生成 Prompt
         ├── review-draft.ts         # 草稿诊断 Prompt
         ├── polish-section.ts       # 栏目打磨 Prompt
         ├── expert-review.ts        # 预审 Prompt
-        └── data/                   # Prompt 数据文件 (gitignored)
+        └── data/                   # Prompt 文本模板（gitignored）
 ```
 
 ---
@@ -128,6 +168,7 @@ proposal-helper-mvp/
 - 每个 AI 操作的 system prompt 和 user prompt 模板
 - 以 `.txt` 格式存储，通过 `{{variable}}` 占位符填充用户输入
 - 已从公开仓库中 gitignore，部署时从私有仓库注入
+- TypeScript builder 文件中包含兜底 prompt，在 data 文件缺失时自动降级
 
 **适合：** 需要调整 AI 输出质量的维护者。
 
@@ -161,7 +202,7 @@ proposal-helper-mvp/
 
 ### 新手入门
 
-1. 访问 [proposal.we-teach.cn](https://proposal.we-teach.cn)，浏览入职引导页了解两条路径。
+1. 访问内测地址，浏览 6 步流程引导页了解整体工作流。
 2. 如果没有申报书 → 点击"从想法开始"，选择学段后点击"使用示例"快速体验。
 3. 如果已有草稿 → 点击"上传已有文稿"，粘贴后开始诊断。
 
@@ -209,7 +250,7 @@ npm run start
 # PM2: pm2 start npm --name "proposal-helper" -- start
 ```
 
-生产环境部署在阿里云 ECS，通过 BT Panel Nginx 反向代理，PM2 进程管理。详见 `CLAUDE.md` 部署章节。
+生产环境部署在阿里云 ECS，通过 BT Panel Nginx 反向代理（8083 → 3005），PM2 进程管理。详见 `CLAUDE.md` 部署章节。
 
 ---
 
@@ -282,4 +323,4 @@ MIT License.
 
 ---
 
-*本文档于 2026 年 6 月 7 日更新。*
+*本文档于 2026 年 6 月 11 日更新。*
