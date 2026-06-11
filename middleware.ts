@@ -23,10 +23,8 @@ export async function middleware(request: NextRequest) {
   const rawIp = forwardedFor?.split(",")[0]?.trim() || "127.0.0.1";
   const hashedIp = await hashIp(rawIp);
 
-  const isLocal = rawIp === "127.0.0.1" || rawIp === "::1";
-  const { allowed, retryAfterSeconds } = isLocal
-    ? { allowed: true, retryAfterSeconds: undefined }
-    : checkRateLimit(hashedIp);
+  // TODO: re-enable rate limit after debugging
+  const { allowed, retryAfterSeconds } = { allowed: true, retryAfterSeconds: undefined };
   if (!allowed) {
     return NextResponse.json(
       { error: `请求太频繁，请 ${retryAfterSeconds} 秒后重试。` },
