@@ -279,6 +279,7 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
     setError("");
     setResultText("");
     setIsLoading(true);
+    setCurrentStep(4);
 
     const interval = window.setInterval(() => {
       setLoadingStepIndex((prev) => (prev + 1) % loadingSteps.length);
@@ -293,7 +294,6 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
       .then(() => {
         if (!fullText.trim()) throw new Error("AI 未返回内容，请重试。");
         setResultText(formatOutput(stripMarkdown(fullText)));
-        setCurrentStep(4);
       })
       .catch((caught) => {
         setError(caught instanceof Error ? caught.message : "生成失败，请稍后重试。");
@@ -887,39 +887,23 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
               允许匿名收集输入内容用于优化工具
             </label>
 
-            {isLoading ? (
-              <div>
-                {resultText ? (
-                  <div className="space-y-3 rounded-md bg-[#FAF9F6] p-5 text-sm leading-8 text-[#141413]">
-                    {resultText.split("\n\n").map((block, i) => (
-                      <p key={i} className="whitespace-pre-wrap">{block}</p>
-                    ))}
-                    <p className="animate-pulse text-[#9CA3AF]">▊ 生成中...</p>
-                  </div>
-                ) : (
-                  <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-8 text-center text-sm text-[#6B7280]">
-                    {loadingSteps[loadingStepIndex]}，请稍候...
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex justify-between">
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep(2)}
-                  className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
-                >
-                  上一步
-                </button>
-                <button
-                  type="button"
-                  onClick={handleGenerate}
-                  className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28] disabled:cursor-not-allowed disabled:bg-[#D1D5DB]"
-                >
-                  生成申报书框架
-                </button>
-              </div>
-            )}
+            <div className="flex justify-between">
+              <button
+                type="button"
+                onClick={() => setCurrentStep(2)}
+                className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
+              >
+                上一步
+              </button>
+              <button
+                type="button"
+                onClick={handleGenerate}
+                disabled={isLoading}
+                className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28] disabled:cursor-not-allowed disabled:bg-[#D1D5DB]"
+              >
+                生成申报书框架
+              </button>
+            </div>
           </div>
         )}
 
@@ -933,13 +917,20 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
               </p>
             </div>
 
-            {resultText ? (
+            {isLoading && !resultText ? (
+              <div className="rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-8 text-center text-sm text-[#6B7280]">
+                {loadingSteps[loadingStepIndex]}，请稍候...
+              </div>
+            ) : resultText ? (
               <div className="space-y-4 rounded-md bg-[#FAF9F6] p-5 text-sm leading-8 text-[#141413]">
                 {resultText.split("\n\n").map((block, i) => (
                   <p key={i} className="whitespace-pre-wrap">
                     {block}
                   </p>
                 ))}
+                {isLoading && (
+                  <p className="animate-pulse text-[#9CA3AF]">▊ 生成中...</p>
+                )}
               </div>
             ) : (
               <div className="rounded-md bg-[#FAF9F6] px-4 py-12 text-center text-sm text-[#6B7280]">
@@ -951,7 +942,8 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
               <button
                 type="button"
                 onClick={() => setCurrentStep(3)}
-                className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
+                disabled={isLoading}
+                className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF] disabled:opacity-40"
               >
                 上一步
               </button>
@@ -964,7 +956,8 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
                     setTimeout(() => setCopied(false), 1800);
                   }
                 }}
-                className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
+                disabled={isLoading}
+                className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28] disabled:cursor-not-allowed disabled:bg-[#D1D5DB]"
               >
                 {copied ? "已复制 ✓" : "复制结果"}
               </button>
