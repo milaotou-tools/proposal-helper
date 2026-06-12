@@ -69,11 +69,9 @@ const polishSections = [
   "研究目标",
   "研究内容",
   "研究方法",
-  "技术路线",
   "实施步骤",
   "人员分工",
   "研究条件",
-  "可行性分析",
   "预期成果",
   "创新点",
   "经费预算",
@@ -83,8 +81,8 @@ const polishSections = [
 const SECTION_GROUPS = [
   { name: "基础信息", sections: ["课题名称", "摘要", "关键词"] },
   { name: "选题论证", sections: ["选题依据", "核心概念界定", "文献综述"] },
-  { name: "研究设计", sections: ["研究目标", "研究内容", "研究方法", "技术路线"] },
-  { name: "实施保障", sections: ["实施步骤", "人员分工", "研究条件", "可行性分析"] },
+  { name: "研究设计", sections: ["研究目标", "研究内容", "研究方法"] },
+  { name: "实施保障", sections: ["实施步骤", "人员分工", "研究条件"] },
   { name: "产出与支撑", sections: ["预期成果", "创新点", "经费预算", "参考文献"] },
 ];
 
@@ -318,8 +316,6 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
   );
   const [keepOriginalOrder, setKeepOriginalOrder] = useState(false);
   const [showAuthorNote, setShowAuthorNote] = useState(false);
-  const [isConsolidating, setIsConsolidating] = useState(false);
-  const [consolidatedDraft, setConsolidatedDraft] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStepIndex, setLoadingStepIndex] = useState(0);
@@ -464,38 +460,6 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
       }).catch(() => {});
     }
     handleExport();
-  }
-
-  function handleConsolidate() {
-    const content = polishedDraft || draft;
-    if (!content.trim()) { setError("没有可梳理的内容。"); return; }
-
-    retryRef.current = () => handleConsolidate();
-    setError("");
-    setIsConsolidating(true);
-    setConsolidatedDraft("");
-
-    let fullText = "";
-    postAiStream("/api/consolidate-draft", { draft: content, allowCollection }, (chunk) => {
-      fullText += chunk;
-      setConsolidatedDraft(stripMarkdown(fullText));
-    }, allowCollection)
-      .then(() => {
-        if (!fullText.trim()) throw new Error("AI 未返回内容，请重试。");
-        const final = stripMarkdown(fullText);
-        setPolishedDraft(final);
-        setConsolidatedDraft("");
-        setShowPolishModal(false);
-        setCurrentStep(3);
-        setError("");
-      })
-      .catch((caught) => {
-        setError(caught instanceof Error ? caught.message : "梳理失败，请稍后重试。");
-      })
-      .finally(() => {
-        setIsConsolidating(false);
-        setQuotaRefreshKey(k => k + 1);
-      });
   }
 
   // Track which steps have been completed
@@ -1818,24 +1782,13 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
               </div>
             </div>
             <div className="flex justify-center px-6 py-4 border-t border-[#E8E6E1] shrink-0">
-              {isConsolidating ? (
-                <div className="w-full rounded-md bg-[#FAF9F6] px-4 py-3 text-center text-sm text-[#6B7280]">
-                  {consolidatedDraft ? (
-                    <span className="animate-pulse">正在智能梳理合并，去重凝练中... ▊</span>
-                  ) : (
-                    "正在智能梳理合并，去重凝练中..."
-                  )}
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleConsolidate}
-                  disabled={isLoading}
-                  className="focus-ring h-11 rounded-md bg-[#141413] px-8 text-sm font-extrabold text-white transition hover:bg-[#2A2A28] disabled:opacity-40"
-                >
-                  总结梳理
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => setShowPolishModal(false)}
+                className="focus-ring h-11 rounded-md bg-[#141413] px-8 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
+              >
+                关闭，进入全文微调
+              </button>
             </div>
           </div>
         </>
