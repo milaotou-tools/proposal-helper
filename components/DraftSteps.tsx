@@ -1396,6 +1396,15 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
               // A: First time — no result, just review button
               return (
                 <>
+                  <div className="mb-5">
+                    <p className="text-sm font-bold text-[#6B7280] mb-2">预审前微调</p>
+                    <p className="text-sm leading-6 text-[#9CA3AF] mb-3">梳理后的全文已填入下方，可在此做最后微调，修改后的内容将用于模拟预审。</p>
+                    <textarea
+                      value={polishedDraft || draft}
+                      onChange={(e) => setPolishedDraft(e.target.value)}
+                      className="w-full resize-y rounded-md border border-[#E8E6E1] bg-white px-6 py-3 text-sm leading-8 text-[#141413] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#141413]/10 min-h-[30vh]"
+                    />
+                  </div>
                   <div className="flex justify-between">
                     <button type="button" onClick={() => setCurrentStep(2)} className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]">
                       上一步
