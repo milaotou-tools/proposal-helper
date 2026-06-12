@@ -323,7 +323,7 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
         </div>
 
         <header className="flex items-center justify-between">
-          <div>
+          <div className="min-w-0">
             <h1 className="text-2xl font-extrabold tracking-[-0.01em] text-[#141413]">
               从想法生成申报书框架
             </h1>
@@ -335,7 +335,7 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="inline-flex shrink-0 items-center gap-1 text-xs text-[#9CA3AF] transition hover:text-[#141413] disabled:opacity-40"
+            className="inline-flex items-center gap-1 text-xs text-[#9CA3AF] transition hover:text-[#141413] disabled:opacity-40"
           >
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9.5 10.5V2.5C9.5 2.22 9.28 2 9 2H7L6 3.5L5 2H3C2.72 2 2.5 2.22 2.5 2.5V10.5C2.5 10.78 2.72 11 3 11H9C9.28 11 9.5 10.78 9.5 10.5Z" />
@@ -343,8 +343,8 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
               <path d="M4 7.5H8" />
               <path d="M4 9H8" />
             </svg>
-            <span className="hidden sm:inline whitespace-nowrap">{saving ? "保存中..." : "保存进度"}</span>
-            <span className="sm:hidden whitespace-nowrap">{saving ? "保存中" : "保存"}</span>
+            <span className="hidden sm:inline">{saving ? "保存中..." : "保存进度"}</span>
+            <span className="sm:hidden">{saving ? "保存中" : "保存"}</span>
           </button>
         </header>
 
