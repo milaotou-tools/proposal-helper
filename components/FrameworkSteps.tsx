@@ -66,11 +66,11 @@ const stageExamples: Record<string, StageExample> = {
   },
   "小学": {
     stageSubject: "小学数学",
-    idea: "AI 辅助学生知识结构化学习的研究",
-    problem: "学生在复习时知识点零散，难以形成结构化理解，传统复习方式效率较低",
+    idea: "小学数学计算教学中培养思维能力的实践研究",
+    problem: "学生在计算学习中重结果轻过程，机械套用公式而缺乏对算理的理解，解题灵活性不足",
     researchObjects: "自己所教班级学生",
-    practiceBase: "已在教学中尝试过相关做法，积累了一些实践经验",
-    expectedOutputs: "课题报告、教学案例、学生作品、校本资源包"
+    practiceBase: "已在课堂中尝试过算理探究活动，积累了一些教学反思记录",
+    expectedOutputs: "课题报告、计算教学案例集、学生思维可视化作品、校本练习资源"
   },
   "初中": {
     stageSubject: "初中物理",
