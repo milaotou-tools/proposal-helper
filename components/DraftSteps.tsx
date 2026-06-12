@@ -900,7 +900,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
   return (
     <main className="bg-[#FAF9F6] px-4 py-6 text-[#141413] sm:px-6 lg:px-8">
       <section className={`mx-auto flex flex-col gap-6 ${currentStep === 2 ? "max-w-6xl" : "max-w-4xl"}`}>
-        {/* 返回按钮 */}
+        {/* 返回 + 保存 */}
         <div className="flex items-center justify-between">
           <button
             type="button"
@@ -912,17 +912,6 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
             </svg>
             返回首页
           </button>
-        </div>
-
-        <header className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-extrabold tracking-[-0.01em] text-[#141413]">
-              申报书打磨
-            </h1>
-            <p className="mt-1 text-sm text-[#6B7280]">
-              按顺序完成诊断、打磨、预审，逐步完善申报书。
-            </p>
-          </div>
           <button
             type="button"
             onClick={handleSave}
@@ -938,6 +927,17 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
             <span className="hidden sm:inline">{saving ? "保存中..." : "保存进度"}</span>
             <span className="sm:hidden">{saving ? "保存中" : "保存"}</span>
           </button>
+        </div>
+
+        <header>
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-[-0.01em] text-[#141413]">
+              申报书打磨
+            </h1>
+            <p className="mt-1 text-sm text-[#6B7280]">
+              按顺序完成诊断、打磨、预审，逐步完善申报书。
+            </p>
+          </div>
         </header>
 
         <StepNavigation
