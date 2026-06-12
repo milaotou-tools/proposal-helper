@@ -317,6 +317,8 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
   );
   const [keepOriginalOrder, setKeepOriginalOrder] = useState(false);
   const [showAuthorNote, setShowAuthorNote] = useState(false);
+  const [isConsolidating, setIsConsolidating] = useState(false);
+  const [consolidatedDraft, setConsolidatedDraft] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStepIndex, setLoadingStepIndex] = useState(0);
@@ -461,6 +463,37 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
       }).catch(() => {});
     }
     handleExport();
+  }
+
+  function handleConsolidate() {
+    const content = polishedDraft || draft;
+    if (!content.trim()) { setError("没有可梳理的内容。"); return; }
+
+    retryRef.current = () => handleConsolidate();
+    setError("");
+    setIsConsolidating(true);
+    setConsolidatedDraft("");
+
+    let fullText = "";
+    postAiStream("/api/consolidate-draft", { draft: content, allowCollection }, (chunk) => {
+      fullText += chunk;
+      setConsolidatedDraft(stripMarkdown(fullText));
+    }, allowCollection)
+      .then(() => {
+        if (!fullText.trim()) throw new Error("AI 未返回内容，请重试。");
+        const final = stripMarkdown(fullText);
+        setPolishedDraft(final);
+        setConsolidatedDraft("");
+        setCurrentStep(3);
+        setError("");
+      })
+      .catch((caught) => {
+        setError(caught instanceof Error ? caught.message : "梳理失败，请稍后重试。");
+      })
+      .finally(() => {
+        setIsConsolidating(false);
+        setQuotaRefreshKey(k => k + 1);
+      });
   }
 
   // Track which steps have been completed
@@ -1255,7 +1288,8 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
               <button
                 type="button"
                 onClick={() => { setCurrentStep(1); setError(""); }}
-                className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
+                disabled={isConsolidating}
+                className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF] disabled:opacity-40"
               >
                 上一步
               </button>
@@ -1271,20 +1305,34 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                 )}
                 {!isLoading && polishStarted && (
                   <>
-                    <button
-                      type="button"
-                      onClick={openPolishModal}
-                      className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
-                    >
-                      查看打磨结果
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setCurrentStep(3); setError(""); }}
-                      className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF] sm:bg-[#141413] sm:text-white sm:font-extrabold sm:border-none sm:hover:bg-[#2A2A28]"
-                    >
-                      下一步：模拟预审
-                    </button>
+                    {isConsolidating ? (
+                      <div className="w-full rounded-md border border-[#E8E6E1] bg-[#FAF9F6] px-4 py-3 text-center text-sm text-[#6B7280]">
+                        {consolidatedDraft ? (
+                          <span className="animate-pulse">正在智能梳理合并，去重凝练中... ▊</span>
+                        ) : (
+                          "正在智能梳理合并，去重凝练中..."
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={openPolishModal}
+                          disabled={isConsolidating}
+                          className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28] disabled:opacity-40"
+                        >
+                          查看打磨结果
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleConsolidate}
+                          disabled={isConsolidating}
+                          className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF] sm:bg-[#141413] sm:text-white sm:font-extrabold sm:border-none sm:hover:bg-[#2A2A28] disabled:opacity-40"
+                        >
+                          总结梳理
+                        </button>
+                      </>
+                    )}
                   </>
                 )}
               </div>
