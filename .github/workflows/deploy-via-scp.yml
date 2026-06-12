@@ -77,6 +77,10 @@ jobs:
           fi
           echo ".next cleaned OK"
 
+          # Clean old source files (avoid orphans from previous branch deploys)
+          find . -maxdepth 1 ! -name '.' ! -name '..' ! -name '.env.local' ! -name '.env' ! -name 'node_modules' -exec rm -rf {} \;
+          echo "Old source files cleaned OK"
+
           # Extract new source
           tar -xzf /tmp/deploy.tar.gz
           rm /tmp/deploy.tar.gz
