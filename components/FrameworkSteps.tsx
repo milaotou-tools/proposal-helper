@@ -120,6 +120,7 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
   const [allowCollection, setAllowCollection] = useState(true);
   const [quotaRefreshKey, setQuotaRefreshKey] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [showAuthorNote, setShowAuthorNote] = useState(false);
   const [saveCode, setSaveCode] = usePersistedState<string | null>("ph-save-code", null);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [saveCopied, setSaveCopied] = useState(false);
@@ -342,8 +343,8 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
               <path d="M4 7.5H8" />
               <path d="M4 9H8" />
             </svg>
-            <span className="hidden sm:inline">{saving ? "保存中..." : "保存进度"}</span>
-            <span className="sm:hidden">{saving ? "保存中" : "保存"}</span>
+            <span className="hidden sm:inline whitespace-nowrap">{saving ? "保存中..." : "保存进度"}</span>
+            <span className="sm:hidden whitespace-nowrap">{saving ? "保存中" : "保存"}</span>
           </button>
         </header>
 
@@ -971,6 +972,30 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
 
             <div className="mt-6 border-t border-[#E8E6E1] pt-5">
               <FeedbackWidget />
+            </div>
+
+            {/* 作者的话 */}
+            <div className="mt-10 border-t border-[#E8E6E1] pt-8 text-center">
+              <button
+                type="button"
+                onClick={() => setShowAuthorNote(!showAuthorNote)}
+                className="inline-flex items-center gap-1.5 text-xs font-bold tracking-[0.15em] text-[#9CA3AF] uppercase hover:text-[#6B7280] transition"
+              >
+                作者的话
+                <span className={`text-[10px] transition ${showAuthorNote ? "rotate-180" : ""}`}>▼</span>
+              </button>
+              {showAuthorNote && (
+                <div className="mt-4 text-sm leading-7 text-[#6B7280] space-y-4 text-center max-w-2xl mx-auto" style={{ fontFamily: '"KaiTi", "STKaiti", "楷体", "Ma Shan Zheng", cursive' }}>
+                  <p>你好，奋斗在路上的同行者。</p>
+                  <p>希望我做的这个小工具能够帮助你在"写课题申请书"上少走一些弯路，节约一些时间。</p>
+                  <p>谢谢你使用我做的小工具。如果好用的话，欢迎推荐给你的朋友。</p>
+                  <p>这个小工具，是我对世界伸出的触角，当我知道我帮助到了更多的教师，我会很开心，欢迎留言！</p>
+                  <p>如果你有什么有意思的想法，可以联系我，让我们看看能不能把它变成现实。</p>
+                  <p>
+                    我的邮箱：<a href="mailto:mr.lou@zjnu.edu.cn" className="underline underline-offset-2 hover:text-[#141413] transition">mr.lou@zjnu.edu.cn</a>
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )}
