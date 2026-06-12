@@ -343,7 +343,7 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
               从想法生成申报书框架
             </h1>
             <p className="mt-1 text-sm text-[#6B7280]">
-              一步步填写，帮你把零散想法整理成结构化申报书。
+              帮你把零散想法整理成结构化申报书。
             </p>
           </div>
         </header>
