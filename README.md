@@ -20,17 +20,14 @@
 - 独立部署：8085 端口，独立数据目录，`deploy-highauto.yml` 工作流
 - `app/globals.css` — Codex 柔和色系
 - `components/LandingPage.tsx` — 去个人化
-- `components/DraftSteps.tsx` — 逐栏打磨动态栏目映射
-- `components/FrameworkSteps.tsx` — 框架生成优化
+- `components/DraftSteps.tsx` — 逐栏打磨 16 栏（删技术路线/可行性分析），动态栏目映射
+- `components/FrameworkSteps.tsx` — 框架生成优化，流式输出在结果页展示，强制中文数字编号
 - `components/TopicGuidance.tsx` — 新增选题指导
 - `lib/format-output.ts` — AI 输出后处理（缩进、编号、禁短横）
-- `lib/prompts/format-rules.ts` — 共享格式化规则
+- `lib/prompts/format-rules.ts` — 共享格式化规则，注入全部 AI prompt
+- `lib/rate-limit.ts` — IP 限流已接入全部 AI API 路由（每天 200 次）
 - `app/api/save-work/` `load-work/` `quota/` — 进度保存/恢复、配额查询
 - `app/api/topic-guidance/` `suggest-outputs/` `generate-livepage/` — 新增 API
-
-### 待办
-
-- [ ] 文献综述等栏目输出格式调整
 
 ---
 
@@ -54,7 +51,7 @@
 | # | 路径 | 步骤数 | 核心能力 | 完成度 |
 |---|------|--------|---------|--------|
 | 1 | 从想法生成框架 | 5 步 | 学段 → 想法 → 研究背景 → 确认 → 生成框架 | ✅ 完整 |
-| 2 | 草稿诊断与打磨 | 4 步 | 粘贴草稿 → 诊断 → 逐栏打磨 → 模拟预审 | ✅ 完整 |
+| 2 | 草稿诊断与打磨 | 4 步 | 粘贴草稿 → 诊断 → 逐栏打磨（含全文微调） → 模拟预审 | ✅ 完整 |
 
 ### ✅ 各栏目覆盖
 
@@ -318,6 +315,15 @@ MIT License.
 ---
 
 ## 📅 更新日志
+
+### 2026-06-12 (`highauto` 分支)
+
+- [x] 打磨栏目从 18 减至 16（删除技术路线、可行性分析）
+- [x] 框架生成强制中文数字编号（一、二、三），流式输出在步骤 4 展示
+- [x] IP 限流接入全部 AI API 路由（每天 200 次）
+- [x] 保存按钮移至顶部与返回按钮同行
+- [x] 小学数学示例改为数学专用内容
+- [x] 全文微调编辑器整合在步骤 2，步骤流程恢复为 4 步
 
 ### 2026-06-11 (`highauto` 分支)
 
