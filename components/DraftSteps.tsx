@@ -13,6 +13,7 @@ const DRAFT_STEPS = [
   { label: "输入草稿", description: "粘贴你的申报书" },
   { label: "整体诊断", description: "发现结构问题" },
   { label: "逐栏打磨", description: "逐部分精修" },
+  { label: "预审前微调", description: "梳理凝练全文" },
   { label: "模拟预审", description: "专家视角审阅" }
 ];
 
@@ -89,7 +90,7 @@ const SECTION_GROUPS = [
 
 const loadingSteps = ["正在分析中", "正在整理思路", "正在生成结果"];
 
-type Step = 0 | 1 | 2 | 3 | "free";
+type Step = 0 | 1 | 2 | 3 | 4 | "free";
 
 type DetectedSection = { standard: string; heading: string | null; content: string | null };
 
@@ -927,7 +928,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
   }
 
   function getStepNumber(step: Step): number {
-    if (step === "free") return 4;
+    if (step === "free") return 5;
     return step;
   }
 
@@ -979,7 +980,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
           currentStep={getStepNumber(currentStep)}
           allowForwardNavigation
           onGoToStep={(step) => {
-            if (step <= 3) setCurrentStep(step as Step);
+            if (step <= 4) setCurrentStep(step as Step);
           }}
         />
 
@@ -1317,7 +1318,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                       onClick={() => { setCurrentStep(3); setError(""); }}
                       className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF] sm:bg-[#141413] sm:text-white sm:font-extrabold sm:border-none sm:hover:bg-[#2A2A28]"
                     >
-                      下一步：模拟预审
+                      下一步：预审前微调
                     </button>
                   </>
                 )}
@@ -1326,8 +1327,61 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
           </div>
         )}
 
-        {/* Step 3: 模拟专家预审 */}
+        {/* Step 3: 预审前微调 */}
         {currentStep === 3 && (
+          <div className="rounded-md border border-[#E8E6E1] bg-white p-6">
+            <p className="mb-1 text-sm font-bold text-[#6B7280]">操作提示</p>
+            <p className="mb-5 text-sm leading-6 text-[#9CA3AF]">
+              梳理后的全文已填入下方，可在此做最后微调，修改后的内容将用于模拟预审。
+            </p>
+
+            <div className="mb-5 rounded-md bg-[#FAF9F6] p-4">
+              <p className="text-xs font-bold text-[#9CA3AF]">
+                当前草稿（{(polishedDraft || draft).length} 字）
+                {polishedDraft && polishedDraft !== draft && (
+                  <span className="ml-2 text-[#D97706]">已使用打磨后的版本</span>
+                )}
+              </p>
+            </div>
+
+            <div className="mb-5">
+              <textarea
+                value={polishedDraft || draft}
+                onChange={(e) => setPolishedDraft(e.target.value)}
+                className="w-full resize-y rounded-md border border-[#E8E6E1] bg-white px-6 py-3 text-sm leading-8 text-[#141413] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#141413]/10 min-h-[30vh]"
+              />
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:justify-between">
+              <button
+                type="button"
+                onClick={() => { setCurrentStep(2); setError(""); }}
+                className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]"
+              >
+                上一步
+              </button>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <button
+                  type="button"
+                  onClick={openPolishModal}
+                  className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]"
+                >
+                  查看打磨结果
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setCurrentStep(4); setError(""); }}
+                  className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF] sm:bg-[#141413] sm:text-white sm:font-extrabold sm:border-none sm:hover:bg-[#2A2A28]"
+                >
+                  下一步：开始预审
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: 模拟专家预审 */}
+        {currentStep === 4 && (
           <div className="rounded-md border border-[#E8E6E1] bg-white p-6">
             <p className="mb-1 text-sm font-bold text-[#6B7280]">操作提示</p>
             <p className="mb-5 text-sm leading-6 text-[#9CA3AF]">
@@ -1350,7 +1404,6 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
               const currentDraft = polishedDraft || draft;
               const draftChanged = lastReviewedDraft.current && currentDraft !== lastReviewedDraft.current;
 
-              // D: Loading
               if (isLoading) {
                 return (
                   resultText ? (
@@ -1365,7 +1418,6 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                 );
               }
 
-              // B: Reviewed, draft unchanged — show result, no re-review button
               if (completedExpert && !draftChanged) {
                 return (
                   <>
@@ -1378,8 +1430,8 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                       </div>
                     )}
                     <div className="mt-6 flex justify-between">
-                      <button type="button" onClick={() => { setCurrentStep(2); setError(""); }} className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]">
-                        返回打磨
+                      <button type="button" onClick={() => { setCurrentStep(3); setError(""); }} className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]">
+                        返回微调
                       </button>
                       <button type="button" onClick={handleSaveAndExport} className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]">
                         导出
@@ -1392,21 +1444,10 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
                 );
               }
 
-              // C: Reviewed, draft changed — show old result + allow re-review
-              // A: First time — no result, just review button
               return (
                 <>
-                  <div className="mb-5">
-                    <p className="text-sm font-bold text-[#6B7280] mb-2">预审前微调</p>
-                    <p className="text-sm leading-6 text-[#9CA3AF] mb-3">梳理后的全文已填入下方，可在此做最后微调，修改后的内容将用于模拟预审。</p>
-                    <textarea
-                      value={polishedDraft || draft}
-                      onChange={(e) => setPolishedDraft(e.target.value)}
-                      className="w-full resize-y rounded-md border border-[#E8E6E1] bg-white px-6 py-3 text-sm leading-8 text-[#141413] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#141413]/10 min-h-[30vh]"
-                    />
-                  </div>
                   <div className="flex justify-between">
-                    <button type="button" onClick={() => setCurrentStep(2)} className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]">
+                    <button type="button" onClick={() => setCurrentStep(3)} className="focus-ring h-11 rounded-md border border-[#D1D5DB] bg-white px-5 text-sm font-bold text-[#141413] transition hover:bg-[#F3F2EF]">
                       上一步
                     </button>
                     <button type="button" onClick={handleExpertReview} className="focus-ring h-11 rounded-md bg-[#141413] px-6 text-sm font-extrabold text-white transition hover:bg-[#2A2A28]">
@@ -1434,7 +1475,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
         )}
 
         {/* 个人信息检查（独立卡片） */}
-        {currentStep === 3 && completedExpert && lastReviewedDraft.current && (polishedDraft || draft) === lastReviewedDraft.current && resultText && resultTitle === "模拟专家预审意见" && (
+        {currentStep === 4 && completedExpert && lastReviewedDraft.current && (polishedDraft || draft) === lastReviewedDraft.current && resultText && resultTitle === "模拟专家预审意见" && (
           <div className="rounded-md border border-[#E8E6E1] bg-white p-5">
             <button
               type="button"
@@ -1468,7 +1509,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
         )}
 
         {/* 作者的话 — 预审结束后显示 */}
-        {currentStep === 3 && completedExpert && (
+        {currentStep === 4 && completedExpert && (
           <div className="mt-10 border-t border-[#E8E6E1] pt-8 text-center">
             <button
               type="button"
@@ -1558,7 +1599,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
               <button
                 type="button"
                 onClick={() => {
-                  setCurrentStep(3);
+                  setCurrentStep(4);
                   setError("");
                 }}
                 className="focus-ring rounded-lg border border-[#E8E6E1] bg-white p-4 text-left transition hover:border-[#141413] hover:shadow-sm"
@@ -1611,7 +1652,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
           </div>
         )}
 
-        {currentStep !== "free" && currentStep !== 0 && currentStep !== 3 && resultText && resultTitle && !isLoading && (
+        {currentStep !== "free" && currentStep !== 0 && currentStep !== 4 && resultText && resultTitle && !isLoading && (
           <div className="mt-2">
             <label className="mb-4 flex cursor-pointer items-center gap-2 text-xs text-[#6B7280]">
               <input
