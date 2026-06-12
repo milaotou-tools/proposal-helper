@@ -18,7 +18,7 @@ const FALLBACK_USER =
 
 export function buildGenerateFrameworkPrompt(input: GenerateFrameworkInput) {
   return {
-    system: loadSystemPrompt("generate-framework", FALLBACK_SYSTEM) + "\n\n" + SHARED_FORMAT_RULES,
+    system: loadSystemPrompt("generate-framework", FALLBACK_SYSTEM) + "\n\n栏目编号必须使用中文数字 一、二、三、四、五、六、七、八，严禁使用阿拉伯数字 1. 2. 3. 作为栏目标号。栏目内分点才用 1. 2. 3.。\n\n" + SHARED_FORMAT_RULES,
     user: fillTemplate(loadUserTemplate("generate-framework", FALLBACK_USER), {
       stageSubject: input.stageSubject || "需用户补充",
       idea: input.idea || "需用户补充",
