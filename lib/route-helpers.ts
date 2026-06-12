@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createChatCompletion, streamChatCompletion } from "@/lib/ai-client";
 import { saveCollectionEntry } from "@/lib/data-collection";
+import { checkRateLimit, hashIp } from "@/lib/rate-limit";
 
 const MAX_DRAFT_LENGTH = 50000;
 const MAX_FIELD_LENGTH = 5000;
@@ -43,6 +44,20 @@ export async function safeBody(request: Request) {
 
 export function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
+}
+
+export async function checkQuota(request: Request): Promise<NextResponse | null> {
+  const forwarded = request.headers.get("x-forwarded-for");
+  const rawIp = forwarded?.split(",")[0]?.trim() || "127.0.0.1";
+  const hashedIp = await hashIp(rawIp);
+  const { allowed, retryAfterSeconds } = checkRateLimit(hashedIp);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: `今日用量已用完，${retryAfterSeconds ? `约${Math.ceil(retryAfterSeconds / 3600)}小时后重置` : "请明天再试"}` },
+      { status: 429, headers: { "Retry-After": String(retryAfterSeconds || 3600) } }
+    );
+  }
+  return null;
 }
 
 export async function runPrompt(system: string, user: string) {

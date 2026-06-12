@@ -1,9 +1,12 @@
 import { buildGenerateFrameworkPrompt } from "@/lib/prompts/generate-framework";
-import { jsonError, runPromptStream, safeBody, validateField } from "@/lib/route-helpers";
+import { jsonError, runPromptStream, safeBody, validateField, checkQuota } from "@/lib/route-helpers";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  const quota = await checkQuota(request);
+  if (quota) return quota;
+
   const body = await safeBody(request);
   const input = {
     stageSubject: validateField(body.stageSubject),
