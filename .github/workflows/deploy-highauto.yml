@@ -104,12 +104,20 @@ jobs:
           npm install
           npm run build
 
-          # Start fresh on port 3007
-          pm2 start npx --name proposal-helper-paid -- next start -p 3007
+          # Start fresh on port 3007. Avoid npx here because the wrapper can
+          # report "online" in PM2 before the Next.js server is actually ready.
+          pm2 start npm --name proposal-helper-paid -- start -- -p 3007
           pm2 save
 
           echo "=== PM2 status ==="
           pm2 list
+
+          echo "=== local health checks before nginx reload ==="
+          sleep 5
+          curl -sS -o /tmp/proposal-helper-paid-3007.html -w "3007 /admin: HTTP %{http_code}\n" http://127.0.0.1:3007/admin || true
+          curl -sS -o /tmp/proposal-helper-paid-8085.html -w "8085 /admin local: HTTP %{http_code}\n" http://127.0.0.1:8085/admin || true
+          echo "=== recent paid app logs ==="
+          pm2 logs proposal-helper-paid --lines 40 --nostream || true
 
           # Fix Nginx proxy for port 8085 -> 3007
           echo "=== fixing nginx proxy for 8085 ==="
@@ -131,6 +139,10 @@ jobs:
             find /www/server/nginx/proxy_cache_dir -type f -delete 2>/dev/null && echo "Nginx cache cleared"
           fi
           nginx -s reload 2>/dev/null && echo "Nginx reloaded OK" || echo "Nginx reload skipped"
+
+          echo "=== local health checks after nginx reload ==="
+          curl -sS -o /tmp/proposal-helper-paid-3007-after.html -w "3007 /admin after reload: HTTP %{http_code}\n" http://127.0.0.1:3007/admin || true
+          curl -sS -o /tmp/proposal-helper-paid-8085-after.html -w "8085 /admin local after reload: HTTP %{http_code}\n" http://127.0.0.1:8085/admin || true
 
           echo "Deploy done"
           '
