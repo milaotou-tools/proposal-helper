@@ -11,36 +11,68 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.ALIYUN_SSH_KEY }}
 
-      - name: Open firewall and test 8085
+      - name: Configure 8085 public entry
         env:
           ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
         run: |
           SSH_PORT="${ALIYUN_PORT:-22}"
           ssh -p "$SSH_PORT" -o StrictHostKeyChecking=accept-new "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" '
-          echo "=== Open port 8085 via iptables ==="
-          iptables -I INPUT -p tcp --dport 8085 -j ACCEPT 2>&1 || true
+          set -e
+
+          echo "=== Ensure app is listening on 3007 ==="
+          pm2 describe proposal-helper-paid >/dev/null 2>&1 || {
+            cd /www/wwwroot/proposal-helper-paid
+            pm2 start npm --name proposal-helper-paid -- start -- -p 3007
+            pm2 save
+          }
+          curl -sS -o /tmp/proposal-helper-paid-3007-check.html -w "3007 local: HTTP %{http_code}\n" http://127.0.0.1:3007/admin || true
+
+          echo ""
+          echo "=== Open port 8085 via local firewall ==="
+          iptables -C INPUT -p tcp --dport 8085 -j ACCEPT 2>/dev/null || iptables -I INPUT -p tcp --dport 8085 -j ACCEPT 2>/dev/null || true
           service iptables save 2>/dev/null || true
-
-          # Also check if BT Panel has its own firewall
-          if [ -f /etc/init.d/bt ]; then
-            echo "BT Panel found, checking firewall panel"
-            bt 14 2>/dev/null || true
-          fi
+          iptables -L INPUT -n 2>/dev/null | grep 8085 || true
 
           echo ""
-          echo "=== Check iptables rules for 8085 ==="
-          iptables -L INPUT -n 2>/dev/null | grep 8085 || echo "No iptables rule for 8085"
+          echo "=== Install explicit Nginx server for 8085 -> 3007 ==="
+          cat > /www/server/panel/vhost/nginx/proposal-helper-paid-8085.conf <<'"'"'NGINXEOF'"'"'
+          server {
+              listen 8085;
+              server_name 116.62.220.255 localhost 127.0.0.1;
+
+              location / {
+                  proxy_pass http://127.0.0.1:3007;
+                  proxy_http_version 1.1;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection "upgrade";
+                  proxy_read_timeout 300s;
+                  proxy_send_timeout 300s;
+              }
+          }
+          NGINXEOF
+
+          nginx -t
+          nginx -s reload
 
           echo ""
-          echo "=== Test 8085 local ==="
-          curl -s -o /dev/null -w "8085 local: HTTP %{http_code}\n" http://127.0.0.1:8085/
+          echo "=== Local Nginx checks ==="
+          curl -sS -o /tmp/proposal-helper-paid-8085-local.html -w "8085 local default host: HTTP %{http_code}\n" http://127.0.0.1:8085/admin || true
+          curl -sS -H "Host: 116.62.220.255" -o /tmp/proposal-helper-paid-8085-public-host.html -w "8085 local public host: HTTP %{http_code}\n" http://127.0.0.1:8085/admin || true
+
+          echo ""
+          echo "=== Active 8085 config summary ==="
+          grep -RIn "listen .*8085\|proxy_pass .*3007\|server_name 116.62.220.255" /www/server/panel/vhost/nginx /www/server/nginx/conf 2>/dev/null | head -80 || true
           '
 
       - name: Test 8085 from GitHub Actions runner
         run: |
           echo "=== Testing port 8085 from runner ==="
-          curl -s -o /dev/null -w "8085 from runner: HTTP %{http_code}\n" http://116.62.220.255:8085/ --connect-timeout 15 || echo "Connection failed from runner"
+          curl -sS -o /tmp/runner-8085.html -w "8085 from runner: HTTP %{http_code}\n" http://116.62.220.255:8085/admin --connect-timeout 15 || echo "Connection failed from runner"
 
           echo ""
           echo "=== Testing port 8083 for comparison ==="
-          curl -s -o /dev/null -w "8083 from runner: HTTP %{http_code}\n" http://116.62.220.255:8083/ --connect-timeout 15 || echo "Connection failed"
+          curl -sS -o /tmp/runner-8083.html -w "8083 from runner: HTTP %{http_code}\n" http://116.62.220.255:8083/admin --connect-timeout 15 || echo "Connection failed"
