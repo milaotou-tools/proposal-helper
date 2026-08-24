@@ -12,7 +12,8 @@
 - 构建命令：`npm run build`
 
 ## 当前约束
-- 当前只处理本地仓库 `C:\Users\admin\Desktop\proposal-helper-mvp`。
+- 唯一正式本机工作目录是 `D:\AIProjects\01-active\proposal-helper`，其分支为 `highauto`。
+- 桌面上的 `proposal-helper` 和 `proposal-helper-mvp` 仅为历史草稿，保留但不再作为更新来源。
 - 不修改用户明确要求保留的 8083 线上版本。
 - 视觉方向：浅色、柔和、通透、干净、轻微渐变和轻微光晕感。
 

@@ -14,4 +14,4 @@
 | `main` | 停用 | 仅保留内测及线上维护记录。 |
 | `mvp2-stable-style` | 停用 | 2026-06-05 早期快照，无保存码。 |
 
-正式开发请在电脑的 `课题申报小助手-正式版` 文件夹中进行，并确认 Git 分支为 `highauto`。
+正式开发请在 `D:\AIProjects\01-active\proposal-helper` 中进行，并确认 Git 分支为 `highauto`。

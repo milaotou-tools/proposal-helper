@@ -1,4 +1,4 @@
-name: Deploy highauto (paid version)
+name: Deploy mature public version (free, saved progress)
 
 on:
   workflow_dispatch:

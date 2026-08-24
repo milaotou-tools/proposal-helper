@@ -28,19 +28,19 @@
 - Consumes: Git references `main`, `highauto`, and `mvp2-stable-style`.
 - Produces: A plain-language status marker visible immediately after opening either active branch.
 
-- [ ] **Step 1: Add the main-branch ledger**
+- [x] **Step 1: Add the main-branch ledger**
 
 State that `main` is the disabled internal-beta source without save/restore and must not be deployed to the official domain.
 
-- [ ] **Step 2: Add the highauto-branch ledger**
+- [x] **Step 2: Add the highauto-branch ledger**
 
 State that `highauto` is the only active production source, free of a paywall, and has six-digit save/restore.
 
-- [ ] **Step 3: Rename the mature deployment workflow**
+- [x] **Step 3: Rename the mature deployment workflow**
 
 Change only the displayed workflow name from the obsolete paid label to `Deploy mature public version (free, saved progress)`.
 
-- [ ] **Step 4: Verify branch-specific files**
+- [x] **Step 4: Verify branch-specific files**
 
 Run:
 
@@ -55,27 +55,27 @@ Expected: main is marked disabled; highauto is marked active; workflow contains 
 ### Task 2: Create a durable local update folder
 
 **Files:**
-- Create: `C:\Users\admin\Documents\课题申报小助手-正式版\` (Git clone)
+- Create: `D:\AIProjects\01-active\proposal-helper\` (Git clone)
 
 **Interfaces:**
 - Consumes: `https://github.com/milaotou-tools/proposal-helper.git`, branch `highauto`.
 - Produces: A full Git worktree on the mature production branch for future maintenance.
 
-- [ ] **Step 1: Clone the active branch into the dedicated folder**
+- [x] **Step 1: Clone the active branch into the dedicated folder**
 
 Run:
 
 ```powershell
-git clone --branch highauto --single-branch https://github.com/milaotou-tools/proposal-helper.git "C:\Users\admin\Documents\课题申报小助手-正式版"
+git clone --branch highauto --single-branch https://github.com/milaotou-tools/proposal-helper.git "D:\AIProjects\01-active\proposal-helper"
 ```
 
-- [ ] **Step 2: Verify the checkout**
+- [x] **Step 2: Verify the checkout**
 
 Run:
 
 ```powershell
-git -C "C:\Users\admin\Documents\课题申报小助手-正式版" status --short --branch
-git -C "C:\Users\admin\Documents\课题申报小助手-正式版" log -1 --oneline
+git -C "D:\AIProjects\01-active\proposal-helper" status --short --branch
+git -C "D:\AIProjects\01-active\proposal-helper" log -1 --oneline
 ```
 
 Expected: branch `highauto`, clean working tree, and the active release commit.
