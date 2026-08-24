@@ -1,0 +1,54 @@
+name: Restore Mature Public Proposal Version
+
+on:
+  workflow_dispatch:
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ALIYUN_SSH_KEY }}
+
+      - name: Restore proposal.we-teach.cn to the saved-progress application
+        env:
+          ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
+        run: |
+          SSH_PORT="${ALIYUN_PORT:-22}"
+          ssh -p "$SSH_PORT" -o StrictHostKeyChecking=accept-new "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" 'bash -s' << 'SSHSCRIPT'
+          set -euo pipefail
+
+          # The mature free version is the highauto application on 3007.
+          # Its public Nginx entry is 8085; it includes save-work/load-work.
+          pm2 describe proposal-helper-paid >/dev/null
+          curl -fsS --max-time 15 http://127.0.0.1:3007/api/health
+          curl -fsS --max-time 15 http://127.0.0.1:8085/api/health
+
+          PROXY_DIR="/www/server/panel/vhost/nginx/proxy/proposal.we-teach.cn"
+          SITE_CONF=$(grep -rl 'proxy_pass http://127.0.0.1:' "$PROXY_DIR" 2>/dev/null | head -1)
+          test -n "$SITE_CONF"
+          echo "=== Restoring config: $SITE_CONF ==="
+
+          sed -i -E 's#proxy_pass[[:space:]]+http://127\.0\.0\.1:(3005|8085);#proxy_pass http://127.0.0.1:8085;#' "$SITE_CONF"
+          for kind in connect read send; do
+            if grep -q "proxy_${kind}_timeout" "$SITE_CONF"; then
+              sed -i -E "s/(proxy_${kind}_timeout[[:space:]]+)[^;]+;/\\1180s;/g" "$SITE_CONF"
+            else
+              sed -i "/proxy_pass http:\/\/127\.0\.0\.1:8085;/a\\    proxy_${kind}_timeout 180s;" "$SITE_CONF"
+            fi
+          done
+
+          grep -nE 'proxy_pass|proxy_(connect|read|send)_timeout' "$SITE_CONF"
+          grep -q 'proxy_pass http://127.0.0.1:8085;' "$SITE_CONF"
+          grep -q 'proxy_connect_timeout 180s;' "$SITE_CONF"
+          grep -q 'proxy_read_timeout 180s;' "$SITE_CONF"
+          grep -q 'proxy_send_timeout 180s;' "$SITE_CONF"
+
+          nginx -t
+          nginx -s reload
+          curl -fsS --max-time 20 https://proposal.we-teach.cn/api/health
+          SSHSCRIPT
