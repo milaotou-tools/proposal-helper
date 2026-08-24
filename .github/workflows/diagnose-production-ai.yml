@@ -1,0 +1,57 @@
+name: Diagnose Production AI Request
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ALIYUN_SSH_KEY }}
+
+      - name: Trust server host key
+        env:
+          ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
+        run: |
+          SSH_PORT="${ALIYUN_PORT:-22}"
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "$SSH_PORT" -H "${{ secrets.ALIYUN_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Inspect proxy and application state
+        env:
+          ALIYUN_PORT: ${{ secrets.ALIYUN_PORT }}
+        run: |
+          SSH_PORT="${ALIYUN_PORT:-22}"
+          ssh -p "$SSH_PORT" "${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}" 'bash -s' << 'SSHSCRIPT'
+          set -euo pipefail
+
+          echo "=== PM2 process ==="
+          pm2 describe proposal-helper || true
+
+          echo "=== Port 3005 listener ==="
+          ss -tlnp | grep ':3005' || true
+
+          echo "=== Local health check ==="
+          curl -sS --max-time 15 http://127.0.0.1:3005/api/health || true
+          echo ""
+
+          echo "=== All proposal proxy configs ==="
+          while IFS= read -r -d '' config; do
+            if grep -qE 'proxy_pass[[:space:]]+http://127\.0\.0\.1:(3005|8083)[[:space:]]*;' "$config"; then
+              echo "--- $config ---"
+              grep -nE 'server_name|listen|proxy_pass|proxy_(connect|read|send)_timeout|proxy_buffering' "$config" || true
+            fi
+          done < <(find /www/server/panel/vhost/nginx /www/server/nginx -type f -name '*.conf' -print0 2>/dev/null)
+
+          echo "=== Recent Nginx timeout entries ==="
+          grep -RhiE 'upstream.*timed out| 504 ' /www/wwwlogs/*8083* /www/wwwlogs/*proposal* 2>/dev/null | tail -40 || true
+
+          echo "=== Recent AI application errors ==="
+          pm2 logs proposal-helper --lines 120 --nostream 2>&1 | grep -Ei 'deepseek|timeout|abort|fetch|error' | tail -80 || true
+          SSHSCRIPT
