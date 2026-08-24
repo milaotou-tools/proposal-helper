@@ -43,7 +43,7 @@ jobs:
 
           echo "=== All proposal proxy configs ==="
           while IFS= read -r -d '' config; do
-            if grep -qE 'proxy_pass[[:space:]]+http://127\.0\.0\.1:(3005|8083)[[:space:]]*;' "$config"; then
+            if grep -qE 'proxy_pass[[:space:]]+http://127\.0\.0\.1:(3005|8083|8085)[[:space:]]*;' "$config"; then
               echo "--- $config ---"
               grep -nE 'server_name|listen|proxy_pass|proxy_(connect|read|send)_timeout|proxy_buffering' "$config" || true
             fi
