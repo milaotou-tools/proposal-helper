@@ -57,6 +57,12 @@ interface RecordDetail {
   action: string;
   input: Record<string, unknown>;
   outputText: string;
+  groupedItems?: Array<{
+    section: string;
+    input: Record<string, unknown>;
+    outputText: string;
+    timestamp: string;
+  }>;
 }
 
 const ACTION_LABELS: Record<string, string> = {
@@ -344,10 +350,21 @@ export default function AdminPage() {
                           <h3 className="font-extrabold">{ACTION_LABELS[selectedRecord.action] || selectedRecord.action}全文</h3>
                           <button onClick={() => setSelectedRecord(null)} className="focus-ring text-xs text-[#6B7280]">收起</button>
                         </div>
-                        <p className="mb-2 text-xs font-bold text-[#6B7280]">输入</p>
-                        <pre className="mb-4 max-h-64 overflow-auto whitespace-pre-wrap rounded bg-white p-3 text-xs leading-6">{JSON.stringify(selectedRecord.input, null, 2)}</pre>
-                        <p className="mb-2 text-xs font-bold text-[#6B7280]">生成结果</p>
-                        <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap rounded bg-white p-3 text-xs leading-6">{selectedRecord.outputText}</pre>
+                        {selectedRecord.groupedItems?.map((item, index) => (
+                          <section key={`${item.section}-${item.timestamp}-${index}`} className="mb-4 last:mb-0">
+                            <h4 className="mb-2 text-sm font-bold">{item.section}</h4>
+                            <p className="mb-2 text-xs font-bold text-[#6B7280]">输入</p>
+                            <pre className="mb-3 max-h-64 overflow-auto whitespace-pre-wrap rounded bg-white p-3 text-xs leading-6">{JSON.stringify(item.input, null, 2)}</pre>
+                            <p className="mb-2 text-xs font-bold text-[#6B7280]">生成结果</p>
+                            <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap rounded bg-white p-3 text-xs leading-6">{item.outputText}</pre>
+                          </section>
+                        ))}
+                        {!selectedRecord.groupedItems && <>
+                          <p className="mb-2 text-xs font-bold text-[#6B7280]">输入</p>
+                          <pre className="mb-4 max-h-64 overflow-auto whitespace-pre-wrap rounded bg-white p-3 text-xs leading-6">{JSON.stringify(selectedRecord.input, null, 2)}</pre>
+                          <p className="mb-2 text-xs font-bold text-[#6B7280]">生成结果</p>
+                          <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap rounded bg-white p-3 text-xs leading-6">{selectedRecord.outputText}</pre>
+                        </>}
                       </div>
                     )}
                   </div>

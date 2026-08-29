@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { buildQualitySnapshot, classifyAnalyticsError, sanitizeSessionId } from "../lib/analytics-core.ts";
 import { parseAnalyticsLines } from "../lib/analytics.ts";
-import { summarizeCollectionRecord } from "../lib/admin-records.ts";
+import { buildGroupedPolishRecord, groupCollectionRecords, summarizeCollectionRecord } from "../lib/admin-records.ts";
 
 test("sanitizes a browser session id and rejects an invalid identifier", () => {
   assert.equal(sanitizeSessionId("session_1234567890"), "session_1234567890");
@@ -62,4 +62,35 @@ test("summarizes consented generated content without returning its full text", (
   assert.match(summary.inputPreview, /…$/);
   assert.match(summary.outputPreview, /…$/);
   assert.equal("outputText" in summary, false);
+});
+
+test("groups polish records only when they share the same draft work id", () => {
+  const record = (id, workId, section) => ({
+    id,
+    entry: {
+      timestamp: `2026-08-29T00:0${id}:00.000Z`, sessionId: "session_1234567890", hashedIp: "ip", action: "polish-section",
+      input: { section, draft: "草稿" }, outputText: `${section}结果`, consent: true, workId
+    }
+  });
+
+  const summaries = groupCollectionRecords([
+    record("1", "draft_1234567890", "研究目标"),
+    record("2", "draft_1234567890", "研究内容"),
+    record("3", "draft_abcdefghij", "研究目标")
+  ]);
+
+  assert.equal(summaries.length, 2);
+  const grouped = summaries.find((summary) => summary.inputPreview.includes("2 次"));
+  assert.equal(grouped?.action, "polish-section");
+});
+
+test("keeps every section when building a grouped polish detail", () => {
+  const record = (id, section) => ({
+    id,
+    entry: { timestamp: `2026-08-29T00:0${id}:00.000Z`, sessionId: "session_1234567890", hashedIp: "ip", action: "polish-section", input: { section }, outputText: `${section}结果`, consent: true, workId: "draft_1234567890" }
+  });
+  const detail = buildGroupedPolishRecord("draft_1234567890", [record("1", "研究目标"), record("2", "研究内容")]);
+
+  assert.equal(detail.groupedItems.length, 2);
+  assert.deepEqual(detail.groupedItems.map((item) => item.section), ["研究内容", "研究目标"]);
 });

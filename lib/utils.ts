@@ -59,12 +59,14 @@ export function getAnalyticsSessionId(): string {
   }
 }
 
-function aiHeaders(allowCollection?: boolean) {
-  return {
+function aiHeaders(allowCollection?: boolean, workId?: string): Record<string, string> {
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
     "x-allow-collection": allowCollection === false ? "0" : "1",
     "x-analytics-session-id": getAnalyticsSessionId()
   };
+  if (workId) headers["x-work-id"] = workId;
+  return headers;
 }
 
 export async function postAi(url: string, payload: unknown, allowCollection?: boolean) {
@@ -87,11 +89,12 @@ export async function postAiStream(
   url: string,
   payload: unknown,
   onChunk: (chunk: string) => void,
-  allowCollection?: boolean
+  allowCollection?: boolean,
+  workId?: string
 ): Promise<void> {
   const res = await fetch(url, {
     method: "POST",
-    headers: aiHeaders(allowCollection),
+    headers: aiHeaders(allowCollection, workId),
     body: JSON.stringify(payload)
   });
 

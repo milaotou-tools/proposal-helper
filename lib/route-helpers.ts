@@ -5,6 +5,7 @@ import { classifyAnalyticsError, sanitizeSessionId } from "@/lib/analytics-core"
 import { resolveCollectionConsent } from "@/lib/collection-consent";
 import { saveCollectionEntry } from "@/lib/data-collection";
 import { checkRateLimit, hashIp } from "@/lib/rate-limit";
+import { sanitizeWorkId } from "@/lib/work-id";
 
 const MAX_DRAFT_LENGTH = 50000;
 const MAX_FIELD_LENGTH = 5000;
@@ -57,6 +58,10 @@ function getAnalyticsSessionId(request: Request) {
   return sanitizeSessionId(request.headers.get("x-analytics-session-id"));
 }
 
+function getWorkId(request: Request) {
+  return sanitizeWorkId(request.headers.get("x-work-id"));
+}
+
 function errorKind(caught: unknown): "timeout" | "error" {
   const message = caught instanceof Error ? caught.message : String(caught || "");
   return classifyAnalyticsError(message);
@@ -104,6 +109,7 @@ export async function runPromptWithCollection(
 ) {
   const startedAt = Date.now();
   const sessionId = getAnalyticsSessionId(request);
+  const workId = getWorkId(request);
   try {
     const hashedIp = request.headers.get("x-hashed-ip") || "unknown";
     const consent = getCollectionConsent(request, allowCollection);
@@ -118,6 +124,7 @@ export async function runPromptWithCollection(
       timestamp: new Date().toISOString(),
       hashedIp,
       sessionId,
+      ...(workId ? { workId } : {}),
       action,
       input: inputSummary,
       outputText: text,
@@ -165,6 +172,7 @@ export async function runPromptStream(
   const hashedIp = request.headers.get("x-hashed-ip") || "unknown";
   const consent = getCollectionConsent(request, allowCollection);
   const sessionId = getAnalyticsSessionId(request);
+  const workId = getWorkId(request);
   const startedAt = Date.now();
 
   const stream = streamChatCompletion([
@@ -189,6 +197,7 @@ export async function runPromptStream(
           timestamp: new Date().toISOString(),
           hashedIp,
           sessionId,
+          ...(workId ? { workId } : {}),
           action,
           input: inputSummary,
           outputText: fullText,

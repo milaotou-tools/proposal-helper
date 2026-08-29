@@ -19,11 +19,14 @@ export async function POST(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  const groupedItems = "groupedItems" in record ? record.groupedItems : undefined;
+
   return NextResponse.json({
     id: record.id,
     timestamp: record.entry.timestamp,
     action: record.entry.action,
     input: record.entry.input,
-    outputText: record.entry.outputText
+    outputText: record.entry.outputText,
+    ...(groupedItems ? { groupedItems } : {})
   });
 }

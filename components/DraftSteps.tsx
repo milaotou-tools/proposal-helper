@@ -87,6 +87,12 @@ const SECTION_GROUPS = [
 
 const loadingSteps = ["正在分析中", "正在整理思路", "正在生成结果"];
 
+function createWorkId() {
+  return typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `work_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
+}
+
 type Step = 0 | 1 | 2 | 3 | "free";
 
 type DetectedSection = { standard: string; heading: string | null; content: string | null };
@@ -405,6 +411,8 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
       ? crypto.randomUUID()
       : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   );
+  const workId = useRef(createWorkId());
+  const polishWorkSource = useRef("");
 
   // Undo history for polishedDraft editor
   const historyStack = useRef<string[]>([]);
@@ -731,6 +739,10 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
       setError("请先粘贴申报书草稿。");
       return;
     }
+    if (polishWorkSource.current !== draft) {
+      workId.current = createWorkId();
+      polishWorkSource.current = draft;
+    }
 
     const selectedCount = selectedSections.filter(Boolean).length;
     if (selectedCount === 0) {
@@ -784,7 +796,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
             next[i] = { ...next[i], content: buffer };
             return next;
           });
-        });
+        }, allowCollection, workId.current);
 
         if (!buffer.trim()) throw new Error("AI 未返回内容");
         polishContentRef.current.set(i, buffer);

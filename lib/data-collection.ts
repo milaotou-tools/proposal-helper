@@ -7,6 +7,7 @@ export interface CollectionEntry {
   timestamp: string;
   hashedIp: string;
   sessionId?: string;
+  workId?: string;
   action: string;
   input: Record<string, unknown>;
   outputText: string;
