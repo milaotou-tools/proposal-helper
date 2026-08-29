@@ -338,22 +338,21 @@ export default function AdminPage() {
                     </div>
                     <p className="mb-1 text-xs text-[#6B7280]">输入摘要：{record.inputPreview || "—"}</p>
                     <p className="text-xs text-[#6B7280]">结果摘要：{record.outputPreview || "—"}</p>
+                    {selectedRecord?.id === record.id && (
+                      <div className="mt-4 rounded-md border border-[#141413] bg-[#FAF9F6] p-4 text-sm">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <h3 className="font-extrabold">{ACTION_LABELS[selectedRecord.action] || selectedRecord.action}全文</h3>
+                          <button onClick={() => setSelectedRecord(null)} className="focus-ring text-xs text-[#6B7280]">收起</button>
+                        </div>
+                        <p className="mb-2 text-xs font-bold text-[#6B7280]">输入</p>
+                        <pre className="mb-4 max-h-64 overflow-auto whitespace-pre-wrap rounded bg-white p-3 text-xs leading-6">{JSON.stringify(selectedRecord.input, null, 2)}</pre>
+                        <p className="mb-2 text-xs font-bold text-[#6B7280]">生成结果</p>
+                        <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap rounded bg-white p-3 text-xs leading-6">{selectedRecord.outputText}</pre>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
-
-              {selectedRecord && (
-                <div className="mt-4 rounded-md border border-[#141413] bg-white p-4 text-sm">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <h3 className="font-extrabold">{ACTION_LABELS[selectedRecord.action] || selectedRecord.action}全文</h3>
-                    <button onClick={() => setSelectedRecord(null)} className="focus-ring text-xs text-[#6B7280]">收起</button>
-                  </div>
-                  <p className="mb-2 text-xs font-bold text-[#6B7280]">输入</p>
-                  <pre className="mb-4 max-h-64 overflow-auto whitespace-pre-wrap rounded bg-[#FAF9F6] p-3 text-xs leading-6">{JSON.stringify(selectedRecord.input, null, 2)}</pre>
-                  <p className="mb-2 text-xs font-bold text-[#6B7280]">生成结果</p>
-                  <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap rounded bg-[#FAF9F6] p-3 text-xs leading-6">{selectedRecord.outputText}</pre>
-                </div>
-              )}
             </div>
 
             {feedback && (
