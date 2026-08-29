@@ -16,6 +16,8 @@ type ChatCompletionResponse = {
 
 const DEFAULT_BASE_URL = "https://api.deepseek.com";
 const DEFAULT_MODEL = "deepseek-v4-pro";
+const MAX_REQUEST_DURATION_MS = 300000;
+const STREAM_IDLE_TIMEOUT_MS = 120000;
 
 function normalizeBaseUrl(value: string) {
   return value.replace(/\/+$/, "");
@@ -48,7 +50,13 @@ export async function* streamChatCompletion(messages: ChatMessage[]): AsyncGener
   const baseUrl = normalizeBaseUrl(process.env.DEEPSEEK_BASE_URL || process.env.OPENAI_BASE_URL || DEFAULT_BASE_URL);
   const model = process.env.DEEPSEEK_MODEL || process.env.OPENAI_MODEL || DEFAULT_MODEL;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 120000);
+  let idleTimeout: ReturnType<typeof setTimeout> | null = null;
+  const resetIdleTimeout = () => {
+    if (idleTimeout) clearTimeout(idleTimeout);
+    idleTimeout = setTimeout(() => controller.abort(), STREAM_IDLE_TIMEOUT_MS);
+  };
+  const timeout = setTimeout(() => controller.abort(), MAX_REQUEST_DURATION_MS);
+  resetIdleTimeout();
 
   try {
     const response = await fetch(`${baseUrl}/chat/completions`, {
@@ -84,6 +92,7 @@ export async function* streamChatCompletion(messages: ChatMessage[]): AsyncGener
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
+      resetIdleTimeout();
 
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split("\n");
@@ -110,6 +119,7 @@ export async function* streamChatCompletion(messages: ChatMessage[]): AsyncGener
     throw caught;
   } finally {
     clearTimeout(timeout);
+    if (idleTimeout) clearTimeout(idleTimeout);
   }
 }
 
@@ -123,7 +133,7 @@ export async function createChatCompletion(messages: ChatMessage[]) {
   const baseUrl = normalizeBaseUrl(process.env.DEEPSEEK_BASE_URL || process.env.OPENAI_BASE_URL || DEFAULT_BASE_URL);
   const model = process.env.DEEPSEEK_MODEL || process.env.OPENAI_MODEL || DEFAULT_MODEL;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 120000);
+  const timeout = setTimeout(() => controller.abort(), MAX_REQUEST_DURATION_MS);
 
   try {
     const response = await fetch(`${baseUrl}/chat/completions`, {
