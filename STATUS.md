@@ -35,6 +35,7 @@
 - 已新增超时行为回归测试；`node --test tests/ai-client-timeout.test.mjs` 与 `npx tsc --noEmit` 于 2026-08-29 通过。
 - 本次已通过 `Deploy mature public version (free, saved progress)` 工作流部署到 `highauto` 专属的 3007→8085；8083 保持原样。
 - 阿里云安全组放行 TCP 8085 后，2026-08-29 外网首页与 `/api/health` 均验证为 HTTP 200。
+- 已实际确认：正式域名 `https://proposal.we-teach.cn` 当前指向 8085（与 8085 页面内容一致），不是 8083。
 - 已切换到正确工作目录：`C:\Users\admin\Desktop\proposal-helper-mvp`
 - 已完成此前的全局视觉与输入框样式调整，并通过 `npm run build`
 - 已确认当前本地预览可用

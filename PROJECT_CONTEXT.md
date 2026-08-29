@@ -22,6 +22,11 @@
 - `main` 为停用的内测遗留线，不得部署到正式域名。
 - `mvp2-stable-style` 是停用的 2026-06-05 旧快照；各版本状态详见根目录 `VERSION_STATUS.md`。
 
+## 已验证的部署映射（2026-08-29）
+- **正式域名：** `https://proposal.we-teach.cn` → 公网 `8085` → 本机 `3007` → PM2 `proposal-helper-paid` → Git 分支 `highauto`。
+- **8083 内测稳定版：** 公网 `8083` → 本机 `3005` → PM2 `proposal-helper` → Git 分支 `main`；不修改、不部署到正式域名。
+- 修改 `highauto` 后，仅使用 `.github/workflows/deploy-highauto.yml` 发布到 8085；严禁使用会操作 8083 的部署工作流。
+
 ## 已知结构
 - `components/AppShell.tsx`：页面入口路由
 - `components/LandingPage.tsx`：起始选择页
