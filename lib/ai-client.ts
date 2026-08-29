@@ -15,7 +15,7 @@ type ChatCompletionResponse = {
 };
 
 const DEFAULT_BASE_URL = "https://api.deepseek.com";
-const DEFAULT_MODEL = "deepseek-v4-pro";
+const DEFAULT_MODEL = "deepseek-v4-flash";
 const MAX_REQUEST_DURATION_MS = 300000;
 const STREAM_IDLE_TIMEOUT_MS = 120000;
 

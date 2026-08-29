@@ -39,7 +39,7 @@
   - 后续开展计划支持用户补充当前进度、学校要求、截止时间和其他说明，再按实际情况生成
 
 ## 已完成
-- 已将 AI 请求最长总时限从 120 秒调整为 5 分钟；保持 `deepseek-v4-pro` 和思考模式不变。
+- 已将 AI 请求最长总时限从 120 秒调整为 5 分钟；正式站（8085）使用 `deepseek-v4-flash`，并保留原有思考模式。
 - 流式请求现在每收到一个模型数据块就重置 120 秒静默时限，避免模型仍在工作时被误判为超时。
 - 已新增超时行为回归测试；`node --test tests/ai-client-timeout.test.mjs` 与 `npx tsc --noEmit` 于 2026-08-29 通过。
 - 本次已通过 `Deploy mature public version (free, saved progress)` 工作流部署到 `highauto` 专属的 3007→8085；8083 保持原样。
