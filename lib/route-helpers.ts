@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { createChatCompletion, streamChatCompletion } from "@/lib/ai-client";
+import { saveAnalyticsEvent } from "@/lib/analytics";
+import { classifyAnalyticsError, sanitizeSessionId } from "@/lib/analytics-core";
+import { resolveCollectionConsent } from "@/lib/collection-consent";
 import { saveCollectionEntry } from "@/lib/data-collection";
 import { checkRateLimit, hashIp } from "@/lib/rate-limit";
 
@@ -46,6 +49,19 @@ export function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }
 
+function getCollectionConsent(request: Request, fallback?: boolean) {
+  return resolveCollectionConsent(request.headers.get("x-allow-collection"), fallback);
+}
+
+function getAnalyticsSessionId(request: Request) {
+  return sanitizeSessionId(request.headers.get("x-analytics-session-id"));
+}
+
+function errorKind(caught: unknown): "timeout" | "error" {
+  const message = caught instanceof Error ? caught.message : String(caught || "");
+  return classifyAnalyticsError(message);
+}
+
 export async function checkQuota(request: Request): Promise<NextResponse | null> {
   const forwarded = request.headers.get("x-forwarded-for");
   const rawIp = forwarded?.split(",")[0]?.trim() || "127.0.0.1";
@@ -66,6 +82,7 @@ export async function runPrompt(system: string, user: string) {
       { role: "system", content: system },
       { role: "user", content: user }
     ]);
+    if (!text.trim()) throw new Error("AI 未返回内容，请重试。");
 
     return NextResponse.json({ text });
   } catch (caught) {
@@ -85,18 +102,22 @@ export async function runPromptWithCollection(
   request: Request,
   allowCollection?: boolean
 ) {
+  const startedAt = Date.now();
+  const sessionId = getAnalyticsSessionId(request);
   try {
     const hashedIp = request.headers.get("x-hashed-ip") || "unknown";
-    const consent = typeof allowCollection === "boolean" ? allowCollection : true;
+    const consent = getCollectionConsent(request, allowCollection);
 
     const text = await createChatCompletion([
       { role: "system", content: system },
       { role: "user", content: user }
     ]);
+    if (!text.trim()) throw new Error("AI 未返回内容，请重试。");
 
     saveCollectionEntry({
       timestamp: new Date().toISOString(),
       hashedIp,
+      sessionId,
       action,
       input: inputSummary,
       outputText: text,
@@ -105,8 +126,26 @@ export async function runPromptWithCollection(
       // silently ignore collection errors
     });
 
+    saveAnalyticsEvent({
+      timestamp: new Date().toISOString(),
+      sessionId,
+      action,
+      status: "success",
+      eventType: "ai",
+      durationMs: Date.now() - startedAt
+    }).catch(() => {});
+
     return NextResponse.json({ text });
   } catch (caught) {
+    saveAnalyticsEvent({
+      timestamp: new Date().toISOString(),
+      sessionId,
+      action,
+      status: "error",
+      eventType: "ai",
+      durationMs: Date.now() - startedAt,
+      errorKind: errorKind(caught)
+    }).catch(() => {});
     if (caught instanceof InputTooLargeError) {
       return NextResponse.json({ error: caught.message }, { status: 413 });
     }
@@ -124,7 +163,9 @@ export async function runPromptStream(
   allowCollection?: boolean
 ) {
   const hashedIp = request.headers.get("x-hashed-ip") || "unknown";
-  const consent = typeof allowCollection === "boolean" ? allowCollection : true;
+  const consent = getCollectionConsent(request, allowCollection);
+  const sessionId = getAnalyticsSessionId(request);
+  const startedAt = Date.now();
 
   const stream = streamChatCompletion([
     { role: "system", content: system },
@@ -141,17 +182,36 @@ export async function runPromptStream(
           fullText += chunk;
           controller.enqueue(encoder.encode(chunk));
         }
+        if (!fullText.trim()) throw new Error("AI 未返回内容，请重试。");
         controller.close();
 
         saveCollectionEntry({
           timestamp: new Date().toISOString(),
           hashedIp,
+          sessionId,
           action,
           input: inputSummary,
           outputText: fullText,
           consent
         }).catch(() => {});
+        saveAnalyticsEvent({
+          timestamp: new Date().toISOString(),
+          sessionId,
+          action,
+          status: "success",
+          eventType: "ai",
+          durationMs: Date.now() - startedAt
+        }).catch(() => {});
       } catch (caught) {
+        saveAnalyticsEvent({
+          timestamp: new Date().toISOString(),
+          sessionId,
+          action,
+          status: "error",
+          eventType: "ai",
+          durationMs: Date.now() - startedAt,
+          errorKind: errorKind(caught)
+        }).catch(() => {});
         const message = caught instanceof Error ? caught.message : "生成失败";
         controller.enqueue(encoder.encode(`\n[ERROR] ${message}`));
         controller.close();

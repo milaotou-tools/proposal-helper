@@ -34,10 +34,43 @@ export function stripMarkdown(text: string) {
     .replace(/\*(.+?)\*/g, "$1");
 }
 
+const ANALYTICS_SESSION_KEY = "proposal-helper:analytics-session";
+const ANALYTICS_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+export function getAnalyticsSessionId(): string {
+  if (typeof window === "undefined") return "unknown";
+
+  try {
+    const stored = window.localStorage.getItem(ANALYTICS_SESSION_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored) as { id?: string; createdAt?: number };
+      if (typeof parsed.id === "string" && typeof parsed.createdAt === "number" && Date.now() - parsed.createdAt < ANALYTICS_SESSION_TTL_MS) {
+        return parsed.id;
+      }
+    }
+
+    const id = typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `session_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
+    window.localStorage.setItem(ANALYTICS_SESSION_KEY, JSON.stringify({ id, createdAt: Date.now() }));
+    return id;
+  } catch {
+    return "unknown";
+  }
+}
+
+function aiHeaders(allowCollection?: boolean) {
+  return {
+    "Content-Type": "application/json",
+    "x-allow-collection": allowCollection === false ? "0" : "1",
+    "x-analytics-session-id": getAnalyticsSessionId()
+  };
+}
+
 export async function postAi(url: string, payload: unknown, allowCollection?: boolean) {
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-allow-collection": allowCollection ? "1" : "0" },
+    headers: aiHeaders(allowCollection),
     body: JSON.stringify(payload)
   });
 
@@ -58,7 +91,7 @@ export async function postAiStream(
 ): Promise<void> {
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-allow-collection": allowCollection ? "1" : "0" },
+    headers: aiHeaders(allowCollection),
     body: JSON.stringify(payload)
   });
 

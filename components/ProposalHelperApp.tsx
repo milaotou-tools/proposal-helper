@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { DataCollectionCheckbox } from "@/components/DataCollectionCheckbox";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
+import { getAnalyticsSessionId } from "@/lib/utils";
 
 type FrameworkForm = {
   stageSubject: string;
@@ -151,7 +152,11 @@ async function postAi(path: string, payload: Record<string, string>, allowCollec
   async function attempt() {
     const response = await fetch(path, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-allow-collection": allowCollection ? "1" : "0",
+        "x-analytics-session-id": getAnalyticsSessionId()
+      },
       body: JSON.stringify({ ...payload, allowCollection })
     });
 

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
+import { getAnalyticsEvents } from "@/lib/analytics";
+import { buildQualitySnapshot } from "@/lib/analytics-core";
 
 const COLLECTION_DIR = process.env.COLLECTION_DIR || path.join(process.cwd(), "data", "collection");
 
@@ -32,7 +34,7 @@ async function getCollectionStats() {
       }
     }
   } catch {
-    return null; // directory doesn't exist yet
+    // Content collection is optional; quality analytics can still have data.
   }
 
   const actionCounts: Record<string, number> = {};
@@ -79,6 +81,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const stats = await getCollectionStats();
-  return NextResponse.json(stats);
+  const [stats, events] = await Promise.all([getCollectionStats(), getAnalyticsEvents()]);
+  return NextResponse.json({ ...stats, quality: buildQualitySnapshot(events) });
 }

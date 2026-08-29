@@ -136,7 +136,7 @@ export function TopicGuidance({ onBack, onUseTopic }: Props) {
         fullText += chunk;
         setStreamingText(stripMarkdown(fullText));
       },
-      true,
+      false,
     )
       .then(() => {
         const topics = parseTopicCards(fullText);

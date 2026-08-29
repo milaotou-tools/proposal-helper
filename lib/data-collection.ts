@@ -6,6 +6,7 @@ const COLLECTION_DIR = process.env.COLLECTION_DIR || path.join(process.cwd(), "d
 export interface CollectionEntry {
   timestamp: string;
   hashedIp: string;
+  sessionId?: string;
   action: string;
   input: Record<string, unknown>;
   outputText: string;

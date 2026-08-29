@@ -5,7 +5,7 @@ import { StepNavigation } from "@/components/StepNavigation";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { DailyQuota } from "@/components/DailyQuota";
 import { usePersistedState } from "@/lib/use-persisted-state";
-import { postAiStream, stripMarkdown, copyToClipboard } from "@/lib/utils";
+import { getAnalyticsSessionId, postAiStream, stripMarkdown, copyToClipboard } from "@/lib/utils";
 import { formatOutput } from "@/lib/format-output";
 import type { SaveSnapshot } from "@/lib/save-store";
 
@@ -372,7 +372,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
     try {
       const res = await fetch("/api/save-work", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-analytics-session-id": getAnalyticsSessionId() },
         body: JSON.stringify({
           type: "draft",
           code: saveCode,
@@ -448,7 +448,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
     if (resultText && resultTitle === "模拟专家预审意见") {
       fetch("/api/save-final", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-analytics-session-id": getAnalyticsSessionId() },
         body: JSON.stringify({
           sessionId: sessionId.current,
           originalDraft: draft,
@@ -617,7 +617,7 @@ export function DraftSteps({ onBack, restoredSnapshot }: DraftStepsProps) {
           lastReviewedDraft.current = polishedDraft || draft;
           fetch("/api/save-final", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "x-analytics-session-id": getAnalyticsSessionId() },
             body: JSON.stringify({
               sessionId: sessionId.current,
               originalDraft: draft,

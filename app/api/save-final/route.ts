@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { saveAnalyticsEvent } from "@/lib/analytics";
+import { sanitizeSessionId } from "@/lib/analytics-core";
 import { saveCollectionEntry } from "@/lib/data-collection";
 
 export async function POST(request: NextRequest) {
@@ -18,6 +20,7 @@ export async function POST(request: NextRequest) {
     const consent = typeof body.allowCollection === "boolean" ? body.allowCollection : true;
     const hashedIp = request.headers.get("x-hashed-ip") || "unknown";
     const sessionId = body.sessionId || "unknown";
+    const analyticsSessionId = sanitizeSessionId(request.headers.get("x-analytics-session-id"));
     const timestamp = new Date().toISOString();
 
     // Save original draft
@@ -25,6 +28,7 @@ export async function POST(request: NextRequest) {
       await saveCollectionEntry({
         timestamp,
         hashedIp,
+        sessionId: analyticsSessionId,
         action: "original-draft",
         input: { sessionId, draftLength: body.originalDraft.length },
         outputText: body.originalDraft,
@@ -36,6 +40,7 @@ export async function POST(request: NextRequest) {
     await saveCollectionEntry({
       timestamp,
       hashedIp,
+      sessionId: analyticsSessionId,
       action: "final-output",
       input: {
         sessionId,
@@ -48,6 +53,14 @@ export async function POST(request: NextRequest) {
       }),
       consent
     });
+
+    saveAnalyticsEvent({
+      timestamp,
+      sessionId: analyticsSessionId,
+      action: "final-output",
+      status: "success",
+      eventType: "completion"
+    }).catch(() => {});
 
     return NextResponse.json({ ok: true });
   } catch {

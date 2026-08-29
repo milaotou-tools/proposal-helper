@@ -90,11 +90,13 @@ jobs:
           DEEPSEEK_MODEL=deepseek-v4-pro
           ADMIN_PASSWORD=ktsb2026
           COLLECTION_DIR=/www/wwwdata/proposal-helper-paid/collection
+          ANALYTICS_DIR=/www/wwwdata/proposal-helper-paid/analytics
           FEEDBACK_DIR=/www/wwwdata/proposal-helper-paid/feedback
           ENVEOF
 
           # Ensure data directories exist
           mkdir -p /www/wwwdata/proposal-helper-paid/collection
+          mkdir -p /www/wwwdata/proposal-helper-paid/analytics
           mkdir -p /www/wwwdata/proposal-helper-paid/feedback
 
           # Build

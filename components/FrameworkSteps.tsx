@@ -171,7 +171,7 @@ export function FrameworkSteps({ onBack, restoredSnapshot, guidancePrefill }: Fr
         fullText += chunk;
         setGuidanceStream(stripMarkdown(fullText));
       },
-      true,
+      false,
     )
       .then(() => {
         const topics = fullText
