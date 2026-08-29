@@ -23,9 +23,18 @@
 - `mvp2-stable-style` 是停用的 2026-06-05 旧快照；各版本状态详见根目录 `VERSION_STATUS.md`。
 
 ## 已验证的部署映射（2026-08-29）
-- **正式域名：** `https://proposal.we-teach.cn` → 公网 `8085` → 本机 `3007` → PM2 `proposal-helper-paid` → Git 分支 `highauto`。
-- **8083 内测稳定版：** 公网 `8083` → 本机 `3005` → PM2 `proposal-helper` → Git 分支 `main`；不修改、不部署到正式域名。
-- 修改 `highauto` 后，仅使用 `.github/workflows/deploy-highauto.yml` 发布到 8085；严禁使用会操作 8083 的部署工作流。
+| 项目 | 8085（当前正式公网版） | 8083（保留内测稳定版） |
+|---|---|---|
+| 用途 | 当前对外使用、继续开发和发布的版本 | 仅作稳定对照，不再更新 |
+| 访问入口 | `https://proposal.we-teach.cn`（已实际验证） | `http://116.62.220.255:8083` |
+| 公网 → 本机 | `8085` → `3007` | `8083` → `3005` |
+| PM2 进程 | `proposal-helper-paid`（名称为历史遗留） | `proposal-helper` |
+| Git 分支 | `highauto` | `main` |
+| 数据目录 | `/www/wwwdata/proposal-helper-paid/` | `/www/wwwdata/proposal-helper/` |
+| 唯一发布流程 | `.github/workflows/deploy-highauto.yml` | 旧版 `deploy-via-scp.yml` / `deploy-aliyun.yml`，当前禁止触发 |
+
+- 修改 `highauto` 后，只能发布到 8085；**严禁**使用会重启、替换或修改 8083→3005 的工作流。
+- 8085 的 Nginx `proxy_read_timeout` 为 330 秒，与本项目 5 分钟 AI 请求上限配套；8083 的原有配置不作为本次维护对象。
 
 ## 已知结构
 - `components/AppShell.tsx`：页面入口路由
